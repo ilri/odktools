@@ -1,0 +1,17 @@
+QT.xlsx.VERSION = 0.3.0
+QT.xlsx.MAJOR_VERSION = 0
+QT.xlsx.MINOR_VERSION = 3
+QT.xlsx.PATCH_VERSION = 0
+QT.xlsx.name = QtXlsx
+QT.xlsx.libs = $$QT_MODULE_LIB_BASE
+QT.xlsx.rpath = /home/cquiros/Apps/qt541/5.4/gcc_64/lib
+QT.xlsx.includes = $$QT_MODULE_INCLUDE_BASE $$QT_MODULE_INCLUDE_BASE/QtXlsx
+QT.xlsx.bins = $$QT_MODULE_BIN_BASE
+QT.xlsx.libexecs = $$QT_MODULE_LIBEXEC_BASE
+QT.xlsx.plugins = $$QT_MODULE_PLUGIN_BASE
+QT.xlsx.imports = $$QT_MODULE_IMPORT_BASE
+QT.xlsx.qml = $$QT_MODULE_QML_BASE
+QT.xlsx.depends = core gui
+QT.xlsx.module_config =
+QT.xlsx.DEFINES = QT_XLSX_LIB
+QT_MODULES += xlsx
