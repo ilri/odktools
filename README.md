@@ -1,10 +1,10 @@
 # ODK Tools
-ODK Tools is a toolbox for processing [ODK](https://opendatakit.org/) survey data into MySQL databases. The toolbox relies on [Formhub](https://github.com/SEL-Columbia/formhub) as a temporary storage of ODK submissions because it conveniently stores them in JSON format and on [META](https://github.com/ilri/meta) for storing the dictionary information and multi-language support. ODK Tools comprises of four command line tools performing different tasks. The toolbox is cross-platform and can be build in Windows, Linux and Mac. 
+ODK Tools is a toolbox for processing [ODK](https://opendatakit.org/) survey data into MySQL databases. The toolbox relies on [Formhub](https://github.com/SEL-Columbia/formhub) as a temporary storage of ODK submissions because it conveniently stores them in JSON format; and on [META](https://github.com/ilri/meta) for storing the dictionary information and to support multiple languages. ODK Tools comprises of four command line tools performing different tasks. The toolbox is cross-platform and can be build in Windows, Linux and Mac. 
 
 ## The toolbox
 - 
 ###ODKToMySQL
-ODKToMySQL converts a ODK Excel File (XLSX survey file) into a relational MySQL schema. Even though [ODK Aggregate](https://opendatakit.org/use/aggregate/) stores submissions in MySQL, the Aggregate schema lack basic functionality like:
+ODKToMySQL converts a ODK Excel File (XLSX survey file) into a relational MySQL schema. Even though [ODK Aggregate](https://opendatakit.org/use/aggregate/) stores submissions in MySQL, the Aggregate schema lacks basic functionality like:
  - Avoid duplicated submissions if an unique ID is used in a survey.
  - Store and link select values.
  - Store multi-select values as independent rows.
@@ -129,7 +129,7 @@ ODK Tools was built using:
 ## Building and testing
 To build this site for local viewing or development:
 
-    $ git clone https://github.com/ilri/meta.git
+    $ git clone https://github.com/ilri/odktools.git
     $ cd meta
     $ qmake
     $ make
