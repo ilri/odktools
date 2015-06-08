@@ -136,6 +136,7 @@ To build this site for local viewing or development:
 
 ## Author
 Carlos Quiros (c.f.quiros_at_cgiar.org / cquiros_at_qlands.com)
+
 Harrison Njmaba (h.njamba@cgiar.org)
 
 ## License
