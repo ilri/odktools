@@ -84,7 +84,7 @@ typedef lkpValue TlkpValue;
 struct tableDef
 {
   QString name;
-  QString desc;
+  QList<TlngLkpDesc > desc; //List of table descriptions in different languages
   QList<TfieldDef> fields; //List of fields
   QList<TlkpValue> lkpValues; //List of lookup values
   int pos; //Global position of the table
@@ -105,7 +105,7 @@ QDomElement getTableElement(QString table)
     QDomElement res;
     for (int pos = 0; pos <= tables.count()-1; pos++)
     {
-        if (tables[pos].name == table)
+        if (tables[pos].name.trimmed().toLower() == table.trimmed().toLower())
             return tables[pos].tableElement;
     }
     return res;
@@ -279,6 +279,52 @@ bool isRelatedTableLookUp(QString relatedTable)
     return false;
 }
 
+QString fixString(QString source)
+{
+    QString res;
+    int start;
+    int finish;
+    start = source.indexOf('\"');
+    finish = source.lastIndexOf('\"');
+    QString begin;
+    QString end;
+    QString middle;
+
+    if (start != finish) //There are chars in between ""
+    {
+        begin = source.left(start);
+        end = source.right(source.length()-finish-1);
+        middle = source.mid(start+1,finish-start-1);
+        res = begin + "“" + fixString(middle) + "”" + end; //Recursive
+        res = res.replace('\n'," "); //Replace carry return for a space
+        return res;
+    }
+    else
+    {
+        if ((start == -1) && (finish == -1)) //There are no " character
+        {
+            res = source;
+            res = res.replace('\n'," "); //Replace carry return for a space
+            return res;
+        }
+        else
+        {
+            if (start >= 0) //There is only one " character
+            {
+                res = source.replace('\"',"“");
+                res = res.replace('\n'," "); //Replace carry return for a space
+                return res;
+            }
+            else
+            {
+                res = source;
+                res = res.replace('\n'," "); //Replace carry return for a space
+                return res;
+            }
+        }
+    }
+}
+
 //This is the main process that generates the DDL, DML and metadata SQLs.
 //This process also generated the Import manifest file.
 void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, QString transFile, QString UUIDFile)
@@ -379,7 +425,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
         {
             insertSQL = "INSERT INTO dict_iso639 (lang_cod,lang_des,lang_def) VALUES (";
             insertSQL = insertSQL + "'" + languages[pos].code + "',";
-            insertSQL = insertSQL + "'" + languages[pos].desc + "',";
+            insertSQL = insertSQL + "\"" + fixString(languages[pos].desc) + "\",";
             insertSQL = insertSQL + QString::number(languages[pos].deflang) + ");\n";
             iso639Strm << insertSQL;
         }
@@ -405,7 +451,9 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
         }
 
         //Update the dictionary tables to set the table description
-        sqlUpdateStrm << "UPDATE dict_tblinfo SET tbl_des = '" + tables[pos].desc + "' WHERE tbl_cod = '" + prefix + tables[pos].name.toLower() + "';\n";
+        sqlUpdateStrm << "UPDATE dict_tblinfo SET tbl_des = \"" + fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))) + "\" WHERE tbl_cod = '" + prefix + tables[pos].name.toLower() + "';\n";
+
+
 
         //Insert the translation of the table into the dictionary translation table
         for (lng = 0; lng <= languages.count()-1;lng++)
@@ -414,7 +462,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
             {
                 insertSQL = "INSERT INTO dict_dctiso639 (lang_cod,trans_des,tblinfo_cod) VALUES (";
                 insertSQL = insertSQL + "'" + languages[lng].code + "',";
-                insertSQL = insertSQL + "'" + tables[pos].desc + "',";
+                insertSQL = insertSQL + "\"" + fixString(getDescForLanguage(tables[pos].desc,languages[lng].code)) + "\",";
                 insertSQL = insertSQL + "'" + prefix + tables[pos].name.toLower() + "');\n";
                 iso639Strm << insertSQL;
             }
@@ -438,7 +486,6 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
             //Append the fields and child tables to the manifest file
             if (tables[pos].islookup == false)
             {
-
                 if (tables[pos].xmlCode != "NONE")
                 {
                     if ((tables[pos].fields[clm].xmlCode != "main"))
@@ -470,7 +517,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
             }
 
             //Update the dictionary tables to the set column description
-            sqlUpdateStrm << "UPDATE dict_clminfo SET clm_des = '" + getDescForLanguage(tables[pos].fields[clm].desc,defLangCode) + "' WHERE tbl_cod = '" + prefix + tables[pos].name.toLower() + "' AND clm_cod = '" + tables[pos].fields[clm].name + "';\n";
+            sqlUpdateStrm << "UPDATE dict_clminfo SET clm_des = \"" + fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)) + "\" WHERE tbl_cod = '" + prefix + tables[pos].name.toLower() + "' AND clm_cod = '" + tables[pos].fields[clm].name + "';\n";
 
             //Insert the translation of the column into the dictionary translation table
             for (lng = 0; lng <= languages.count()-1;lng++)
@@ -479,7 +526,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                 {
                     insertSQL = "INSERT INTO dict_dctiso639 (lang_cod,trans_des,tbl_cod,clm_cod) VALUES (";
                     insertSQL = insertSQL + "'" + languages[lng].code + "',";
-                    insertSQL = insertSQL + "'" + getDescForLanguage(tables[pos].fields[clm].desc,languages[lng].code) + "',";
+                    insertSQL = insertSQL + "\"" + fixString(getDescForLanguage(tables[pos].fields[clm].desc,languages[lng].code)) + "\",";
                     insertSQL = insertSQL + "'" + prefix + tables[pos].name.toLower() + "',";
                     insertSQL = insertSQL + "'" + tables[pos].fields[clm].name + "');\n";
                     iso639Strm << insertSQL;
@@ -529,6 +576,8 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
         //is only for no lookup tables.
         if (tables[pos].islookup == false)
         {
+            //qDebug() << tables[pos].name;
+            //qDebug() << tables[pos].parentTable;
             if (tables[pos].xmlCode != "NONE")
             {
                 if (tables[pos].parentTable == "NULL")
@@ -615,8 +664,8 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                 }
                 insertSQL = insertSQL.left(insertSQL.length()-1) + ")  VALUES ('";
 
-                insertSQL = insertSQL + tables[pos].lkpValues[clm].code.replace("'","`") + "','";
-                insertSQL = insertSQL + getDescForLanguage(tables[pos].lkpValues[clm].desc,defLangCode) + "');";
+                insertSQL = insertSQL + tables[pos].lkpValues[clm].code.replace("'","`") + "',\"";
+                insertSQL = insertSQL + fixString(getDescForLanguage(tables[pos].lkpValues[clm].desc,defLangCode)) + "\");";
                 sqlInsertStrm << insertSQL << "\n";
 
                 for (lng = 0; lng <= tables[pos].lkpValues[clm].desc.count() -1; lng++)
@@ -627,7 +676,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                         insertSQL = insertSQL + "'" + prefix + tables[pos].name.toLower() + "',";
                         insertSQL = insertSQL + "'" + tables[pos].lkpValues[clm].desc[lng].langCode + "',";
                         insertSQL = insertSQL + "'" + tables[pos].lkpValues[clm].code + "',";
-                        insertSQL = insertSQL + "'" + tables[pos].lkpValues[clm].desc[lng].desc.replace("'","`") + "');";
+                        insertSQL = insertSQL + "\"" + fixString(tables[pos].lkpValues[clm].desc[lng].desc) + "\");";
                         iso639Strm << insertSQL << "\n";
                     }
                 }
@@ -840,7 +889,7 @@ int getTableIndex(QString name)
     {
         if (!tables[pos].islookup)
         {
-            if (tables[pos].name == name)
+            if (tables[pos].name.trimmed().toLower() == name.trimmed().toLower())
                 return pos;
         }
     }
@@ -905,10 +954,24 @@ void addToStack(QString groupOrRepeat)
     variableStack.append(groupOrRepeat);
 }
 
+//Fixes table and field name by removing invalid MySQL characters
+QString fixField(QString source)
+{
+    QString res;
+    res = source;
+    res = res.replace("'","");
+    res = res.replace('\"',"");
+    res = res.replace(";","");
+    res = res.replace("-","_");
+    res = res.replace(",","");
+    res = res.replace(" ","");
+    return res;
+}
+
 //Adds a repeat to the repeat stack
 void addToRepeat(QString repeat)
 {
-    repeatStack.append(repeat);
+    repeatStack.append(fixField(repeat.trimmed().toLower()));
 }
 
 //Removes one group or repeat from the variable stack
@@ -964,7 +1027,7 @@ TtableDef getTable(QString name)
     {
         if (!tables[pos].islookup)
         {
-            if (tables[pos].name == name)
+            if (tables[pos].name.trimmed().toLower() == name.trimmed().toLower())
                 return tables[pos];
         }
     }
@@ -1025,6 +1088,7 @@ QList<TlkpValue> getSelectValues(QXlsx::Worksheet *choicesSheet,QString listName
         5- Creates a multiselect table to store each value as a independent row
         6- Add tables to the list called tables
 */
+
 int processXLSX(QString inputFile, QString mainTable, QString mainField)
 {
     bool hasSurveySheet;
@@ -1055,6 +1119,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
         QStringList ODKLanguages;
         int ncols;
         QXlsx::CellReference ref;
+        QXlsx::CellReference langRef;
         QXlsx::Cell *cell;
         QXlsx::Worksheet *excelSheet = (QXlsx::Worksheet*)xlsx.sheet("settings");
         for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
@@ -1237,8 +1302,16 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
         //Creating the main table
         tableIndex = tableIndex + 1;
         TtableDef maintable;
-        maintable.name = mainTable;
-        maintable.desc = "Main table - (Set a description)";
+        maintable.name = fixField(mainTable.toLower());
+
+        for (lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "Main table - Set a description";
+            maintable.desc.append(langDesc);
+        }
+
         maintable.pos = tableIndex;
         maintable.islookup = false;
         maintable.isSeparated = false;
@@ -1295,21 +1368,29 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
         QString tableName;
         int tblIndex;
         int nrow;
+
+        bool mainFieldFound;
+        mainFieldFound = false;
+
+        bool mainFieldinMainTable;
+        mainFieldinMainTable = false;
+
         for (nrow = 2; nrow <= excelSheet->dimension().lastRow(); nrow++)
         {
             ref.setRow(nrow);
             ref.setColumn(columnType);
             cell = excelSheet->cellAt(ref);
             if (cell != 0)
-            {
                 variableType = cell->value().toString().toLower().trimmed();
-            }
+            else
+                variableType = "note";
             ref.setColumn(columnName);
             cell = excelSheet->cellAt(ref);
-            if (cell != 0)
-            {
+            if (cell != 0)            
                 variableName = cell->value().toString().trimmed();
-            }
+            else
+                variableName = "";
+
             if (variableType == "begin group")
                 addToStack(variableName);
             if (variableType == "end group")
@@ -1323,12 +1404,29 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                     //Creates the new tables
                     tableIndex = tableIndex + 1;
                     TtableDef aTable;
-                    aTable.name = variableName.toLower();
-                    aTable.desc = "Repeat " + variableName.toLower() + " - (Set a description)";
+                    aTable.name = fixField(variableName.toLower());
+
+                    for (int lng = 0; lng < languages.count();lng++)
+                    {
+                        langRef.setRow(nrow);
+                        langRef.setColumn(languages[lng].idxInSurvey);
+                        cell = excelSheet->cellAt(langRef);
+                        if (cell != 0)
+                        {
+                            TlngLkpDesc fieldDesc;
+                            fieldDesc.langCode = languages[lng].code;
+                            fieldDesc.desc = cell->value().toString().trimmed();
+                            aTable.desc.append(fieldDesc);
+                        }
+                    }
+
                     aTable.pos = tableIndex;
                     aTable.islookup = false;
                     aTable.isSeparated = false;
-                    aTable.xmlCode = getVariableStack() + "/" + variableName;
+                    if (getVariableStack() == "")
+                        aTable.xmlCode = variableName;
+                    else
+                        aTable.xmlCode = getVariableStack() + "/" + variableName;
                     aTable.parentTable = tableName;
                     //Add the father key fields to the table as related fields
                     TtableDef parentTable = getTable(tableName);
@@ -1353,7 +1451,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                     }
                     //Add the extra row ID Key field to this table
                     TfieldDef keyField;
-                    keyField.name = variableName.toLower() + "_rowid";
+                    keyField.name = fixField(variableName.toLower()) + "_rowid";
                     for (int lng = 0; lng < languages.count(); lng++)
                     {
                         TlngLkpDesc fieldDesc;
@@ -1379,15 +1477,25 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                 {
                     int mainTableIndex;
                     mainTableIndex = getTableIndex(variableName.toLower());
-                    tables[mainTableIndex].xmlCode = variableName;
+                    if (getVariableStack() == "")
+                        tables[mainTableIndex].xmlCode = variableName;
+                    else
+                        tables[mainTableIndex].xmlCode = getVariableStack() + "/" + variableName;
                     addToStack(variableName);
                 }
             }
             if (variableType == "end repeat")
             {
+                if (variableName.trimmed().toLower() == "")
+                    variableName = getTopRepeat();
+
                 if (variableName.toLower() != mainTable.toLower())
                 {
                     removeRepeat();
+                    removeFromStack();
+                }
+                else
+                {
                     removeFromStack();
                 }
             }
@@ -1403,13 +1511,18 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                     {
 
                         TfieldDef aField;
-                        aField.name = variableName.toLower();
+                        aField.name = fixField(variableName.toLower());
                         TfieldMap vartype = mapODKFieldTypeToMySQL(variableType);
                         aField.type = vartype.type;
                         aField.size = vartype.size;
                         aField.decSize = vartype.decSize;
-                        if (variableName.toLower() == mainField.toLower())
+                        if (fixField(variableName.toLower()) == fixField(mainField.toLower()))
                         {
+                            mainFieldFound = true;
+
+                            if (fixField(tables[tblIndex].name.trimmed().toLower()) == fixField(mainTable.toLower()))
+                                mainFieldinMainTable = true;
+
                             aField.key = true;
                             if (aField.type == "text")
                             {
@@ -1453,14 +1566,14 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                           columnListName,columnChoiceName));
                             //Processing field
                             TfieldDef aField;
-                            aField.name = variableName.toLower();
+                            aField.name = fixField(variableName.toLower());
                             if (areValuesStrings(values))
                                 aField.type = "varchar";
                             else
                                 aField.type = "int";
                             aField.size = getMaxValueLength(values);
                             aField.decSize = 0;
-                            if (variableName.toLower() == mainField.toLower())
+                            if (fixField(variableName.toLower()) == fixField(mainField.toLower()))
                             {
                                 aField.key = true;
                                 if (aField.type == "text")
@@ -1498,15 +1611,21 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                     TtableDef lkpTable = getDuplicatedLkpTable(values);
                                     if (lkpTable.name == "EMPTY")
                                     {
-                                        lkpTable.name = "lkp" + variableName.toLower();
-                                        lkpTable.desc = "Lookup table [" + variableName.toLower() + "]";
+                                        lkpTable.name = "lkp" + fixField(variableName.toLower());
+                                        for (lang = 0; lang < aField.desc.count(); lang++)
+                                        {
+                                            TlngLkpDesc fieldDesc;
+                                            fieldDesc.langCode = aField.desc[lang].langCode;
+                                            fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
+                                            lkpTable.desc.append(fieldDesc);
+                                        }
                                         lkpTable.pos = -1;
                                         lkpTable.islookup = true;
                                         lkpTable.isSeparated = false;
                                         lkpTable.lkpValues.append(values);
                                         //Creates the field for code in the lookup
                                         TfieldDef lkpCode;
-                                        lkpCode.name = variableName.toLower() + "_cod";
+                                        lkpCode.name = fixField(variableName.toLower()) + "_cod";
                                         for (lang = 0; lang <= languages.count()-1;lang++)
                                         {
                                             TlngLkpDesc langDesc;
@@ -1521,7 +1640,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                         lkpTable.fields.append(lkpCode);
                                         //Creates the field for description in the lookup
                                         TfieldDef lkpDesc;
-                                        lkpDesc.name = variableName.toLower() + "_des";
+                                        lkpDesc.name = fixField(variableName.toLower()) + "_des";
                                         for (lang = 0; lang <= languages.count()-1;lang++)
                                         {
                                             TlngLkpDesc langDesc;
@@ -1563,13 +1682,13 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
 
                             //Processing  the field
                             TfieldDef aField;
-                            aField.name = variableName.toLower();
+                            aField.name = fixField(variableName.toLower());
                             aField.type = "varchar";
                             aField.size = getMaxMSelValueLength(values);
                             aField.decSize = 0;
                             aField.key = false;
                             aField.isMultiSelect = true;
-                            aField.multiSelectTable = tables[tblIndex].name + + "_msel_" + variableName.toLower();
+                            aField.multiSelectTable = fixField(tables[tblIndex].name) + + "_msel_" + fixField(variableName.toLower());
                             if (getVariableStack() != "")
                                 aField.xmlCode = getVariableStack() + "/" + variableName;
                             else
@@ -1611,8 +1730,16 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                         mselTable.fields.append(relField);
                                     }
                                 }
-                                mselTable.name =  tables[tblIndex].name + + "_msel_" + variableName.toLower();
-                                mselTable.desc = "Table for multiple select of field " + variableName + " in table " + tables[tblIndex].name;;
+                                mselTable.name =  fixField(tables[tblIndex].name) + + "_msel_" + fixField(variableName.toLower());
+
+                                for (lang = 0; lang < aField.desc.count(); lang++)
+                                {
+                                    TlngLkpDesc fieldDesc;
+                                    fieldDesc.langCode = aField.desc[lang].langCode;
+                                    fieldDesc.desc = "Table for multiple select of field " + variableName + " in table " + tables[tblIndex].name;
+                                    mselTable.desc.append(fieldDesc);
+                                }
+
                                 mselTable.islookup = false;
                                 tableIndex++;
                                 mselTable.pos = tableIndex;
@@ -1632,15 +1759,22 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                 TtableDef lkpTable = getDuplicatedLkpTable(values);
                                 if (lkpTable.name == "EMPTY")
                                 {
-                                    lkpTable.name = "lkp" + variableName.toLower();
-                                    lkpTable.desc = "Lookup table [" + variableName.toLower() + "]";
+                                    lkpTable.name = "lkp" + fixField(variableName.toLower());
+
+                                    for (lang = 0; lang < aField.desc.count(); lang++)
+                                    {
+                                        TlngLkpDesc fieldDesc;
+                                        fieldDesc.langCode = aField.desc[lang].langCode;
+                                        fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
+                                        lkpTable.desc.append(fieldDesc);
+                                    }
                                     lkpTable.pos = -1;
                                     lkpTable.islookup = true;
                                     lkpTable.isSeparated = false;
                                     lkpTable.lkpValues.append(values);
                                     //Creates the field for code in the lookup
                                     TfieldDef lkpCode;
-                                    lkpCode.name = variableName.toLower() + "_cod";
+                                    lkpCode.name = fixField(variableName.toLower()) + "_cod";
                                     int lang;
                                     for (lang = 0; lang <= languages.count()-1;lang++)
                                     {
@@ -1656,7 +1790,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                     lkpTable.fields.append(lkpCode);
                                     //Creates the field for description in the lookup
                                     TfieldDef lkpDesc;
-                                    lkpDesc.name = variableName.toLower() + "_des";
+                                    lkpDesc.name = fixField(variableName.toLower()) + "_des";
                                     for (lang = 0; lang <= languages.count()-1;lang++)
                                     {
                                         TlngLkpDesc langDesc;
@@ -1697,6 +1831,16 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                     }
                 }
             }
+        }
+        if (!mainFieldFound)
+        {
+            log("ERROR!: The main variable \"" + mainField + "\" was not found in the ODK. Please indicate a correct main variable");
+            return 1;
+        }
+        if (!mainFieldinMainTable)
+        {
+            log("ERROR!: The main variable \"" + mainField + "\" is not in the main table \"" + mainTable + "\". Please indicate a correct main variable.");
+            return 1;
         }
     }
     return 0;
@@ -1784,7 +1928,14 @@ int separateTable(TtableDef &table, QDomNode groups)
             tableIndex++;
             TtableDef ntable;
             ntable.name = table.name + "_" + sections[pos];
-            ntable.desc = "Subsection " + sections[pos] + " of " + table.name + " - Edit this description";
+
+            for (int lang = 0; lang < languages.count()-1; lang++)
+            {
+                TlngLkpDesc langDesc;
+                langDesc.langCode = languages[lang].code;
+                langDesc.desc = "Subsection " + sections[pos] + " of " + table.name + " - Edit this description";
+                ntable.desc.append(langDesc);
+            }
             ntable.xmlCode = table.xmlCode;
             ntable.pos = tableIndex;
             ntable.islookup = false;
@@ -2024,7 +2175,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> defLangArg("d","deflanguage","Default language. For example: (en)English. If not indicated then English will be asumed",false,"(en)English","string");
     TCLAP::ValueArg<std::string> transFileArg("T","translationfile","Output translation file",false,"./iso639.sql","string");
     TCLAP::ValueArg<std::string> uuidFileArg("u","uuidfile","Output UUID trigger file",false,"./uuid-triggers.sql","string");
-    TCLAP::ValueArg<std::string> yesNoStringArg("y","yesnostring","Yes and No strings in the default language in the format \"String|String\". This will allow the tool to identify Yes/No lookup tables and exclude them. This is not case sensitive. For example, if the default language is Spanish this value should be indicated as \"Si|No\". If empty English \"Yes|No\" will be assumed",false,"","string");
+    TCLAP::ValueArg<std::string> yesNoStringArg("y","yesnostring","Yes and No strings in the default language in the format \"String|String\". This will allow the tool to identify Yes/No lookup tables and exclude them. This is not case sensitive. For example, if the default language is Spanish this value should be indicated as \"Si|No\". If empty English \"Yes|No\" will be assumed",false,"Yes|No","string");
 
     cmd.add(inputArg);
     cmd.add(tableArg);
@@ -2092,6 +2243,11 @@ int main(int argc, char *argv[])
             log("Malformed yes|no language string2");
             return 1;
         }
+        strYes = yesNoString.split("|",QString::SkipEmptyParts)[0];
+        strNo = yesNoString.split("|",QString::SkipEmptyParts)[1];
+    }
+    else
+    {
         strYes = yesNoString.split("|",QString::SkipEmptyParts)[0];
         strNo = yesNoString.split("|",QString::SkipEmptyParts)[1];
     }
