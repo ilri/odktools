@@ -62,6 +62,7 @@ $ ./odktomysql -x my_input_xlsx_file.xlsx -v main_questionarie_ID -t maintable -
   ```sh
 $ ./odktomysql -x my_input_xlsx_file.xlsx -v main_questionarie_ID -t maintable -d "(es)Español" -l "(en)English" -y "Si|No"
 ```
+  See examples for single and multiple languages [here](https://github.com/ilri/odktools/tree/master/ODKToMySQL/examples) 
 
 - 
 ###FormhubToJSON
