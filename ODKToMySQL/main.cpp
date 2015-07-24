@@ -1576,11 +1576,11 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                             if (fixField(variableName.toLower()) == fixField(mainField.toLower()))
                             {
                                 aField.key = true;
-                                if (aField.type == "text")
-                                {
-                                    aField.type = "varchar";
-                                    aField.size = 60;
-                                }
+
+                                mainFieldFound = true;
+
+                                if (fixField(tables[tblIndex].name.trimmed().toLower()) == fixField(mainTable.toLower()))
+                                    mainFieldinMainTable = true;
                             }
                             else
                                 aField.key = false;
@@ -1674,6 +1674,12 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                         }
                         if (variableType.indexOf("select_multiple") >= 0)
                         {
+                            if (fixField(variableName.toLower()) == fixField(mainField.toLower()))
+                            {
+                                log("Error: Primary ID : " + mainField + " cannot be a multi-select variable");
+                                return 1;
+                            }
+
                             //Processing multiselects
                             QList<TlkpValue> values;
                             values.append(getSelectValues(choicesSheet,
