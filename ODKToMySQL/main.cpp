@@ -965,6 +965,7 @@ QString fixField(QString source)
     res = res.replace("-","_");
     res = res.replace(",","");
     res = res.replace(" ","");
+    res = res.replace(".","_");
     return res;
 }
 
