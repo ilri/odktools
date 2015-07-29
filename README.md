@@ -122,9 +122,9 @@ ODK Tools was built using:
 - [C++](https://isocpp.org/), a general-purpose programming language.
 - [Qt 5](https://www.qt.io/), a cross-platform application framework.
 - [Python 2.7.x](https://www.python.org/), a widely used general-purpose programming language. 
-- [TClap](http://tclap.sourceforge.net/), a small, flexible library that provides a simple interface for defining and accessing command line arguments.
-- [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter), a XLSX file reader and writer for Qt5. **Requires QTInternals (e.g., apt-get qtbase5-private-dev)**
-- [QJSON](https://github.com/qlands/qjson), a qt-based library that maps JSON data to QVariant objects.
+- [TClap](http://tclap.sourceforge.net/), a small, flexible library that provides a simple interface for defining and accessing command line arguments. *(Included in source code)*
+- [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter), a XLSX file reader and writer for Qt5. **Requires QTInternals (e.g., apt-get qtbase5-private-dev)**. *(Included in source code)*
+- [QJSON](https://github.com/qlands/qjson), a qt-based library that maps JSON data to QVariant objects. *(Included in source code)*
 - [CMake] (http://www.cmake.org/), a cross-platform free and open-source software for managing the build process of software using a compiler-independent method.
 
 
