@@ -243,7 +243,7 @@ int main(int argc, char *argv[]) {
     title = title + " * This tool is part of ODK Tools (c) ILRI, 2014                  * \n";
     title = title + " ****************************************************************** \n";
 
-    TCLAP::CmdLine cmd(title.toLatin1().constData(), ' ', "1.0 (Beta 1)");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0 (Beta 1)");
 
     //Required arguments
     TCLAP::ValueArg<std::string> mysqlHostArg("H","mysqlHost","MySQL server host",true,"","string");

@@ -390,6 +390,7 @@ int procTable(QSqlDatabase db,QVariantMap jsonData, QDomNode table, QList< Tfiel
     tableXMLCode = table.toElement().attribute("xmlcode");
 
     bool genSQL;
+    genSQL = false;
 
     QDomNode child;
     child = table.firstChild();
@@ -604,8 +605,6 @@ int processFile(QSqlDatabase db, QString json, QString manifest, QStringList pro
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
-    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
-    QTextCodec::setCodecForCStrings(codec);
 
     QString title;
     title = title + "********************************************************************* \n";
@@ -619,7 +618,7 @@ int main(int argc, char *argv[])
     title = title + " * Author: Carlos Quiros (c.f.quiros@cgiar.org / cquiros@qlands.com) * \n";
     title = title + " ********************************************************************* \n";
 
-    TCLAP::CmdLine cmd(title.toAscii().constData(), ' ', "1.0 (Beta 1)");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0 (Beta 1)");
 
     TCLAP::ValueArg<std::string> jsonArg("j","json","Input JSON File",true,"","string");
     TCLAP::ValueArg<std::string> manifestArg("m","manifest","Input manifest XML file",true,"","string");
