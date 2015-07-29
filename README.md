@@ -123,7 +123,9 @@ ODK Tools was built using:
 - [Qt 5](https://www.qt.io/), a cross-platform application framework.
 - [Python 2.7.x](https://www.python.org/), a widely used general-purpose programming language. 
 - [TClap](http://tclap.sourceforge.net/), a small, flexible library that provides a simple interface for defining and accessing command line arguments.
-- [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter), a XLSX file reader and writer for Qt5.
+- [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter), a XLSX file reader and writer for Qt5. **Requires QTInternals (e.g., apt-get qtbase5-private-dev)**
+- [QJSON](https://github.com/qlands/qjson), a qt-based library that maps JSON data to QVariant objects.
+- [CMake] (http://www.cmake.org/), a cross-platform free and open-source software for managing the build process of software using a compiler-independent method.
 
 
 ## Building and testing
@@ -131,6 +133,13 @@ To build this site for local viewing or development:
 
     $ git clone https://github.com/ilri/odktools.git
     $ cd odktools
+    $ git submodule update --init --recursive
+    $ cd 3rdparty/qjson
+    $ mkdir build
+    $ cd build
+    $ cmake ..
+    $ sudo make install
+    $ cd ../..
     $ qmake
     $ make
 
@@ -144,5 +153,6 @@ This repository contains the code of:
 
 - [TClap](http://tclap.sourceforge.net/) which is licensed under the [MIT license](https://raw.githubusercontent.com/twbs/bootstrap/master/LICENSE).
 - [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter) which is licensed under the [MIT license](https://raw.githubusercontent.com/twbs/bootstrap/master/LICENSE).
+- [QJSON](https://github.com/qlands/qjson) which is licensed under the [GNU Lesser General Public License version 2.1](http://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html)
 
 Otherwise, the contents of this application is [GPL V3](http://www.gnu.org/copyleft/gpl.html). 
