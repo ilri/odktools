@@ -13,10 +13,14 @@
 #include <QtXml>
 #include <QList>
 #include <QSqlQuery>
+#include <QJSEngine>
+#include <QJSValue>
+#include <QJSValueList>
+#include "insertvalues.h"
 
-
-bool ignorePKError;
-bool extractNum;
+QJSEngine JSEngine;
+QJSValue beforeInsertFunction;
+bool callBeforeInsert;
 
 struct tblIndexDef
 {
@@ -67,6 +71,8 @@ struct fieldDef
   bool key;
 };
 typedef fieldDef TfieldDef;
+
+
 
 struct tableKey
 {
@@ -151,27 +157,6 @@ QString fixString(QString source)
 
 QVariantMap emptyMap;
 
-QString extractNumber(QString key)
-{
-    if (extractNum)
-    {
-        QString res;
-        QString numbers;
-        numbers = "0123456789";
-        for (int pos = 0; pos <= key.length()-1;pos++)
-        {
-            if (numbers.indexOf(key[pos]) >= 0 )
-                res = res + key[pos];
-        }
-        return res;
-    }
-    else
-    {
-        return key;
-    }
-}
-
-
 //This function construct an INSERT SQL and execute it againts the database.
 QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,QList< TfieldDef> fields,QList< TfieldDef> parentkeys,bool mTable = false, QVariantMap jsonData2 = emptyMap)
 {
@@ -184,6 +169,7 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
     QList<TfieldDef > resKeys;
 
     QString fieldValue;
+    insertValues insertObject;
 
     int tblIndex;
 
@@ -195,8 +181,15 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
     sqlValues = " VALUES (";
     for (pos = 0; pos <= parentkeys.count()-1;pos++)
     {
-        sqlHeader = sqlHeader + parentkeys[pos].name + ",";
-        sqlValues = sqlValues + "'" + parentkeys[pos].value + "',";
+        //sqlHeader = sqlHeader + parentkeys[pos].name + ",";
+        //sqlValues = sqlValues + "'" + parentkeys[pos].value + "',";
+        TinsertValueDef insValue;
+        insValue.key = true;
+        insValue.name = parentkeys[pos].name;
+        insValue.value = parentkeys[pos].value;
+        insValue.xmlCode = parentkeys[pos].xmlCode;
+        insValue.insert = true;
+        insertObject.insertValue(insValue);
     }
     for (pos = 0; pos <= fields.count()-1;pos++)
     {
@@ -210,7 +203,7 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
             key.xmlCode = fields[pos].xmlCode;
 
 
-            key.value = extractNumber(jsonData[fields[pos].xmlCode].toString());
+            key.value = jsonData[fields[pos].xmlCode].toString();
             key.value = key.value.simplified();
 
             // If its empty. The try to find it in jsonData2
@@ -229,37 +222,49 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
                 if (!mTable)
                 {
                     key.value = QString::number(tblIndex);
-                    sqlHeader = sqlHeader + key.name + ",";
-                    sqlValues = sqlValues + "'" + QString::number(tblIndex) + "',";
+                    //sqlHeader = sqlHeader + key.name + ",";
+                    //sqlValues = sqlValues + "'" + QString::number(tblIndex) + "',";
                 }
                 else
                 {
                     key.value = "";
-                    sqlHeader = sqlHeader + key.name + ",";
-                    sqlValues = sqlValues + "'',";
+                    //sqlHeader = sqlHeader + key.name + ",";
+                    //sqlValues = sqlValues + "'',";
                 }
             }
             else
             {                
-                sqlHeader = sqlHeader + key.name + ",";
-                sqlValues = sqlValues + "'" + fixString(key.value) + "',";
+                //sqlHeader = sqlHeader + key.name + ",";
+                //sqlValues = sqlValues + "'" + fixString(key.value) + "',";
             }
             //Append the key to the list of returned keys
             key.value = key.value;
             resKeys.append(key);
-
+            insertObject.insertValue(key.name,key.xmlCode,key.value,key.key);
         }
         else
         {
-            sqlHeader = sqlHeader + fields[pos].name + ",";
+            TinsertValueDef insValue;
+            insValue.key = false;
+            insValue.name = fields[pos].name;
+            insValue.xmlCode = fields[pos].xmlCode;
+            insValue.insert = true;
+
+            //sqlHeader = sqlHeader + fields[pos].name + ",";
             if (mainTable == table)
             {
                 if (fields[pos].name == "surveyid")
-                  sqlValues = sqlValues + "'" + fileID + "',";
+                {
+                  //sqlValues = sqlValues + "'" + fileID + "',";
+                  fieldValue = fileID;
+                }
                 else
                 {
                     if (fields[pos].name == "originid")
-                        sqlValues = sqlValues + "'FORMHUB-JSON',";
+                    {
+                        //sqlValues = sqlValues + "'FORMHUB-JSON',";
+                        fieldValue = "FORMHUB-JSON";
+                    }
                     else
                     {
                         fieldValue = fixString(jsonData[fields[pos].xmlCode].toString());
@@ -270,8 +275,7 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
                             // and part in jsonData2                            
                             fieldValue = fixString(jsonData2[fields[pos].xmlCode].toString());
                         }
-
-                        sqlValues = sqlValues + "'" + fieldValue + "',";
+                        //sqlValues = sqlValues + "'" + fieldValue + "',";
                     }
                 }
             }
@@ -288,11 +292,44 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
                     fieldValue = QString::fromUtf8(variantValue.toByteArray());
                 }
 
-                sqlValues = sqlValues + "'" + fixString(fieldValue) + "',";
+                //sqlValues = sqlValues + "'" + fixString(fieldValue) + "',";
             }
+            insValue.value = fieldValue;
+            insertObject.insertValue(insValue);
         }
     }
 
+    //We have all the insert values, Now we pass such values along with the table name to the external javaScript if its defined to allow custom modifications
+    //to the values before we insert them into the mysql database
+    if (callBeforeInsert)
+    {
+        QJSValue insertListObj = JSEngine.newQObject(&insertObject);
+        QJSValue result = beforeInsertFunction.call(QJSValueList() << table << insertListObj);
+        if (result.isError())
+        {
+            log("Error calling BeforInsert JS function with table " + table + ". The insert may end up in error. The script will not be loaded again.");
+            callBeforeInsert = false;
+        }
+    }
+
+    for (pos = 0; pos < insertObject.count();pos++)
+    {
+        sqlHeader = sqlHeader + insertObject.itemName(pos) + ",";
+        sqlValues = sqlValues + "'" + insertObject.itemValue(pos) + "',";
+
+        // Key values could have changed by the external JavaScript so
+        // update resKeys with the current values
+        if (insertObject.itemIsKey(pos) == true)
+        {
+            for (int rkey = 0; rkey < resKeys.count(); rkey++)
+            {
+                if (resKeys[rkey].name.toLower().simplified() == insertObject.itemName(pos).toLower().simplified())
+                {
+                    resKeys[rkey].value = insertObject.itemValue(pos);
+                }
+            }
+        }
+    }
     //Removing final , and appending )
     sqlHeader = sqlHeader.left(sqlHeader.length()-1) + ")";
     sqlValues = sqlValues.left(sqlValues.length()-1) + ")";
@@ -319,18 +356,13 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
     }
     else
     {
-        if (!ignorePKError)
+        QSqlQuery query(db);
+        if (!query.exec(sql))
         {
-            QSqlQuery query(db);
-            if (!query.exec(sql))
-            {
-                SQLError = true; //An error occurred. This will trigger a rollback
-                logError(db,query.lastError().databaseText(),table,tblIndex,jsonData,fields,sql); //Write the error to the log
-            }
+            SQLError = true; //An error occurred. This will trigger a rollback
+            logError(db,query.lastError().databaseText(),table,tblIndex,jsonData,fields,sql); //Write the error to the log
         }
     }
-
-
 
     return resKeys;
 }
@@ -629,11 +661,14 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> schemaArg("s","schema","MySQL Schema",true,"","string");
     TCLAP::ValueArg<std::string> outputArg("o","output","Output Log file",false,"./output.csv","string");
     TCLAP::ValueArg<std::string> inputArg("i","imported","Imported file. Store the files names properly imported. Also used to skip repeated files",false,"./imported.log","string");
-
+    TCLAP::ValueArg<std::string> JSArg("J","javascript","Custom Before Insert JavaScript",false,"","string");
     TCLAP::SwitchArg overwriteSwitch("w","overwrite","Overwrite the log file", cmd, false);
     TCLAP::SwitchArg oputSQLSwitch("S","outputSQL","Output each insert SQL to ./outsqls.sql", cmd, false);
-    TCLAP::SwitchArg ignoreSwitch("g","ignore","Ignore insert in main table", cmd, false);
-    TCLAP::SwitchArg extractSwitch("e","extract","Extract number from primary key", cmd, false);
+
+    //These two parameters should be removed once the external script code works
+
+    //TCLAP::SwitchArg ignoreSwitch("g","ignore","Ignore insert in main table", cmd, false);
+    //TCLAP::SwitchArg extractSwitch("e","extract","Extract number from primary key", cmd, false);
 
     cmd.add(jsonArg);
     cmd.add(manifestArg);
@@ -644,6 +679,7 @@ int main(int argc, char *argv[])
     cmd.add(schemaArg);
     cmd.add(outputArg);
     cmd.add(inputArg);
+    cmd.add(JSArg);
 
     //Parsing the command lines
     cmd.parse( argc, argv );
@@ -652,8 +688,6 @@ int main(int argc, char *argv[])
 
     //Getting the variables from the command
     bool overwrite = overwriteSwitch.getValue();
-    ignorePKError = ignoreSwitch.getValue();
-    extractNum = extractSwitch.getValue();
     outSQL = oputSQLSwitch.getValue();
     QString json = QString::fromUtf8(jsonArg.getValue().c_str());
     QString manifest = QString::fromUtf8(manifestArg.getValue().c_str());
@@ -664,6 +698,60 @@ int main(int argc, char *argv[])
     QString schema = QString::fromUtf8(schemaArg.getValue().c_str());
     QString output = QString::fromUtf8(outputArg.getValue().c_str());
     QString input = QString::fromUtf8(inputArg.getValue().c_str());
+    QString javaScript = QString::fromUtf8(JSArg.getValue().c_str());
+
+    callBeforeInsert = false;
+    if (javaScript != "")
+    {
+        QFile scriptFile(javaScript);
+        if (!scriptFile.open(QIODevice::ReadOnly))
+        {
+            log("Error: Script file defined but cannot be opened");
+            return 1;
+        }
+        QJSValue JSCode = JSEngine.evaluate(scriptFile.readAll(), javaScript);
+        /*if (JSCode.isError())
+        {
+            log("The JavaScript code has errors");
+            scriptFile.close();
+            return 1;
+        }*/
+        scriptFile.close();
+
+        insertValues insertObject;
+
+        TinsertValueDef tfield;
+        tfield.key = false;
+        tfield.name = "tmpfield";
+        tfield.xmlCode = "tmpCode";
+        tfield.value = "tmpValue";
+        tfield.insert = true;
+        insertObject.insertValue(tfield);
+        QString error;
+
+        beforeInsertFunction = JSEngine.evaluate("beforeInsert",error);
+
+        if (!beforeInsertFunction.isError())
+        {
+            QJSValue insertListObj = JSEngine.newQObject(&insertObject);
+            QJSValue result = beforeInsertFunction.call(QJSValueList() << "tmpTable" << insertListObj);
+            if (result.isError())
+            {
+                log("Error calling BeforInsert JS function.");
+                return 1;
+            }
+            else
+            {
+                log("JavaScript BeforInsert function is seems to be ok");
+                callBeforeInsert = true;
+            }
+        }
+        else
+        {
+            log("Error evaluating BeforInsert JS function. [" + error + "]");
+            return 1;
+        }
+    }
 
     {
         QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL");

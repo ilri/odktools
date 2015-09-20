@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core xml sql
+QT       += core xml sql qml
 
 QT       -= gui
 
@@ -17,4 +17,8 @@ TEMPLATE = app
 unix:INCLUDEPATH += /usr/include ../3rdparty
 unix:LIBS += -L/usr/lib64 -l qjson
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    insertvalues.cpp
+
+HEADERS += \
+    insertvalues.h
