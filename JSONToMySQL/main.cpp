@@ -69,6 +69,8 @@ struct fieldDef
   QString xmlCode;
   QString value;
   bool key;
+  bool multiSelect;
+  QString multiSelectTable;
 };
 typedef fieldDef TfieldDef;
 
@@ -146,6 +148,38 @@ void logError(QSqlDatabase db,QString errorMessage, QString table, int rowNumber
     logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
 }
 
+void logErrorMSel(QSqlDatabase db,QString errorMessage, QString table, int rowNumber,QString value, QString execSQL)
+{
+    int idx;
+    idx = errorMessage.indexOf("CONSTRAINT");
+    if (idx >= 0)
+    {
+        int idx2;
+        idx2 = errorMessage.indexOf("FOREIGN KEY");
+        QString cntr;
+        cntr = errorMessage.mid(idx+11,idx2-(idx+11));
+        cntr = cntr.replace("`","");
+        cntr = cntr.simplified();
+
+        QSqlQuery query(db);
+        QString sql;
+        QString field;
+        sql = "SELECT error_msg,error_notes,clm_cod FROM dict_relinfo WHERE cnt_name = '" + cntr + "'";
+        if (query.exec(sql))
+        {
+            if (query.first())
+            {
+                errorMessage = query.value(0).toString();
+                field = query.value(2).toString();
+                logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t" + field + "\t" + errorMessage + "\tValue not found = " + value + "\t" + execSQL + "\n";
+                return;
+            }
+        }
+    }
+    logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
+}
+
+
 QString fixString(QString source)
 {
     QString res;
@@ -171,6 +205,7 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
     QString fieldValue;
     insertValues insertObject;
 
+
     int tblIndex;
 
     //log("Table:" + table);
@@ -188,6 +223,8 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
         insValue.name = parentkeys[pos].name;
         insValue.value = parentkeys[pos].value;
         insValue.xmlCode = parentkeys[pos].xmlCode;
+        insValue.multiSelect = parentkeys[pos].multiSelect;
+        insValue.multiSelectTable = parentkeys[pos].multiSelectTable;
         insValue.insert = true;
         insertObject.insertValue(insValue);
     }
@@ -201,8 +238,8 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
             key.key = true;
             key.name = fields[pos].name;
             key.xmlCode = fields[pos].xmlCode;
-
-
+            key.multiSelect = fields[pos].multiSelect;
+            key.multiSelectTable = fields[pos].multiSelectTable;
             key.value = jsonData[fields[pos].xmlCode].toString();
             key.value = key.value.simplified();
 
@@ -238,9 +275,10 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
                 //sqlValues = sqlValues + "'" + fixString(key.value) + "',";
             }
             //Append the key to the list of returned keys
-            key.value = key.value;
+            //key.value = key.value;
+
             resKeys.append(key);
-            insertObject.insertValue(key.name,key.xmlCode,key.value,key.key);
+            insertObject.insertValue(key.name,key.xmlCode,key.value,key.key,false,key.multiSelectTable);
         }
         else
         {
@@ -249,6 +287,8 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
             insValue.name = fields[pos].name;
             insValue.xmlCode = fields[pos].xmlCode;
             insValue.insert = true;
+            insValue.multiSelect = fields[pos].multiSelect;
+            insValue.multiSelectTable = fields[pos].multiSelectTable;
 
             //sqlHeader = sqlHeader + fields[pos].name + ",";
             if (mainTable == table)
@@ -282,19 +322,19 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
             else
             {                                
                 variantValue =  jsonData[fields[pos].xmlCode];                
-                fieldValue = QString::fromUtf8(variantValue.toByteArray());                
+                fieldValue = fixString(QString::fromUtf8(variantValue.toByteArray()));
                 if (fieldValue.isEmpty())
                 {
                     // This happens when the cover information is stored in a repeat of one
                     // so part of the information for the main table must be searched in jsonData
                     // and part in jsonData2
                     variantValue = jsonData2[fields[pos].xmlCode];                    
-                    fieldValue = QString::fromUtf8(variantValue.toByteArray());
+                    fieldValue = fixString(QString::fromUtf8(variantValue.toByteArray()));
                 }
 
                 //sqlValues = sqlValues + "'" + fixString(fieldValue) + "',";
             }
-            insValue.value = fieldValue;
+            insValue.value = fieldValue;            
             insertObject.insertValue(insValue);
         }
     }
@@ -344,23 +384,87 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
     {
         sqlStream << sql + ";\n";
     }
+    QSqlQuery query(db);
 
-    if (!mTable)
+    if (!query.exec(sql))
     {
-        QSqlQuery query(db);
-        if (!query.exec(sql))
-        {
-            SQLError = true; //An error occurred. This will trigger a rollback
-            logError(db,query.lastError().databaseText(),table,tblIndex,jsonData,fields,sql); //Write the error to the log
-        }
+      SQLError = true; //An error occurred. This will trigger a rollback
+      logError(db,query.lastError().databaseText(),table,tblIndex,jsonData,fields,sql); //Write the error to the log
     }
-    else
+
+
+    //Now we process the MultiSelects
+    QList<TinsertValueDef> currentKeys;
+    currentKeys.append(insertObject.getKeys());
+
+    QString mSelectTableName;
+    QStringList mSelectValues;
+    int nkey;
+    int nvalue;
+    for (pos = 0; pos < insertObject.count();pos++)
     {
-        QSqlQuery query(db);
-        if (!query.exec(sql))
+        if (insertObject.itemIsMultiSelect(pos) == true)
         {
-            SQLError = true; //An error occurred. This will trigger a rollback
-            logError(db,query.lastError().databaseText(),table,tblIndex,jsonData,fields,sql); //Write the error to the log
+            mSelectTableName = insertObject.itemMultiSelectTable(pos);
+            //qDebug() << "MSelField: " + insertObject.itemName(pos);
+            //qDebug() << "MSelTable: " + mSelectTableName;
+
+            mSelectValues.clear();
+            //Split the values into a stringlist
+            mSelectValues.append(insertObject.itemValue(pos).simplified().split(" ",QString::SkipEmptyParts));
+            //Process each value
+            for (nvalue = 0; nvalue < mSelectValues.count();nvalue++)
+            {
+                insertValues multiSelectObject; //Each value creates a new multiSelectObject
+                //Insert the current keys to the multiSelectObject object
+                for (nkey = 0; nkey < currentKeys.count();nkey++)
+                {
+                    multiSelectObject.insertValue(currentKeys[nkey]);
+                }
+                //Insert the value to the multiSelectObject
+                multiSelectObject.insertValue(insertObject.itemName(pos),"",mSelectValues[nvalue],true);
+
+                //Here we should pass the value to the JavaScript function
+
+                if (callBeforeInsert)
+                {
+                    QJSValue insertListObj = JSEngine.newQObject(&multiSelectObject);
+                    QJSValue result = beforeInsertFunction.call(QJSValueList() << mSelectTableName << insertListObj);
+                    if (result.isError())
+                    {
+                        log("Error calling BeforInsert JS function with table " + mSelectTableName + ". The insert may end up in error. The script will not be loaded again.");
+                        callBeforeInsert = false;
+                    }
+                }
+
+                //Create the insert
+                sqlHeader = "INSERT INTO " + mSelectTableName + "(";
+                sqlValues = " VALUES (";
+
+                for (nkey = 0; nkey < multiSelectObject.count();nkey++)
+                {
+                    sqlHeader = sqlHeader + multiSelectObject.itemName(nkey) + ",";
+                    sqlValues = sqlValues + "'" + multiSelectObject.itemValue(nkey) + "',";
+                }
+                sqlHeader = sqlHeader.left(sqlHeader.length()-1) + ")";
+                sqlValues = sqlValues.left(sqlValues.length()-1) + ")";
+
+                //Create the final sql
+                sql = sqlHeader + " " + sqlValues;
+                //Change all empty valued to NULL. This minimize foreign key errors in skips
+                sql = sql.replace("''","NULL");
+
+                if (outSQL)
+                {
+                    sqlStream << sql + ";\n";
+                }
+
+                if (!query.exec(sql))
+                {
+                  SQLError = true; //An error occurred. This will trigger a rollback
+                  logErrorMSel(db,query.lastError().databaseText(),mSelectTableName,tblIndex,mSelectValues[nvalue],sql); //Write the error to the log
+                }
+            }
         }
     }
 
@@ -438,11 +542,19 @@ int procTable(QSqlDatabase db,QVariantMap jsonData, QDomNode table, QList< Tfiel
             {
                 TfieldDef field;
                 field.name = child.toElement().attribute("mysqlcode");
-                field.xmlCode = child.toElement().attribute("xmlcode");
+                field.xmlCode = child.toElement().attribute("xmlcode");                
                 if (child.toElement().attribute("key").toStdString() == "true")
                     field.key = true;
                 else
                     field.key = false;
+                if (child.toElement().attribute("isMultiSelect","false") == "true")
+                {
+                    field.multiSelect = true;
+                    field.multiSelectTable = child.toElement().attribute("multiSelectTable","");
+                }
+                else
+                    field.multiSelect = false;
+
                 fields.append(field); //Append the field to the list of fields
             }
             genSQL = true;
@@ -640,7 +752,7 @@ int main(int argc, char *argv[])
 
     QString title;
     title = title + "********************************************************************* \n";
-    title = title + " * JSON to MySQL 1.0                                                 * \n";
+    title = title + " * JSON to MySQL 1.5                                                 * \n";
     title = title + " * This tool imports JSON data from FormHub into MySQL.              * \n";
     title = title + " * The JSON input files are generated from 'mongotojson'.            * \n";
     title = title + " * The tool uses the import manifest file generated by 'odktomysql'  * \n";
@@ -650,7 +762,7 @@ int main(int argc, char *argv[])
     title = title + " * Author: Carlos Quiros (c.f.quiros@cgiar.org / cquiros@qlands.com) * \n";
     title = title + " ********************************************************************* \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0 (Beta 1)");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.5");
 
     TCLAP::ValueArg<std::string> jsonArg("j","json","Input JSON File",true,"","string");
     TCLAP::ValueArg<std::string> manifestArg("m","manifest","Input manifest XML file",true,"","string");
@@ -663,7 +775,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> inputArg("i","imported","Imported file. Store the files names properly imported. Also used to skip repeated files",false,"./imported.log","string");
     TCLAP::ValueArg<std::string> JSArg("J","javascript","Custom Before Insert JavaScript",false,"","string");
     TCLAP::SwitchArg overwriteSwitch("w","overwrite","Overwrite the log file", cmd, false);
-    TCLAP::SwitchArg oputSQLSwitch("S","outputSQL","Output each insert SQL to ./outsqls.sql", cmd, false);
+    TCLAP::SwitchArg oputSQLSwitch("S","outputSQL","Output each insert SQL to ./inputfile.json.sql", cmd, false);
 
     //These two parameters should be removed once the external script code works
 

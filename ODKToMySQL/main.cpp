@@ -92,11 +92,25 @@ struct tableDef
   bool isSeparated; //Whether the table has been separated
   QString xmlCode; //The table XML code /xx/xx/xx/xx
   QString parentTable; //The parent of the table
-  QDomElement tableElement; //Each table is an Dom Element that help building the manifest xml file
+  QDomElement tableElement; //Each table is an Dom Element for building the manifest XML file
+  QDomElement tableCreteElement; //Each table is a second Dom Element for building the XML Create file
 };
 typedef tableDef TtableDef;
 
 QList<TtableDef> tables; //List of tables
+
+// This function return the XML create element of a table.
+// Used to produce the XML create file so a table can be a child of another table
+QDomElement getTableCreateElement(QString table)
+{
+    QDomElement res;
+    for (int pos = 0; pos <= tables.count()-1; pos++)
+    {
+        if (tables[pos].name.trimmed().toLower() == table.trimmed().toLower())
+            return tables[pos].tableCreteElement;
+    }
+    return res;
+}
 
 // This function return the XML element of a table.
 // Used to produce the import manifest so a table can be a child of another tbles
@@ -327,7 +341,7 @@ QString fixString(QString source)
 
 //This is the main process that generates the DDL, DML and metadata SQLs.
 //This process also generated the Import manifest file.
-void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, QString transFile, QString UUIDFile)
+void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, QString transFile, QString UUIDFile, QString XMLCreate, QString insertXML)
 {
     QStringList fields;
     QStringList indexes;
@@ -347,6 +361,31 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
     root = outputdoc.createElement("ODKImportXML");
     root.setAttribute("version", "1.0");
     outputdoc.appendChild(root);
+
+    //This is the XML representation of the schema
+    QDomDocument XMLSchemaStructure;
+    XMLSchemaStructure = QDomDocument("XMLSchemaStructure");
+    QDomElement XMLRoot;
+    XMLRoot = XMLSchemaStructure.createElement("XMLSchemaStructure");
+    XMLRoot.setAttribute("version", "1.0");
+    XMLSchemaStructure.appendChild(XMLRoot);
+
+    QDomElement XMLLKPTables;
+    XMLLKPTables = XMLSchemaStructure.createElement("lkptables");
+    XMLRoot.appendChild(XMLLKPTables);
+
+    QDomElement XMLTables;
+    XMLTables = XMLSchemaStructure.createElement("tables");
+    XMLRoot.appendChild(XMLTables);
+
+    //This is the XML representation lookup values
+    QDomDocument insertValuesXML;
+    insertValuesXML = QDomDocument("insertValuesXML");
+    QDomElement XMLInsertRoot;
+    XMLInsertRoot = insertValuesXML.createElement("insertValuesXML");
+    XMLInsertRoot.setAttribute("version", "1.0");
+    insertValuesXML.appendChild(XMLInsertRoot);
+
 
     QString defLangCode;
     int lng;
@@ -441,13 +480,43 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
         {
             if (tables[pos].xmlCode != "NONE")
             {
+                //For the manifest XML
                 tables[pos].tableElement = outputdoc.createElement("table");
                 tables[pos].tableElement.setAttribute("mysqlcode",prefix + tables[pos].name.toLower());
                 tables[pos].tableElement.setAttribute("xmlcode",tables[pos].xmlCode);
                 tables[pos].tableElement.setAttribute("parent",tables[pos].parentTable);
                 if (tables[pos].isSeparated == true)
                     tables[pos].tableElement.setAttribute("separated","true");
+
+                //For the create XML
+                tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
+                tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
             }
+            else
+            {
+                //For the create XML
+                tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
+                tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
+            }
+        }
+        else
+        {
+            tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
+            tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
+
+            //Append the values to the XML insert
+            QDomElement lkptable = insertValuesXML.createElement("table");
+            lkptable.setAttribute("name",prefix + tables[pos].name.toLower());
+            lkptable.setAttribute("clmcode",tables[pos].fields[0].name);
+            lkptable.setAttribute("clmdesc",tables[pos].fields[1].name);
+            for (int nlkp = 0; nlkp < tables[pos].lkpValues.count();nlkp++)
+            {
+                QDomElement aLKPValue = insertValuesXML.createElement("value");
+                aLKPValue.setAttribute("code",tables[pos].lkpValues[nlkp].code);
+                aLKPValue.setAttribute("description",fixString(getDescForLanguage(tables[pos].lkpValues[nlkp].desc,defLangCode)));
+                lkptable.appendChild(aLKPValue);
+            }
+            XMLInsertRoot.appendChild(lkptable);
         }
 
         //Update the dictionary tables to set the table description
@@ -490,6 +559,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                 {
                     if ((tables[pos].fields[clm].xmlCode != "main"))
                     {
+                        //For the manifest XML
                         fieldNode = outputdoc.createElement("field");
                         fieldNode.setAttribute("mysqlcode",tables[pos].fields[clm].name.toLower());
                         fieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
@@ -512,8 +582,89 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                             fieldNode.setAttribute("reference","false");
                         }
                         tables[pos].tableElement.appendChild(fieldNode);
+
+                        //For the create XML
+                        QDomElement createFieldNode;
+                        createFieldNode = XMLSchemaStructure.createElement("field");
+                        createFieldNode.setAttribute("name",tables[pos].fields[clm].name.toLower());
+                        createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
+                        createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
+                        createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
+                        if (tables[pos].fields[clm].key)
+                            createFieldNode.setAttribute("key","true");
+                        if (tables[pos].fields[clm].rTable != "")
+                        {
+                            createFieldNode.setAttribute("rtable",prefix + tables[pos].fields[clm].rTable);
+                            createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);
+
+                            if (isRelatedTableLookUp(tables[pos].fields[clm].rTable))
+                            {
+                                createFieldNode.setAttribute("rlookup","true");
+                            }
+
+                        }
+                        tables[pos].tableCreteElement.appendChild(createFieldNode);
+                    }
+                    else
+                    {
+                        QDomElement createFieldNode;
+                        createFieldNode = XMLSchemaStructure.createElement("field");
+                        createFieldNode.setAttribute("name",tables[pos].fields[clm].name.toLower());
+                        createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
+                        createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
+                        createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
+                        if (tables[pos].fields[clm].key)
+                            createFieldNode.setAttribute("key","true");
+                        if (tables[pos].fields[clm].rTable != "")
+                        {
+                            createFieldNode.setAttribute("rtable",prefix + tables[pos].fields[clm].rTable);
+                            createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);                            
+                            if (isRelatedTableLookUp(tables[pos].fields[clm].rTable))
+                            {
+                                createFieldNode.setAttribute("rlookup","true");
+                            }
+                        }
+                        tables[pos].tableCreteElement.appendChild(createFieldNode);
                     }
                 }
+                else
+                {
+                    QDomElement createFieldNode;
+                    createFieldNode = XMLSchemaStructure.createElement("field");
+                    createFieldNode.setAttribute("name",tables[pos].fields[clm].name.toLower());
+                    createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
+                    createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
+                    createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
+                    if (tables[pos].fields[clm].key)
+                        createFieldNode.setAttribute("key","true");
+                    if (tables[pos].fields[clm].rTable != "")
+                    {
+                        createFieldNode.setAttribute("rtable",prefix + tables[pos].fields[clm].rTable);
+                        createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);
+                        if (isRelatedTableLookUp(tables[pos].fields[clm].rTable))
+                        {
+                            createFieldNode.setAttribute("rlookup","true");
+                        }
+                    }
+                    tables[pos].tableCreteElement.appendChild(createFieldNode);
+                }
+            }
+            else
+            {
+                QDomElement createFieldNode;
+                createFieldNode = XMLSchemaStructure.createElement("field");
+                createFieldNode.setAttribute("name",tables[pos].fields[clm].name.toLower());
+                createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
+                createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
+                createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
+                if (tables[pos].fields[clm].key)
+                    createFieldNode.setAttribute("key","true");
+                if (tables[pos].fields[clm].rTable != "")
+                {
+                    createFieldNode.setAttribute("rtable",prefix + tables[pos].fields[clm].rTable);
+                    createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);                    
+                }
+                tables[pos].tableCreteElement.appendChild(createFieldNode);
             }
 
             //Update the dictionary tables to the set column description
@@ -581,14 +732,38 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
             if (tables[pos].xmlCode != "NONE")
             {
                 if (tables[pos].parentTable == "NULL")
+                {
                     root.appendChild(tables[pos].tableElement);
+                    XMLTables.appendChild(tables[pos].tableCreteElement);
+                }
                 else
                 {
                     QDomElement parentElement;
                     parentElement = getTableElement(tables[pos].parentTable);
                     parentElement.appendChild(tables[pos].tableElement);
+
+                    QDomElement parentCreateElement;
+                    parentCreateElement = getTableCreateElement(tables[pos].parentTable);
+                    parentCreateElement.appendChild(tables[pos].tableCreteElement);
                 }
             }
+            else
+            {
+                if (tables[pos].parentTable == "NULL")
+                {
+                    XMLTables.appendChild(tables[pos].tableCreteElement);
+                }
+                else
+                {
+                    QDomElement parentCreateElement;
+                    parentCreateElement = getTableCreateElement(tables[pos].parentTable);
+                    parentCreateElement.appendChild(tables[pos].tableCreteElement);
+                }
+            }
+        }
+        else
+        {
+            XMLLKPTables.appendChild(tables[pos].tableCreteElement);
         }
         rTables.clear();
         //Extract all related tables into rTables that are not lookups
@@ -695,7 +870,35 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
         file.close();
     }
     else
-        log("Error: Cannot clear xml file");
+        log("Error: Cannot create xml manifest file");
+
+    //Create the XMLCreare file. If exist it get overwriten
+    if (QFile::exists(XMLCreate))
+        QFile::remove(XMLCreate);
+    QFile XMLCreateFile(XMLCreate);
+    if (XMLCreateFile.open(QIODevice::WriteOnly | QIODevice::Text))
+    {
+        QTextStream outXMLCreate(&XMLCreateFile);
+        outXMLCreate.setCodec("UTF-8");
+        XMLSchemaStructure.save(outXMLCreate,1,QDomNode::EncodingFromTextStream);
+        XMLCreateFile.close();
+    }
+    else
+        log("Error: Cannot create xml create file");
+
+    //Create the XML Insert file. If exist it get overwriten
+    if (QFile::exists(insertXML))
+        QFile::remove(insertXML);
+    QFile XMLInsertFile(insertXML);
+    if (XMLInsertFile.open(QIODevice::WriteOnly | QIODevice::Text))
+    {
+        QTextStream outXMLInsert(&XMLInsertFile);
+        outXMLInsert.setCodec("UTF-8");
+        insertValuesXML.save(outXMLInsert,1,QDomNode::EncodingFromTextStream);
+        XMLInsertFile.close();
+    }
+    else
+        log("Error: Cannot create xml insert file");
 }
 
 //This function maps ODK XML Form data types to MySQL data types
@@ -1750,6 +1953,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                 mselTable.islookup = false;
                                 tableIndex++;
                                 mselTable.pos = tableIndex;
+                                mselTable.parentTable = tables[tblIndex].name;
                                 mselTable.xmlCode = "NONE";
                                 //Creating the extra field to the multiselect table that will be linked to the lookuptable
                                 TfieldDef mselKeyField;
@@ -2173,7 +2377,9 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> tableArg("t","mainTable","Name of the master table for the target schema. ODK surveys do not have a master table however this is neccesary to store ODK variables that are not inside a repeat. Please give a name for the master table for maintable, mainmodule, coverinformation, etc.",true,"","string");
     TCLAP::ValueArg<std::string> mainVarArg("v","mainVariable","Code of the main variable of the ODK survey. For example HH_ID",true,"","string");
     TCLAP::ValueArg<std::string> ddlArg("c","outputdml","Output DDL file. Default ./create.sql",false,"./create.sql","string");
+    TCLAP::ValueArg<std::string> XMLCreateArg("C","xmlschema","Output XML schema file. Default ./create.xml",false,"./create.xml","string");
     TCLAP::ValueArg<std::string> insertArg("i","outputinsert","Output insert file. Default ./insert.sql",false,"./insert.sql","string");
+    TCLAP::ValueArg<std::string> insertXMLArg("I","xmlinsert","Output lookup values in XML format. Default ./insert.xml",false,"./insert.xml","string");
     TCLAP::ValueArg<std::string> metadataArg("m","outputmetadata","Output metadata file. Default ./metadata.sql",false,"./metadata.sql","string");
     TCLAP::ValueArg<std::string> impxmlArg("f","outputxml","Output xml manifest file. Default ./manifest.xml",false,"./manifest.xml","string");
     TCLAP::ValueArg<std::string> prefixArg("p","prefix","Prefix for each table. _ is added to the prefix. Default no prefix",false,"","string");
@@ -2185,10 +2391,12 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> yesNoStringArg("y","yesnostring","Yes and No strings in the default language in the format \"String|String\". This will allow the tool to identify Yes/No lookup tables and exclude them. This is not case sensitive. For example, if the default language is Spanish this value should be indicated as \"Si|No\". If empty English \"Yes|No\" will be assumed",false,"Yes|No","string");
 
     cmd.add(inputArg);
+    cmd.add(XMLCreateArg);
     cmd.add(tableArg);
     cmd.add(mainVarArg);
     cmd.add(ddlArg);
     cmd.add(insertArg);
+    cmd.add(insertXMLArg);
     cmd.add(metadataArg);
     cmd.add(impxmlArg);
     cmd.add(prefixArg);
@@ -2206,8 +2414,10 @@ int main(int argc, char *argv[])
     QString input = QString::fromUtf8(inputArg.getValue().c_str());
     QString ddl = QString::fromUtf8(ddlArg.getValue().c_str());
     QString insert = QString::fromUtf8(insertArg.getValue().c_str());
+    QString insertXML = QString::fromUtf8(insertXMLArg.getValue().c_str());
     QString metadata = QString::fromUtf8(metadataArg.getValue().c_str());
     QString xmlFile = QString::fromUtf8(impxmlArg.getValue().c_str());
+    QString xmlCreateFile = QString::fromUtf8(XMLCreateArg.getValue().c_str());
     QString mTable = QString::fromUtf8(tableArg.getValue().c_str());
     QString mainVar = QString::fromUtf8(mainVarArg.getValue().c_str());
     QString sepFile = QString::fromUtf8(sepArg.getValue().c_str());
@@ -2218,6 +2428,9 @@ int main(int argc, char *argv[])
     QString yesNoString = QString::fromUtf8(yesNoStringArg.getValue().c_str());
     prefix = QString::fromUtf8(prefixArg.getValue().c_str());
     prefix = prefix + "_";
+
+    strYes = "Yes";
+    strNo = "No";
 
     if (prefix == "_")
         prefix = "";
@@ -2279,7 +2492,7 @@ int main(int argc, char *argv[])
             return 1; //If a table has more than 60 related field then exit
         }
         log("Generating SQL scripts");
-        genSQL(ddl,insert,metadata,xmlFile,transFile,UUIDFile);
+        genSQL(ddl,insert,metadata,xmlFile,transFile,UUIDFile,xmlCreateFile,insertXML);
     }
     else
         return 1;

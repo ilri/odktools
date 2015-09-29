@@ -16,7 +16,25 @@ void insertValues::insertValue(TinsertValueDef value)
     m_insertList.append(value);
 }
 
-void insertValues::insertValue(QString name,QString xmlCode,QString value,bool isKey)
+TinsertValueDef insertValues::getValue(int index)
+{
+    return m_insertList[index];
+}
+
+QList<TinsertValueDef> insertValues::getKeys()
+{
+    QList<TinsertValueDef> res;
+    for (int pos = 0; pos < m_insertList.count();pos++)
+    {
+        if (m_insertList[pos].key == true)
+        {
+            res.append(m_insertList[pos]);
+        }
+    }
+    return res;
+}
+
+void insertValues::insertValue(QString name,QString xmlCode,QString value,bool isKey,bool isMultiSelect, QString multiSelectTable)
 {
     TinsertValueDef newvalue;
     newvalue.name = name;
@@ -24,6 +42,8 @@ void insertValues::insertValue(QString name,QString xmlCode,QString value,bool i
     newvalue.value = value;
     newvalue.key = isKey;
     newvalue.insert = true;
+    newvalue.multiSelect = isMultiSelect;
+    newvalue.multiSelectTable = multiSelectTable;
     m_insertList.append(newvalue);
 }
 
@@ -52,6 +72,16 @@ void insertValues::setItemIsKey(int index, bool isKey)
     m_insertList[index].key = isKey;
 }
 
+void insertValues::setItemIsMultiSelect(int index, bool isMultiSelect)
+{
+    m_insertList[index].multiSelect = isMultiSelect;
+}
+
+void insertValues::setItemMultiSelectTable(int index, QString table)
+{
+    m_insertList[index].multiSelectTable = table;
+}
+
 void insertValues::setItemToInsert(int index, bool toInsert)
 {
     if (m_insertList[index].key == false)
@@ -76,6 +106,16 @@ QString insertValues::itemValue(int index)
 bool insertValues::itemIsKey(int index)
 {
     return m_insertList[index].key;
+}
+
+bool insertValues::itemIsMultiSelect(int index)
+{
+    return m_insertList[index].multiSelect;
+}
+
+QString insertValues::itemMultiSelectTable(int index)
+{
+    return m_insertList[index].multiSelectTable;
 }
 
 bool insertValues::itemToInsert(int index)
