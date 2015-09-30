@@ -143,7 +143,7 @@ The "data" object has the following structure:
   - setItemToInsert(**int** index, **bool** toInsert): Sets a column to be inserted or not for a given item index.
 
 *Utility functions:*
-  - **int** getIndexByColumnName(**string** name): Return the index of a column using its name. Notes: This is **NOT** case sensitive.
+  - **int** getIndexByColumnName(**string** name): Return the index of a column using its name. Notes: This is **NOT** case sensitive. Returns -1 if the column is not found.
   - **bool** valueIsNumber(**int** index): Returns whether the value of a column is a number or not for a given index.
 
 ---
