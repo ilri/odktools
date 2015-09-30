@@ -250,7 +250,7 @@ ODK Tools was built using:
 
 
 ## Building and testing
-To build this site for local viewing or development:
+To build ODKTools on Linux do:
 
     $ git clone https://github.com/ilri/odktools.git
     $ cd odktools
@@ -265,7 +265,7 @@ To build this site for local viewing or development:
     $ make
 
 ## Author
-Carlos Quiros (c.f.quiros_at_cgiar.org / cquiros_at_qlands.com)
+Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
 
 Harrison Njmaba (h.njamba_at_cgiar.org)
 
