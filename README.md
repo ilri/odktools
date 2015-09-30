@@ -115,7 +115,7 @@ $ ./jsontomysql -H my_MySQL_server -u my_user -p my_pass -s my_schema -m ./my_ma
 The “beforeInsert” function is called for each row in each table entering the database.
 
 *Parameters:*
-  - table: **string**. Contains the table being processed
+  - table: **string**. Contains the table being processed.
   - data: **object**. Contains information about the columns to be inserted into the database and the values for one row of data.
 
 The "data" object has the following structure:
@@ -234,7 +234,7 @@ insertFromXML creates a SQL DML script file from a XML insert file generated eit
 
 #### *Example*
   ```sh
-$ ./createfromxml -i ./my_insert_file.xml -o ./my_output_sql_file.sql
+$ ./insertfromxml -i ./my_insert_file.xml -o ./my_output_sql_file.sql
 ```
 
 ## Technology
