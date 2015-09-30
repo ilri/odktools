@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
 
     TCLAP::ValueArg<std::string> inputArg("i","input","Input insert XML file",true,"","string");
-    TCLAP::ValueArg<std::string> outputArg("o","output","Output SQL file",false,"./create.sql","string");
+    TCLAP::ValueArg<std::string> outputArg("o","output","Output SQL file",false,"./insert.sql","string");
 
 
     cmd.add(inputArg);
