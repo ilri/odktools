@@ -276,4 +276,4 @@ This repository contains the code of:
 - [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter) which is licensed under the [MIT license](https://raw.githubusercontent.com/twbs/bootstrap/master/LICENSE).
 - [QJSON](https://github.com/qlands/qjson) which is licensed under the [GNU Lesser General Public License version 2.1](http://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html)
 
-Otherwise, the contents of this application is [GPL V3](http://www.gnu.org/copyleft/gpl.html).
+Otherwise, ODKToMySQL is licensed under [LGPL V3](http://www.gnu.org/licenses/lgpl-3.0.html).

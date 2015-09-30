@@ -2,23 +2,23 @@
 # -*- coding: utf-8 -*-
 
 
-#  This Python program connects to a FormHub (https://formhub.org/) database and extract survey data into json files
-#  using the survey ID as filter. Each survey uuid (unique ID) is saves ad uuid.json in an output directory
-#  Copyright (C) 2014  International Livestock Research Institute
-#  Author: Carlos Quiros (Research Methods Group)
+# This file is part of ODKTools.
 #
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
+# Copyright (C) 2015 International Livestock Research Institute.
+# Author: Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
 #
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
+# ODKTools is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
 #
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ODKTools is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with ODKTools.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
 
 
 import getopt #Library for processing command line argument
@@ -78,7 +78,7 @@ def main():
         print str(err) #If there is an error then print it
         usage() #Print the help
         sys.exit(1) #Exits with error
-    
+
     #Input variables
 
     survey = 'mySurveyID' #The SQLite input database
@@ -87,11 +87,11 @@ def main():
     mongoURI = 'mongodb://localhost:27017/' #Connect to Mongo in ocalhost
     mongoDB = "formhub" #Database containing the surveys
     mongoCollection = 'instances' #Collection containing the surveys
-    
+
     if len(opts) == 0:
         usage() #Print the help
         sys.exit(1) #Exits with error
-    
+
     #This for statement gets each command line argument and fill avobe variables
     for o, a in opts:
         if o in ("-w"):
@@ -111,8 +111,8 @@ def main():
             mongoCollection = a
         else:
             assert False, "unhandled option"
-    
-    #Print some of the variables   
+
+    #Print some of the variables
 
     print 'SurveyID          :', survey
     print 'MongoURI          :', mongoURI
@@ -128,30 +128,30 @@ def main():
     except Exception,e:
         print str(e)
         sys.exit(1)
-    
+
     #Try to connect to Mongo a
     try:
       mongoCon = MongoClient(mongoURI)
       mngdb = mongoCon[mongoDB]
       mngcoll = mngdb[mongoCollection]
-      
+
       if mngcoll.count() == 0:
           print 'Collection "' + mongoCollection + '" does not have documents'  #Print the error
           sys.exit(1) #Exits with error
-      
+
       if mngcoll.find_one({"_xform_id_string" : survey}) is None:
           print 'Collection "' + mongoCollection + '" does not have surveys with ID = ' + survey  #Print the error
           sys.exit(1) #Exits with error
-        
+
       exportSurvey(mngcoll, survey, outputDir,overWrite) #Export the surveys
-      
+
     except pymongo.errors.ConnectionFailure as e:
       print 'Cannot connect to Mongo database with URI ' + mongoURI #Print the error
-      
+
     except pymongo.errors.ConfigurationError as ec:
       print 'Cannot connect to Mongo database. The URI might be malformed. Use something like "mongodb://localhost:27017/" '  #Print the error
       sys.exit(1) #Exits with error
-    
+
 #Load the main function at start
 if __name__ == "__main__":
     main()

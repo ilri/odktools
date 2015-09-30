@@ -1,3 +1,23 @@
+/*
+This file is part of ODKTools.
+
+Copyright (C) 2015 International Livestock Research Institute.
+Author: Harrison Njamba (h.njamba_at_cgiar.org) and Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
+
+ODKTools is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as
+published by the Free Software Foundation, either version 3 of
+the License, or (at your option) any later version.
+
+ODKTools is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with ODKTools.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
+*/
+
 #include <QCoreApplication>
 #include <tclap/CmdLine.h>
 #include <QtXml>
