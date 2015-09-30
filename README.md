@@ -1,5 +1,5 @@
 # ODK Tools
-ODK Tools is a toolbox for processing [ODK](https://opendatakit.org/) survey data into MySQL databases. The toolbox relies on [Formhub](https://github.com/SEL-Columbia/formhub) as a temporary storage of ODK submissions because it conveniently stores them in JSON format; and on [META](https://github.com/ilri/meta) for storing the dictionary information and to support multiple languages. ODK Tools comprises of four command line tools performing different tasks. The toolbox is cross-platform and can be build in Windows, Linux and Mac.
+ODK Tools is a toolbox for processing [ODK](https://opendatakit.org/) survey data into MySQL databases. The toolbox relies on [OnaData](https://github.com/onaio/onadata) or [Formhub](https://github.com/SEL-Columbia/formhub) as a temporary storage of ODK submissions because they conveniently store them in JSON format; and on [META](https://github.com/ilri/meta) for storing the dictionary information and to support multiple languages. ODK Tools comprises of four command line tools performing different tasks and four utility programs. The toolbox is cross-platform and can be build in Windows, Linux and Mac.
 
 ## The toolbox
 
@@ -70,11 +70,11 @@ $ ./odktomysql -x my_input_xlsx_file.xlsx -v main_questionarie_ID -t maintable -
 
 ---
 ### FormhubToJSON
-In Formhub data coming from mobile devices is stored in a [Mongo](https://www.mongodb.org/) Database. Although Formhub provides exporting functions to CSV and MS Excel it does not provide exporting to more interoperable formats like [JSON](http://en.wikipedia.org/wiki/JSON). FormhubToJSON is a small Python program that extracts Formhub survey data from MongoDB to JSON files. Each data submission is exported as a JSON file using Formhub submission UUID as file name.
+OnaData/Formhub stores ODK submissions in a [Mongo](https://www.mongodb.org/) database. Although OnaData/Formhub provides exporting functions to CSV and MS Excel it do not provide exporting to more interoperable formats like [JSON](http://en.wikipedia.org/wiki/JSON). FormhubToJSON is a small Python program that extracts survey data from MongoDB to JSON files. Each data submission is exported as a JSON file using OnaData/Formhub submission UUID as the file name.
 #### *Parameters*
   - m - URI for the Mongo Server. For example mongodb://localhost:2701
-  - d - Formhub database. "formhub" by default.
-  - c - Formhub collection storing the surveys. "instances" by default.
+  - d - OnaData/Formhub database. "formhub" by default.
+  - c - OnaData/Formhub collection storing the surveys. "instances" by default.
   - y - ODK Survey ID. This is found in the "settings" sheet of the ODK XLSX file.
   - o - Output directory. "./output" by default (created if it does not exists).
   - w - Overwrite JSON file if exists. False by default.
