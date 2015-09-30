@@ -70,7 +70,7 @@ $ ./odktomysql -x my_input_xlsx_file.xlsx -v main_questionarie_ID -t maintable -
 
 ---
 ### FormhubToJSON
-OnaData/Formhub stores ODK submissions in a [Mongo](https://www.mongodb.org/) database. Although OnaData/Formhub provides exporting functions to CSV and MS Excel it do not provide exporting to more interoperable formats like [JSON](http://en.wikipedia.org/wiki/JSON). FormhubToJSON is a small Python program that extracts survey data from MongoDB to JSON files. Each data submission is exported as a JSON file using OnaData/Formhub submission UUID as the file name.
+OnaData/Formhub stores ODK submissions in a [Mongo](https://www.mongodb.org/) database. Although OnaData/Formhub provides exporting functions to CSV and MS Excel it does not provide exporting to more interoperable formats like [JSON](http://en.wikipedia.org/wiki/JSON). FormhubToJSON is a small Python program that extracts survey data from MongoDB to JSON files. Each data submission is exported as a JSON file using OnaData/Formhub submission UUID as the file name.
 #### *Parameters*
   - m - URI for the Mongo Server. For example mongodb://localhost:2701
   - d - OnaData/Formhub database. "formhub" by default.
