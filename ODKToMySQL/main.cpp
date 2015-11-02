@@ -586,7 +586,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                         if (tables[pos].fields[clm].isMultiSelect == true)
                         {
                             fieldNode.setAttribute("isMultiSelect","true");
-                            fieldNode.setAttribute("multiSelectTable",tables[pos].fields[clm].multiSelectTable);
+                            fieldNode.setAttribute("multiSelectTable",prefix + tables[pos].fields[clm].multiSelectTable);
                         }
                         if (tables[pos].fields[clm].key)
                         {
