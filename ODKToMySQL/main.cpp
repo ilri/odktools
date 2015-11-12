@@ -1273,6 +1273,7 @@ QList<TlkpValue> getSelectValues(QXlsx::Worksheet *choicesSheet,QString listName
     {
         /*if (debug)
         {
+            qDebug() << "Choices: " + QString::number(nrow);
             if (nrow == 48)
                 qDebug() << "Choices here";
         }*/
@@ -1614,7 +1615,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
         for (nrow = 2; nrow <= excelSheet->dimension().lastRow(); nrow++)
         {
             /*qDebug() << nrow;
-            if (nrow == 56)
+            if (nrow == 39)
             {
                 qDebug() << "Here";
                 debug = true;
@@ -1804,8 +1805,15 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                         if (variableType.indexOf("select_one") >= 0)
                         {
                             QList<TlkpValue> values;
-                            values.append(getSelectValues(choicesSheet,
-                                                          variableType.split(" ",QString::SkipEmptyParts)[1].trimmed(),
+                            QString listName;
+                            listName = "";
+                            if (variableType.indexOf(" ") >= 0)
+                                listName = variableType.split(" ",QString::SkipEmptyParts)[1].trimmed();
+                            if (variableType.indexOf(" ") >= 0)
+                                listName = variableType.split(" ",QString::SkipEmptyParts)[1].trimmed();
+                            if (listName != "")
+                                values.append(getSelectValues(choicesSheet,
+                                                          listName,
                                           columnListName,columnChoiceName));
                             //Processing field
                             TfieldDef aField;
