@@ -28,6 +28,8 @@ License along with ODKTools.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.
 #include "xlsxcellreference.h"
 #include "xlsxcell.h"
 
+bool debug;
+
 //This logs messages to the terminal. We use printf because qDebug does not log in relase
 void log(QString message)
 {
@@ -1264,10 +1266,16 @@ QList<TlkpValue> getSelectValues(QXlsx::Worksheet *choicesSheet,QString listName
     QList<TlkpValue> res;
     QXlsx::CellReference ref;
     QXlsx::Cell *cell;
+    QXlsx::Cell *cell2;
     bool referenceLookup;
     referenceLookup = false;
     for (int nrow = 2; nrow <= choicesSheet->dimension().lastRow(); nrow++)
     {
+        /*if (debug)
+        {
+            if (nrow == 48)
+                qDebug() << "Choices here";
+        }*/
         ref.setRow(nrow);
         ref.setColumn(listNameIdx);
         cell = choicesSheet->cellAt(ref);
@@ -1283,7 +1291,11 @@ QList<TlkpValue> getSelectValues(QXlsx::Worksheet *choicesSheet,QString listName
                     TlngLkpDesc desc;
                     desc.langCode = languages[lng].code;
                     ref.setColumn(languages[lng].idxInChoices);
-                    desc.desc = choicesSheet->cellAt(ref)->value().toString().trimmed();
+                    cell2 = choicesSheet->cellAt(ref);
+                    if (cell2 != 0)
+                        desc.desc = cell2->value().toString().trimmed();
+                    else
+                        desc.desc = "Empty description for value " + value.code + " in language " + languages[lng].desc;
                     if (desc.desc.indexOf("${") >= 0) //We dont treat reference lists as lookup tables
                         referenceLookup = true;
                     value.desc.append(desc);
@@ -1601,6 +1613,13 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
 
         for (nrow = 2; nrow <= excelSheet->dimension().lastRow(); nrow++)
         {
+            /*qDebug() << nrow;
+            if (nrow == 56)
+            {
+                qDebug() << "Here";
+                debug = true;
+            }*/
+
             ref.setRow(nrow);
             ref.setColumn(columnType);
             cell = excelSheet->cellAt(ref);
@@ -2409,6 +2428,8 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> transFileArg("T","translationfile","Output translation file",false,"./iso639.sql","string");
     TCLAP::ValueArg<std::string> uuidFileArg("u","uuidfile","Output UUID trigger file",false,"./uuid-triggers.sql","string");
     TCLAP::ValueArg<std::string> yesNoStringArg("y","yesnostring","Yes and No strings in the default language in the format \"String|String\". This will allow the tool to identify Yes/No lookup tables and exclude them. This is not case sensitive. For example, if the default language is Spanish this value should be indicated as \"Si|No\". If empty English \"Yes|No\" will be assumed",false,"Yes|No","string");
+
+    debug = false;
 
     cmd.add(inputArg);
     cmd.add(XMLCreateArg);
