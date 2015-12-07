@@ -1747,8 +1747,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
             {
                 tableName = getTopRepeat();
 
-                if (tableName == "rpt_lrq1_labouract")
-                    qDebug() << "rpt_lrq1_labouract";
+                //if (tableName == "rpt_lrq1_labouract")
+                //    qDebug() << "rpt_lrq1_labouract";
 
                 if (tableName == "")
                     tableName = mainTable;
