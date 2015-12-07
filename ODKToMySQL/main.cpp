@@ -1746,6 +1746,10 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
             if ((variableType.indexOf("group") == -1) && (variableType.indexOf("repeat") == -1))
             {
                 tableName = getTopRepeat();
+
+                if (tableName == "rpt_lrq1_labouract")
+                    qDebug() << "rpt_lrq1_labouract";
+
                 if (tableName == "")
                     tableName = mainTable;
                 tblIndex = getTableIndex(tableName);
@@ -1968,7 +1972,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                 //Creating the multiselect table
                                 TtableDef mselTable;
                                 //The multiselect table is a child of the current table thus pass the keyfields
-                                for (int field = 0; field < tables[tblIndex].fields.count()-1;field++)
+                                for (int field = 0; field < tables[tblIndex].fields.count();field++)
                                 {
                                     if (tables[tblIndex].fields[field].key == true)
                                     {
