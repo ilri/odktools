@@ -1260,8 +1260,16 @@ TtableDef getTable(QString name)
     return res;
 }
 
+bool selectHasOrOther(QString variableType)
+{
+    if (variableType.toLower().trimmed().indexOf("or_other") >= 0)
+        return true;
+    else
+        return false;
+}
+
 //This return the values of a select in different languages. If the select is a reference then it return empty
-QList<TlkpValue> getSelectValues(QXlsx::Worksheet *choicesSheet,QString listName,int listNameIdx,int nameIdx)
+QList<TlkpValue> getSelectValues(QXlsx::Worksheet *choicesSheet,QString listName,int listNameIdx,int nameIdx, bool hasOrOther)
 {
     QList<TlkpValue> res;
     QXlsx::CellReference ref;
@@ -1306,7 +1314,23 @@ QList<TlkpValue> getSelectValues(QXlsx::Worksheet *choicesSheet,QString listName
         }
     }
     if (!referenceLookup)
+    {
+        if (hasOrOther)
+        {
+            TlkpValue value;
+            value.code = "other";
+            for (int lng = 0; lng < languages.count(); lng++)
+            {
+                TlngLkpDesc desc;
+                desc.langCode = languages[lng].code;
+                ref.setColumn(languages[lng].idxInChoices);
+                desc.desc = "Other";
+                value.desc.append(desc);
+            }
+            res.append(value);
+        }
         return res;
+    }
     else
     {
         QList<TlkpValue> empty;
@@ -1635,11 +1659,11 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
             else
                 variableName = "";
 
-            if (variableType == "begin group")
+            if ((variableType == "begin group") || (variableType == "begin_group"))
                 addToStack(variableName);
-            if (variableType == "end group")
+            if ((variableType == "end group") || (variableType == "end_group"))
                 removeFromStack();
-            if (variableType == "begin repeat")
+            if ((variableType == "begin repeat") || (variableType == "begin_repeat"))
             {
                 if (variableName.toLower() != mainTable.toLower())
                 {
@@ -1728,7 +1752,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                     addToStack(variableName);
                 }
             }
-            if (variableType == "end repeat")
+            if ((variableType == "end repeat") || (variableType == "end_repeat"))
             {
                 if (variableName.trimmed().toLower() == "")
                     variableName = getTopRepeat();
@@ -1818,14 +1842,21 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                             if (listName != "")
                                 values.append(getSelectValues(choicesSheet,
                                                           listName,
-                                          columnListName,columnChoiceName));
+                                          columnListName,columnChoiceName,selectHasOrOther(variableType)));
                             //Processing field
                             TfieldDef aField;
                             aField.name = fixField(variableName.toLower());
-                            if (areValuesStrings(values))
-                                aField.type = "varchar";
+
+                            if (!selectHasOrOther(variableType))
+                            {
+                                if (areValuesStrings(values))
+                                    aField.type = "varchar";
+                                else
+                                    aField.type = "int";
+                            }
                             else
-                                aField.type = "int";
+                                aField.type = "varchar";
+
                             aField.size = getMaxValueLength(values);
                             aField.decSize = 0;
                             if (fixField(variableName.toLower()) == fixField(mainField.toLower()))
@@ -1926,6 +1957,32 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                 aField.rField = "";
                             }
                             tables[tblIndex].fields.append(aField);
+
+                            //We add here the has other field
+                            if (selectHasOrOther(variableType))
+                            {
+                                TfieldDef oField;
+                                oField.name = aField.name + "_other";
+                                oField.xmlCode = aField.xmlCode + "_other";
+                                oField.decSize = 0;
+                                for (int lng = 0; lng < languages.count();lng++)
+                                {
+                                    TlngLkpDesc fieldDesc;
+                                    fieldDesc.langCode = languages[lng].code;
+                                    fieldDesc.desc = "Other";
+                                    oField.desc.append(fieldDesc);
+                                }
+                                oField.isMultiSelect = false;
+                                oField.key = false;
+                                oField.multiSelectTable = "";
+                                oField.rField = "";
+                                oField.rTable = "";
+                                oField.size = 120;
+                                oField.type = "varchar";
+                                tables[tblIndex].fields.append(oField);
+                            }
+
+
                         }
                         if (variableType.indexOf("select_multiple") >= 0)
                         {
@@ -1939,7 +1996,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                             QList<TlkpValue> values;
                             values.append(getSelectValues(choicesSheet,
                                                           variableType.split(" ",QString::SkipEmptyParts)[1].trimmed(),
-                                          columnListName,columnChoiceName));
+                                          columnListName,columnChoiceName,selectHasOrOther(variableType)));
 
                             //Processing  the field
                             TfieldDef aField;
@@ -2011,10 +2068,17 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                 mselKeyField.name = aField.name;
                                 mselKeyField.desc.append(aField.desc);
                                 mselKeyField.key = true;
-                                if (areValuesStrings(values))
-                                    mselKeyField.type = "varchar";
+
+                                if (!selectHasOrOther(variableType))
+                                {
+                                    if (areValuesStrings(values))
+                                        mselKeyField.type = "varchar";
+                                    else
+                                        mselKeyField.type = "int";
+                                }
                                 else
-                                    mselKeyField.type = "int";
+                                    mselKeyField.type = "varchar";
+
                                 mselKeyField.size = getMaxValueLength(values);
                                 mselKeyField.decSize = 0;
                                 //Processing the lookup table if neccesary
@@ -2089,6 +2153,31 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                 aField.multiSelectTable = "";
                             }
                             tables[tblIndex].fields.append(aField); //Appends the multi select varchar field to the list
+
+                            //We add here the has other field
+                            if (selectHasOrOther(variableType))
+                            {
+                                TfieldDef oField;
+                                oField.name = aField.name + "_other";
+                                oField.xmlCode = aField.xmlCode + "_other";
+                                oField.decSize = 0;
+                                for (int lng = 0; lng < languages.count();lng++)
+                                {
+                                    TlngLkpDesc fieldDesc;
+                                    fieldDesc.langCode = languages[lng].code;
+                                    fieldDesc.desc = "Other";
+                                    oField.desc.append(fieldDesc);
+                                }
+                                oField.isMultiSelect = false;
+                                oField.key = false;
+                                oField.multiSelectTable = "";
+                                oField.rField = "";
+                                oField.rTable = "";
+                                oField.size = 120;
+                                oField.type = "varchar";
+                                tables[tblIndex].fields.append(oField);
+                            }
+
                         }
                     }
                 }
