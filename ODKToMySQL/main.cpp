@@ -1350,6 +1350,19 @@ QList<TlkpValue> getSelectValues(QXlsx::Worksheet *choicesSheet,QString listName
         6- Add tables to the list called tables
 */
 
+bool variableIsControl(QString variableType)
+{
+    if ((variableType == "begin group") || (variableType == "begin_group"))
+        return true;
+    if ((variableType == "end group") || (variableType == "end_group"))
+        return true;
+    if ((variableType == "begin repeat") || (variableType == "begin_repeat"))
+        return true;
+    if ((variableType == "end repeat") || (variableType == "end_repeat"))
+        return true;
+    return false;
+}
+
 int processXLSX(QString inputFile, QString mainTable, QString mainField)
 {
     bool hasSurveySheet;
@@ -1659,6 +1672,11 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
             else
                 variableName = "";
 
+            //if (variableName == "secd_d4_exotic_breed")
+            //{
+            //    qDebug() << "!!!!!!!!!!!!!secd_d4_exotic_breed!!!!!!!!!!!!";
+            //}
+
             if ((variableType == "begin group") || (variableType == "begin_group"))
                 addToStack(variableName);
             if ((variableType == "end group") || (variableType == "end_group"))
@@ -1767,7 +1785,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                     removeFromStack();
                 }
             }
-            if ((variableType.indexOf("group") == -1) && (variableType.indexOf("repeat") == -1))
+            if (!variableIsControl(variableType))
             {
                 tableName = getTopRepeat();
 
