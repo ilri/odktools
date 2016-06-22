@@ -8,7 +8,7 @@ QT       += core xml
 
 QT       -= gui
 
-TARGET = insertFromXML
+TARGET = insertfromxml
 CONFIG   += console
 CONFIG   -= app_bundle
 

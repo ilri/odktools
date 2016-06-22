@@ -244,14 +244,16 @@ ODK Tools was built using:
 - [Qt 5](https://www.qt.io/), a cross-platform application framework.
 - [Python 2.7.x](https://www.python.org/), a widely used general-purpose programming language.
 - [TClap](http://tclap.sourceforge.net/), a small, flexible library that provides a simple interface for defining and accessing command line arguments. *(Included in source code)*
-- [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter), a XLSX file reader and writer for Qt5. **Requires QTInternals (e.g., apt-get install qtbase5-private-dev)**. *(Included in source code)*
-- [QJSON](https://github.com/qlands/qjson), a qt-based library that maps JSON data to QVariant objects. *(Included in source code)*
-- [CMake] (http://www.cmake.org/), a cross-platform free and open-source software for managing the build process of software using a compiler-independent method.
+- [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter), a XLSX file reader and writer for Qt5. *(Included in source code)*
+- [QJSON](https://github.com/flavio/qjson), a qt-based library that maps JSON data to QVariant objects. *(Included in source code)*
+- [CMake](http://www.cmake.org/), a cross-platform free and open-source software for managing the build process of software using a compiler-independent method.
 
 
 ## Building and testing
 To build ODKTools on Linux do:
 
+    $ sudo apt-get update
+    $ sudo apt-get install qt5-default qtbase5-private-dev qtdeclarative5-dev cmake
     $ git clone https://github.com/ilri/odktools.git
     $ cd odktools
     $ git submodule update --init --recursive
@@ -259,6 +261,7 @@ To build ODKTools on Linux do:
     $ mkdir build
     $ cd build
     $ cmake ..
+    $ make
     $ sudo make install
     $ cd ../../..
     $ qmake
@@ -274,6 +277,6 @@ This repository contains the code of:
 
 - [TClap](http://tclap.sourceforge.net/) which is licensed under the [MIT license](https://raw.githubusercontent.com/twbs/bootstrap/master/LICENSE).
 - [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter) which is licensed under the [MIT license](https://raw.githubusercontent.com/twbs/bootstrap/master/LICENSE).
-- [QJSON](https://github.com/qlands/qjson) which is licensed under the [GNU Lesser General Public License version 2.1](http://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html)
+- [QJSON](https://github.com/flavio/qjson) which is licensed under the [GNU Lesser General Public License version 2.1](http://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html)
 
 Otherwise, ODKToMySQL is licensed under [LGPL V3](http://www.gnu.org/licenses/lgpl-3.0.html).
