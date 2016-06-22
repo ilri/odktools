@@ -37,8 +37,8 @@ ODKToMySQL converts a ODK Excel File (XLSX survey file) into a relational MySQL 
 
 #### *Parameters*
   - x - Input ODK XLSX file.
-  - v - Main survey variable. This is the unique ID of each survey. **This IS NOT the ODK survey ID found in settings.**
-  - t - Main table. Name of the master table for the target schema. ODK surveys do not have a master table however this is necessary to store ODK variables that are not inside a repeat. **If the main survey variable is store inside a repeat then the main table is such repeat.**
+  - v - Main survey variable. This is the variable that is unique for each survey submission. For example National ID, Passport or Farmer Id, etc. **This IS NOT the ODK survey ID found in settings.** This variable will become the primary key in the main table. You can only select **one** variable.
+  - t - Main table. Name of the master table for the target schema. ODK surveys do not have a master table however this is necessary to store ODK variables that are not inside a repeat. You can choose any name for example: "maintable" **Important note: If the main survey variable is store inside a repeat then the main table must be such repeat.**
   - d - Default storing language. For example: (en)English. **This is the default language for the database and might be different as the default language in the ODK survey.** If not indicated then English will be assumed.
   - l - Other languages. For example: (fr)French,(es)Español. Required if the ODK file has multiple languages.
   - y - Yes and No strings in the default language in the format "String|String". This will allow the tool to identify Yes/No lookup tables and exclude them. **It is not case sensitive.** For example, if the default language is Spanish then this value should be indicated as "Si|No". If its empty then English "Yes|No" will be assumed.
