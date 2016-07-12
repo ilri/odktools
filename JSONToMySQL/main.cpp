@@ -19,7 +19,7 @@ License along with ODKTools.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.
 */
 
 #include <QCoreApplication>
-#include <qjson/parser.h>
+#include <qjson-qt5/parser.h>
 #include <tclap/CmdLine.h>
 #include <QSqlDatabase>
 #include <QSqlError>
