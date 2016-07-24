@@ -1,5 +1,5 @@
 # ODK Tools
-ODK Tools is a toolbox for processing [ODK](https://opendatakit.org/) survey data into MySQL databases. The toolbox relies on [OnaData](https://github.com/onaio/onadata) or [Formhub](https://github.com/SEL-Columbia/formhub) as a temporary storage of ODK submissions because they conveniently store them in JSON format; and on [META](https://github.com/ilri/meta) for storing the dictionary information and to support multiple languages. ODK Tools comprises of four command line tools performing different tasks and four utility programs. The toolbox is cross-platform and can be build in Windows, Linux and Mac.
+ODK Tools is a toolbox for processing [ODK](https://opendatakit.org/) survey data into MySQL databases. The toolbox relies on [FormShare](https://github.com/qlands/FormShare) as a temporary storage of ODK submissions because they conveniently store them in JSON format; and on [META](https://github.com/ilri/meta) for storing the dictionary information and to support multiple languages. ODK Tools comprises of four command line tools performing different tasks and four utility programs. The toolbox is cross-platform and can be build in Windows, Linux and Mac.
 
 ## The toolbox
 
