@@ -513,18 +513,21 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                 //For the create XML
                 tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
                 tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
+                tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));
             }
             else
             {
                 //For the create XML
                 tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
                 tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
+                tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));
             }
         }
         else
         {
             tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
             tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
+            tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));
 
             //Append the values to the XML insert
             QDomElement lkptable = insertValuesXML.createElement("table");
@@ -609,6 +612,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                         QDomElement createFieldNode;
                         createFieldNode = XMLSchemaStructure.createElement("field");
                         createFieldNode.setAttribute("name",tables[pos].fields[clm].name.toLower());
+                        createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                         createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                         createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
                         createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
@@ -654,6 +658,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                     QDomElement createFieldNode;
                     createFieldNode = XMLSchemaStructure.createElement("field");
                     createFieldNode.setAttribute("name",tables[pos].fields[clm].name.toLower());
+                    createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                     createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                     createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
                     createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
@@ -676,6 +681,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                 QDomElement createFieldNode;
                 createFieldNode = XMLSchemaStructure.createElement("field");
                 createFieldNode.setAttribute("name",tables[pos].fields[clm].name.toLower());
+                createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                 createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                 createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
                 createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
@@ -1458,7 +1464,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
             cell = excelSheet->cellAt(ref);
             if (cell != 0)
             {
-                if (cell->value().toString().indexOf("label") >= 0)
+                if (cell->value().toString().toLower().indexOf("label") >= 0)
                 {
                     QString label;
                     label = cell->value().toString();
@@ -1488,7 +1494,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
             cell = excelSheet->cellAt(ref);
             if (cell != 0)
             {
-                if (cell->value().toString().indexOf("label") >= 0)
+                if (cell->value().toString().toLower().indexOf("label") >= 0)
                 {
                     QString label;
                     label = cell->value().toString();
@@ -1512,7 +1518,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
         {
             if ((languages[ncols].idxInChoices == -1) || (languages[ncols].idxInSurvey == -1))
             {
-                log("Language " + languages[ncols].desc + " has not Choices or Survey column");
+                log("Language " + languages[ncols].desc + " is not present in the labels of the sheets choices or Survey");
                 return 1;
             }
         }
