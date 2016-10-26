@@ -232,7 +232,7 @@ QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,Q
 
     tblIndex = getLastIndex(table);
 
-    sqlHeader = "INSERT INTO " + table + "(";
+    sqlHeader = "INSERT INTO " + table + " (";
     sqlValues = " VALUES (";
     for (pos = 0; pos <= parentkeys.count()-1;pos++)
     {
@@ -536,22 +536,17 @@ int procTable(QSqlDatabase db,QVariantMap jsonData, QDomNode table, QList< Tfiel
     int recordIndex;
     int tkindex;
 
-
-    if (tableCode == "af_rpt_secf_anmlsrcfd")
-        log("Table:" + tableCode);
-
-    //log(tableCode);
-
     QString tableXMLCode;
     tableXMLCode = table.toElement().attribute("xmlcode");
+
+    QString parentTag;
+    parentTag = table.parentNode().toElement().tagName();
 
     bool genSQL;
     genSQL = false;
 
     QDomNode child;
     child = table.firstChild();
-
-
 
     while (!child.isNull())
     {
@@ -562,7 +557,8 @@ int procTable(QSqlDatabase db,QVariantMap jsonData, QDomNode table, QList< Tfiel
             {
                 TfieldDef field;
                 field.name = child.toElement().attribute("mysqlcode");
-                field.xmlCode = child.toElement().attribute("xmlcode");                
+                field.xmlCode = child.toElement().attribute("xmlcode");
+
                 if (child.toElement().attribute("key").toStdString() == "true")
                     field.key = true;
                 else
@@ -582,9 +578,10 @@ int procTable(QSqlDatabase db,QVariantMap jsonData, QDomNode table, QList< Tfiel
         else
         {
             sqlCreated = true; //To control more than one child table
-            if ((tableXMLCode == "main") || (table.parentNode().toElement().tagName() == "ODKImportXML"))
+            if ((tableXMLCode == "main") || (parentTag == "ODKImportXML"))
             {
                 mainTable = tableCode;
+                QVariantMap map;
                 if (genSQL == true)
                 {
                     if (tableXMLCode == "main")
@@ -597,15 +594,27 @@ int procTable(QSqlDatabase db,QVariantMap jsonData, QDomNode table, QList< Tfiel
                         QVariantList result = jsonData[tableXMLCode].toList();
                         foreach(QVariant record, result)
                         {
-                            QVariantMap map = record.toMap();
-                            //debugMap(jsonData);
-                            //debugMap(map);
+                            map = record.toMap();
                             keys.append(createSQL(db,jsonData,tableCode,fields,keys,true,map));
                         }
                     }
                     genSQL = false;
                 }
-                procTable(db,jsonData,child,keys); //Recursive call of a table from main
+                else
+                {
+                    if (tableXMLCode != "main") //If we are processing a sibling table and the main table is a repeat then we need to get map
+                    {
+                        QVariantList result = jsonData[tableXMLCode].toList();
+                        foreach(QVariant record, result)
+                        {
+                            map = record.toMap();
+                        }
+                    }
+                }
+                if (tableXMLCode == "main")
+                    procTable(db,jsonData,child,keys); //Recursive call of a table from main using a main table as root
+                else
+                    procTable(db,map,child,keys); // //Recursive call of a table from main using a main repeat as root
             }
             else
             {
@@ -650,7 +659,6 @@ int procTable(QSqlDatabase db,QVariantMap jsonData, QDomNode table, QList< Tfiel
                         tkeys.append(tableKeys[tkindex].keys);
                     }
 
-                    //debugKeys(tableCode,tkeys);
                     if (tableSeparated == false)
                         procTable(db,map,child,tkeys); //Recursive call of a table from other table than main that is a real child and not a separation table
                     else
@@ -677,8 +685,6 @@ int procTable(QSqlDatabase db,QVariantMap jsonData, QDomNode table, QList< Tfiel
                 foreach(QVariant record, result)
                 {
                     QVariantMap map = record.toMap();
-                    //debugMap(jsonData);
-                    //debugMap(map);
                     keys.append(createSQL(db,jsonData,tableCode,fields,keys,true,map));
                 }
             }
