@@ -733,9 +733,9 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                     field = tables[pos].fields[clm].name.toLower() + " " + tables[pos].fields[clm].type;
 
             if (tables[pos].fields[clm].key == true)
-                field = field + " NOT NULL COMMENT '" + fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)) + "', ";
+                field = field + " NOT NULL COMMENT \"" + fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)) + "\", ";
             else
-                field = field + " COMMENT '" + fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)) + "', ";
+                field = field + " COMMENT \"" + fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)) + "\", ";
 
             fields << field << "\n";
 
@@ -859,7 +859,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
         }
         clm = sql.lastIndexOf(",");
         sql = sql.left(clm);
-        sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8 COMMENT = '" + fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))) + "'; \n\n";
+        sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))) + "\"; \n\n";
 
         //Append UUIDs triggers to the the
         UUIDStrm << "CREATE TRIGGER uudi_" + prefix+ tables[pos].name.toLower() + " BEFORE INSERT ON " + prefix + tables[pos].name.toLower() + " FOR EACH ROW SET new.rowuuid = uuid();\n";
