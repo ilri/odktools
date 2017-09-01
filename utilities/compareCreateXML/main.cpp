@@ -22,12 +22,167 @@ License along with ODKTools.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.
 #include <QtCore>
 #include <QDomElement>
 
+bool fatalError;
+QStringList diff;
+int idx;
+
+struct rfieldDef
+{
+  QString name;
+  QString rname;
+};
+typedef rfieldDef TrfieldDef;
+
+struct rtableDef
+{
+  QString name;
+  QList<TrfieldDef> rfields;
+};
+typedef rtableDef TrtableDef;
+
+QList<TrtableDef> rtables;
+
+
+//This adds the modifications to a table to the diff list
+void addFieldToDiff(QString table, QDomElement eField)
+{
+    QString sql;
+    sql = "ALTER TABLE " + table + " ADD COLUMN " + eField.attribute("name","");
+    if (eField.attribute("type","") == "decimal")
+        sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + "," + eField.attribute("decsize","0") + ");";
+    else
+    {
+        if (eField.attribute("type","") != "text")
+            sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + ");";
+        else
+            sql = sql + " " + eField.attribute("type","") + ";";
+    }
+    diff.append(sql);
+    if (eField.attribute("rtable","") != "")
+    {
+        sql = "ALTER TABLE " + table + " ADD INDEX DIDX" + QString::number(idx)  + " (" + eField.attribute("name","") + ");";
+        diff.append(sql);
+        sql = "ALTER TABLE " + table + " ADD CONSTRAINT DFK" + QString::number(idx) + " FOREIGN KEY (";
+        sql = sql + eField.attribute("name","") + ") REFERENCES " + eField.attribute("rtable","") + "(";
+        sql = sql + eField.attribute("rfield","") + ") ON DELETE RESTRICT ON UPDATE NO ACTION;" ;
+        diff.append(sql);
+        idx++;
+    }
+}
+
+void addFieldToRTables(QString rTable, QString field, QString rField)
+{
+    int tidx;
+    tidx = -1;
+    int pos;
+    for (pos = 0; pos < rtables.count(); pos++)
+    {
+        if (rtables[pos].name == rTable)
+            tidx = pos;
+    }
+    if (tidx != -1)
+    {
+        TrfieldDef aField;
+        aField.name = field;
+        aField.rname = rField;
+        rtables[tidx].rfields.append(aField);
+    }
+    else
+    {
+        TrtableDef table;
+        table.name = rTable;
+        TrfieldDef aField;
+        aField.name = field;
+        aField.rname = rField;
+        table.rfields.append(aField);
+        rtables.append(table);
+    }
+}
+
+//This adds a table to the diff list
+void addTableToSDiff(QDomNode table)
+{
+    QDomElement eTable = table.toElement();
+    QString sql;
+    sql = "CREATE TABLE IF NOT EXISTS " + eTable.attribute("name","") + "(\n";
+    QDomNode node = table.firstChild();
+    QStringList keys;
+    while (!node.isNull())
+    {
+        QDomElement field = node.toElement();
+        sql = sql + field.attribute("name","");
+
+        if (field.attribute("type","") == "decimal")
+            sql = sql + " " + field.attribute("type","") + " (" + field.attribute("size","0") + "," + field.attribute("decsize","0") + ")";
+        else
+        {
+            if (field.attribute("type","") != "text")
+                sql = sql + " " + field.attribute("type","") + " (" + field.attribute("size","0") + ")";
+            else
+                sql = sql + " " + field.attribute("type","");
+        }
+        if (field.attribute("key","") == "true")
+        {
+            sql = sql + "NOT NULL ,\n";
+            keys.append(field.attribute("name",""));
+        }
+        else
+            sql = sql + " ,\n";
+        if (field.attribute("rtable","") != "")
+        {
+            addFieldToRTables(field.attribute("rtable",""),field.attribute("name",""),field.attribute("rfield",""));
+        }
+        node = node.nextSibling();
+    }
+    int pos;
+    int pos2;
+    //Add the keys
+    sql = sql + "PRIMARY KEY (";
+    for (pos = 0; pos < keys.count();pos++)
+    {
+        sql = sql + keys[pos] + ",";
+    }
+    sql = sql.left(sql.length()-1) + "),\n";
+    //Add the indexes
+    for (pos = 0; pos < rtables.count();pos++)
+    {
+        sql = sql + "INDEX DIDX"  + QString::number(idx) + "(";
+        for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
+        {
+            sql = sql + rtables[pos].rfields[pos2].name + ",";
+        }
+        sql = sql.left(sql.length()-1) + "),\n";
+        idx++;
+    }
+    //Add foreign keys
+    for (pos = 0; pos < rtables.count();pos++)
+    {
+        sql = sql + "CONSTRAINT DFK"  + QString::number(idx) + "\n";
+        sql = sql + "FOREIGN KEY (";
+        for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
+        {
+            sql = sql + rtables[pos].rfields[pos2].name + ",";
+        }
+        sql = sql.left(sql.length()-1) + ")\n";
+        sql = sql + "REFERENCES " + rtables[pos].name + "(";
+        for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
+        {
+            sql = sql + rtables[pos].rfields[pos2].rname + ",";
+        }
+        sql = sql.left(sql.length()-1) + ")\nON DELETE RESTRICT\nON UPDATE NO ACTION,\n";
+        idx++;
+    }
+    sql = sql.left(sql.length()-1) + ")\n ENGINE = InnoDB CHARSET=utf8;\n";
+    diff.append(sql);
+}
+
 //This logs messages to the terminal. We use printf because qDebug does not log in relase
 void log(QString message)
 {
     QString temp;
     temp = message + "\n";
     printf(temp.toUtf8().data());
+    fatalError = true;
 }
 
 void fatal(QString message)
@@ -105,6 +260,7 @@ void compareLKPTables(QDomNode table,QDomDocument &docB)
                else
                {
                    log("FNF:Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " from A is not found in B");
+                   addFieldToDiff(node.toElement().attribute("name",""),eField);
                }
                field = field.nextSibling();
            }
@@ -112,6 +268,7 @@ void compareLKPTables(QDomNode table,QDomDocument &docB)
        else
        {
            log("TNF:Lookup table " + node.toElement().attribute("name","") + " from A not found in B");
+           addTableToSDiff(node);
            //Now adds the lookup table
            docB.documentElement().firstChild().appendChild(node.cloneNode(true));
        }
@@ -146,6 +303,7 @@ void compareTables(QDomNode table,QDomDocument &docB)
                     else
                     {
                         log("FNF:Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " from A is not found in B");
+                        addFieldToDiff( eTable.toElement().attribute("name",""),eField);
                         tablefound.insertBefore(eField.cloneNode(true),tablefound.firstChild());
                     }
                 }
@@ -165,6 +323,7 @@ void compareTables(QDomNode table,QDomDocument &docB)
         if (!parentfound.isNull())
         {
             log("TNF:Table " + eTable.toElement().attribute("name","") + " from A not found in B");
+            addTableToSDiff(eTable);
             parentfound.appendChild(table.cloneNode(true));
         }
         else
@@ -180,7 +339,7 @@ int main(int argc, char *argv[])
     title = title + "********************************************************************* \n";
     title = title + " * Compare Create XML 1.0                                            * \n";
     title = title + " * This tool compares two create XML files (A and B) for incremental * \n";
-    title = title + " * changes.                                                          * \n";
+    title = title + " * changes. A is consider an incremental version of B .              * \n";
     title = title + " *                                                                   * \n";
     title = title + " * The tool informs of tables and variables in A that are not in B.  * \n";
     title = title + " * The tool can also create a combined file C that appends           * \n";
@@ -204,19 +363,27 @@ int main(int argc, char *argv[])
     title = title + " * This tool is usefull when dealing with multiple versions of an    * \n";
     title = title + " * ODK survey that must be combined in one common database.          * \n";
     title = title + " *                                                                   * \n";
-    title = title + " * This tool is part of ODK Tools (c) ILRI-RMG, 2015                 * \n";
+    title = title + " * If a TNS nor a FNS are NOT encounter then this means that B can   * \n";
+    title = title + " * merge into A and a diff SQL script is issued.                     * \n";
+    title = title + " *                                                                   * \n";
+    title = title + " * Decrimental changes are not taken into account because this means * \n";
+    title = title + " * losing data between versions.                                     * \n";
+    title = title + " *                                                                   * \n";
+    title = title + " * This tool is part of ODK Tools (c) ILRI-RMG, 2016                 * \n";
     title = title + " * Author: Carlos Quiros (c.f.quiros@cgiar.org / cquiros@qlands.com) * \n";
     title = title + " ********************************************************************* \n";
 
     TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
 
-    TCLAP::ValueArg<std::string> aArg("a","inputa","Input create XML file A",true,"","string");
-    TCLAP::ValueArg<std::string> bArg("b","inputb","Input create XML file B",true,"","string");
+    TCLAP::ValueArg<std::string> aArg("a","inputa","Input create XML file A (later)",true,"","string");
+    TCLAP::ValueArg<std::string> bArg("b","inputb","Input create XML file B (former)",true,"","string");
     TCLAP::ValueArg<std::string> cArg("c","outputc","Output create XML file C",false,"./combined-create.xml","string");
+    TCLAP::ValueArg<std::string> dArg("d","diff","Output diff SQL script",false,"./diff.sql","string");
 
     cmd.add(aArg);
     cmd.add(bArg);
     cmd.add(cArg);
+    cmd.add(dArg);
 
 
     //Parsing the command lines
@@ -226,6 +393,10 @@ int main(int argc, char *argv[])
     QString inputA = QString::fromUtf8(aArg.getValue().c_str());
     QString inputB = QString::fromUtf8(bArg.getValue().c_str());
     QString outputC = QString::fromUtf8(cArg.getValue().c_str());
+    QString outputD = QString::fromUtf8(dArg.getValue().c_str());
+
+    fatalError = false;
+    idx = 1;
 
     if (inputA != inputB)
     {
@@ -277,7 +448,7 @@ int main(int argc, char *argv[])
                     qDebug() << "Comparing tables";
                 compareTables(rootA.firstChild().nextSibling().firstChild(),docB);
 
-                //Create the manifext file. If exist it get overwriten
+                //Create the output file. If exist it get overwriten
                 if (QFile::exists(outputC))
                     QFile::remove(outputC);
                 QFile file(outputC);
@@ -290,6 +461,23 @@ int main(int argc, char *argv[])
                 }
                 else
                     log("Error: Cannot create XML combined file");
+
+                if (QFile::exists(outputD))
+                    QFile::remove(outputD);
+                QFile dfile(outputD);
+                if (dfile.open(QIODevice::WriteOnly | QIODevice::Text))
+                {
+                    QTextStream outD(&dfile);
+                    outD.setCodec("UTF-8");
+                    for (int dpos = 0; dpos < diff.count();dpos++)
+                    {
+                        outD << diff[dpos] + "\n";
+                    }
+                    file.close();
+                }
+                else
+                    log("Error: Cannot create Diff file");
+
 
             }
             else
@@ -326,6 +514,8 @@ int main(int argc, char *argv[])
         log("Input files A and B are the same. No point in comparing them.");
         return 1;
     }
-
-    return 0;
+    if (!fatalError)
+        return 0;
+    else
+        return 1;
 }

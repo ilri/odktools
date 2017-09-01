@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 
@@ -30,6 +30,7 @@ import io
 import pprint
 
 from pymongo import MongoClient
+from subprocess import check_call, CalledProcessError
 
 #This function export all Formhub uuids to json files filtering by surveyID
 def exportSurvey(mongoColl, surveyID, outputDir, overWrite):
@@ -38,11 +39,25 @@ def exportSurvey(mongoColl, surveyID, outputDir, overWrite):
     surveys = mongoColl.find({"_xform_id_string" : surveyID}) #Find all Surveys with that surveyID
     for survey in surveys:
         #If the uuid of the survey does not exist or we want to rewrite existing files
-        if not os.path.isfile(outputDir + "/"  + survey["_uuid"] + ".json") or overWrite == True:
+        if not os.path.isfile(outputDir + "/" + survey["_uuid"] + ".json") or overWrite == True:
             #Dump the survey into the json file
-            with open(outputDir + "/"  + survey["_uuid"] + ".json", "w") as outfile:
+            with open(outputDir + "/t"  + survey["_uuid"] + ".json", "w") as outfile:
                 jsonString = json.dumps(survey,indent=4,ensure_ascii=False).encode("utf8")
                 outfile.write(jsonString)
+
+            args = []
+            args.append("jq")
+            args.append("-S")
+            args.append(".")
+            args.append(outputDir + "/t" + survey["_uuid"] + ".json")
+            try:
+                final = open(outputDir + "/" + survey["_uuid"] + ".json", "w")
+                check_call(args,stdout=final)
+                os.remove(outputDir + "/t" + survey["_uuid"] + ".json")
+            except CalledProcessError as e:
+                print e.message
+
+
 
         else:
             print "Survey id " + survey["_uuid"] + " already exists. Skipping it"

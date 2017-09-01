@@ -1,5 +1,5 @@
 # ODK Tools
-ODK Tools is a toolbox for processing [ODK](https://opendatakit.org/) survey data into MySQL databases. The toolbox relies on [OnaData](https://github.com/onaio/onadata) or [Formhub](https://github.com/SEL-Columbia/formhub) as a temporary storage of ODK submissions because they conveniently store them in JSON format; and on [META](https://github.com/ilri/meta) for storing the dictionary information and to support multiple languages. ODK Tools comprises of four command line tools performing different tasks and four utility programs. The toolbox is cross-platform and can be build in Windows, Linux and Mac.
+ODK Tools is a toolbox for processing [ODK](https://opendatakit.org/) survey data into MySQL databases. The toolbox relies on [FormShare](https://github.com/qlands/FormShare) as a temporary storage of ODK submissions because they conveniently store them in JSON format; and on [META](https://github.com/ilri/meta) for storing the dictionary information and to support multiple languages. ODK Tools comprises of four command line tools performing different tasks and four utility programs. The toolbox is cross-platform and can be build in Windows, Linux and Mac.
 
 ## The toolbox
 
@@ -37,8 +37,8 @@ ODKToMySQL converts a ODK Excel File (XLSX survey file) into a relational MySQL 
 
 #### *Parameters*
   - x - Input ODK XLSX file.
-  - v - Main survey variable. This is the unique ID of each survey. **This IS NOT the ODK survey ID found in settings.**
-  - t - Main table. Name of the master table for the target schema. ODK surveys do not have a master table however this is necessary to store ODK variables that are not inside a repeat. **If the main survey variable is store inside a repeat then the main table is such repeat.**
+  - v - Main survey variable. This is the variable that is unique for each survey submission. For example National ID, Passport or Farmer Id, etc. **This IS NOT the ODK survey ID found in settings.** This variable will become the primary key in the main table. You can only select **one** variable.
+  - t - Main table. Name of the master table for the target schema. ODK surveys do not have a master table however this is necessary to store ODK variables that are not inside a repeat. You can choose any name for example: "maintable" **Important note: If the main survey variable is store inside a repeat then the main table must be such repeat.**
   - d - Default storing language. For example: (en)English. **This is the default language for the database and might be different as the default language in the ODK survey.** If not indicated then English will be assumed.
   - l - Other languages. For example: (fr)French,(es)Español. Required if the ODK file has multiple languages.
   - y - Yes and No strings in the default language in the format "String|String". This will allow the tool to identify Yes/No lookup tables and exclude them. **It is not case sensitive.** For example, if the default language is Spanish then this value should be indicated as "Si|No". If its empty then English "Yes|No" will be assumed.
@@ -70,11 +70,11 @@ $ ./odktomysql -x my_input_xlsx_file.xlsx -v main_questionarie_ID -t maintable -
 
 ---
 ### FormhubToJSON
-OnaData/Formhub stores ODK submissions in a [Mongo](https://www.mongodb.org/) database. Although OnaData/Formhub provides exporting functions to CSV and MS Excel it does not provide exporting to more interoperable formats like [JSON](http://en.wikipedia.org/wiki/JSON). FormhubToJSON is a small Python program that extracts survey data from MongoDB to JSON files. Each data submission is exported as a JSON file using OnaData/Formhub submission UUID as the file name.
+FormShare stores ODK submissions in a [Mongo](https://www.mongodb.org/) database. Although FormShare provides exporting functions to CSV and MS Excel it does not provide exporting to more interoperable formats like [JSON](http://en.wikipedia.org/wiki/JSON). FormhubToJSON is a small Python program that extracts survey data from MongoDB to JSON files. Each data submission is exported as a JSON file using FormShare submission UUID as the file name.
 #### *Parameters*
   - m - URI for the Mongo Server. For example mongodb://localhost:2701
-  - d - OnaData/Formhub database. "formhub" by default.
-  - c - OnaData/Formhub collection storing the surveys. "instances" by default.
+  - d - FormShare database. "formhub" by default.
+  - c - FormShare collection storing the surveys. "instances" by default.
   - y - ODK Survey ID. This is found in the "settings" sheet of the ODK XLSX file.
   - o - Output directory. "./output" by default (created if it does not exists).
   - w - Overwrite JSON file if exists. False by default.
@@ -244,14 +244,16 @@ ODK Tools was built using:
 - [Qt 5](https://www.qt.io/), a cross-platform application framework.
 - [Python 2.7.x](https://www.python.org/), a widely used general-purpose programming language.
 - [TClap](http://tclap.sourceforge.net/), a small, flexible library that provides a simple interface for defining and accessing command line arguments. *(Included in source code)*
-- [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter), a XLSX file reader and writer for Qt5. **Requires QTInternals (e.g., apt-get install qtbase5-private-dev)**. *(Included in source code)*
-- [QJSON](https://github.com/qlands/qjson), a qt-based library that maps JSON data to QVariant objects. *(Included in source code)*
-- [CMake] (http://www.cmake.org/), a cross-platform free and open-source software for managing the build process of software using a compiler-independent method.
+- [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter), a XLSX file reader and writer for Qt5. *(Included in source code)*
+- [QJSON](https://github.com/flavio/qjson), a qt-based library that maps JSON data to QVariant objects. *(Included in source code)*
+- [CMake](http://www.cmake.org/), a cross-platform free and open-source software for managing the build process of software using a compiler-independent method.
 
 
 ## Building and testing
 To build ODKTools on Linux do:
 
+    $ sudo apt-get update
+    $ sudo apt-get install qt5-default qtbase5-private-dev qtdeclarative5-dev cmake
     $ git clone https://github.com/ilri/odktools.git
     $ cd odktools
     $ git submodule update --init --recursive
@@ -259,6 +261,7 @@ To build ODKTools on Linux do:
     $ mkdir build
     $ cd build
     $ cmake ..
+    $ make
     $ sudo make install
     $ cd ../../..
     $ qmake
@@ -274,6 +277,6 @@ This repository contains the code of:
 
 - [TClap](http://tclap.sourceforge.net/) which is licensed under the [MIT license](https://raw.githubusercontent.com/twbs/bootstrap/master/LICENSE).
 - [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter) which is licensed under the [MIT license](https://raw.githubusercontent.com/twbs/bootstrap/master/LICENSE).
-- [QJSON](https://github.com/qlands/qjson) which is licensed under the [GNU Lesser General Public License version 2.1](http://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html)
+- [QJSON](https://github.com/flavio/qjson) which is licensed under the [GNU Lesser General Public License version 2.1](http://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html)
 
 Otherwise, ODKToMySQL is licensed under [LGPL V3](http://www.gnu.org/licenses/lgpl-3.0.html).
