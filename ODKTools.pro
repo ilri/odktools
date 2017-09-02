@@ -5,4 +5,4 @@ CONFIG += debug
 SUBDIRS = ODKToMySQL/odktomysql.pro \
 JSONToMySQL/jsontomysql.pro \
     utilities \
-    XMLtoJSON
+    XMLtoJSON/xmltojson.pro

@@ -49,6 +49,7 @@ proguard.cfg
 *.zip
 .qmake.cache
 .qmake.conf
+.qmake.stash
 
 # qtcreator generated files
 *.pro.user*
