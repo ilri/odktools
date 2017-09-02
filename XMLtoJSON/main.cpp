@@ -11,6 +11,9 @@
 #include <QFile>
 #include <QDebug>
 #include <QStringList>
+#include <unistd.h>
+#include <stdio.h>
+
 
 QString mainTag;
 
@@ -21,17 +24,16 @@ void log(QString message)
     printf(temp.toUtf8().data());
 }
 
-QJsonArray processNode(QStringList repeatArray,bool group,bool table,QDomNode node,QJsonObject &json)
+QJsonArray processNode(QStringList repeatArray,bool group,QDomNode node,QJsonObject &json)
 {
     QDomNode start;
     start = node.firstChild();
     QStringList tagsArray;
     QJsonArray groupArray;
-    QJsonArray tableArray;
 
     while (!start.isNull())
     {
-        //This will get the parent nodes
+        //This will get the parent tags of the item to them form the name no the key in the JSON
         if (tagsArray.length() == 0)
         {
             QDomNode parent;
@@ -39,38 +41,32 @@ QJsonArray processNode(QStringList repeatArray,bool group,bool table,QDomNode no
             while (!parent.isNull())
             {
                 if ((parent.toElement().tagName() != "") && (mainTag != parent.toElement().tagName()))
-                    tagsArray.prepend(parent.toElement().tagName());
+                    tagsArray.prepend(parent.toElement().tagName()); //Preend them so we have the correct order
                 parent = parent.parentNode();
             }
         }
 
+        //If this tag does not have children (is not a repeat or a group)
         if (start.firstChildElement().isNull() == true)
         {
             if (!start.firstChild().nodeValue().isNull())
             {
-            QString varName;
-            if (tagsArray.length() >= 1)
-                varName = tagsArray.join("/") + "/" + start.toElement().tagName();
-            else
-                varName = start.toElement().tagName();
-            if (group == false)
-                json[varName] = start.firstChild().nodeValue();
-            else
-            {
-                if (group == true)
+                //Forms the key name using / as separator
+                QString varName;
+                if (tagsArray.length() >= 1)
+                    varName = tagsArray.join("/") + "/" + start.toElement().tagName();
+                else
+                    varName = start.toElement().tagName();
+                //If we are not processing a group then add the single var otherwise create an array for the group
+                if (group == false)
+                    json[varName] = start.firstChild().nodeValue();
+                else
                 {
                     QJsonObject ajvar;
                     ajvar[varName] = start.firstChild().nodeValue();
                     groupArray.append(ajvar);
                 }
-                if (table == true)
-                {
-                    QJsonObject ajvar;
-                    ajvar[varName] = start.firstChild().nodeValue();
-                    tableArray.append(ajvar);
-                }
-            }}
-
+            }
         }
         else
         {            
@@ -83,9 +79,11 @@ QJsonArray processNode(QStringList repeatArray,bool group,bool table,QDomNode no
 
             if (repeatArray.indexOf(start.toElement().tagName()) >= 0)
             {
-                //QJsonObject temp;
+                //If its a repeat then enter into its content and store it in repContent
                 QJsonObject repContent;
-                processNode(repeatArray,false,true,start,repContent);
+                processNode(repeatArray,false,start,repContent);
+                //If the repeat tag is not in the JSON then create the key as an array and append the content
+                //otherwise then just append the content
                 if (json[varName].isNull())
                 {
                     QJsonArray repArray;
@@ -102,8 +100,9 @@ QJsonArray processNode(QStringList repeatArray,bool group,bool table,QDomNode no
             }
             else
             {
+                //If its a group then we need to extract the elements recursively because they don't generate an array
                 QJsonArray elems;
-                elems = processNode(repeatArray,true,false,start,json);
+                elems = processNode(repeatArray,true,start,json);
                 for (int pos = 0; pos <= elems.count()-1;pos++)
                 {
                     QString key;
@@ -118,23 +117,21 @@ QJsonArray processNode(QStringList repeatArray,bool group,bool table,QDomNode no
     }
     if (group)
         return groupArray;
-    if (table)
-        return QJsonArray();
+
     return QJsonArray();
 }
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication app(argc, argv);
-
     QString title;
     title = title + "********************************************************************* \n";
     title = title + " * XMLToJSON                                                         * \n";
-    title = title + " * This tool converts a ODK XML data file into JSON.                 * \n";
-    title = title + " * The JSON input files are usually generated from 'mongotojson      * \n";
-    title = title + " * however sometimes is convenient to convert the raw XML inteself   * \n";
-    title = title + " * just in case the date in formshare get lost and only the XMLs     * \n";
-    title = title + " * in the device are backed up.                                      * \n";
+    title = title + " * This tool converts an ODK XML data file into JSON.                * \n";
+    title = title + " * JSON files are usually generated from 'formhubtojson' however     * \n";
+    title = title + " * sometimes it is convenient to convert raw XML files. For example, * \n";
+    title = title + " * in case that the data in Formshare get lost and only the XML      * \n";
+    title = title + " * files from devices exists. It is also useful if you want to       * \n";
+    title = title + " * create your own FormShare ;-)                                     * \n";
     title = title + " *                                                                   * \n";
     title = title + " * This tool is part of ODK Tools (c) Bioversity Costa Rica, 2017    * \n";
     title = title + " * Author: Carlos Quiros (c.f.quiros@cgiar.org / cquiros@qlands.com) * \n";
@@ -143,7 +140,7 @@ int main(int argc, char *argv[])
     TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
 
     TCLAP::ValueArg<std::string> xmlArg("i","xml","Input XML File",true,"","string");
-    TCLAP::ValueArg<std::string> jsonArg("o","json","Input JSON File",true,"","string");
+    TCLAP::ValueArg<std::string> jsonArg("o","json","Input JSON File",false,"","string");
     TCLAP::ValueArg<std::string> formArg("x","xform","Input XML Form File",true,"","string");
 
     cmd.add(xmlArg);
@@ -151,24 +148,39 @@ int main(int argc, char *argv[])
     cmd.add(formArg);
     cmd.parse( argc, argv );
 
+    QJsonObject extRoot;
+    if (!isatty(fileno(stdin)))
+    {
+        QTextStream qtin(stdin);
+        QString stdindata = qtin.readAll();
+        QByteArray ba;
+        ba = stdindata.toUtf8();
+        QJsonDocument exJSONDoc(QJsonDocument::fromJson(ba));
+        if (!exJSONDoc.isNull())
+            extRoot = exJSONDoc.object();
+        else
+        {
+            log("Error parsing stdin JSON content");
+            return 1;
+        }
+    }
 
     //Getting the variables from the command
 
     QString xmlFile = QString::fromUtf8(xmlArg.getValue().c_str());
     QString formFile = QString::fromUtf8(formArg.getValue().c_str());
-
     QString jsonFile = QString::fromUtf8(jsonArg.getValue().c_str());
 
     QDomDocument xForm("xform");
     QFile xFormFile(formFile);
     if (!xFormFile.open(QIODevice::ReadOnly))
     {
-        log("Cannot open XML form file");
+        log("Couldn't open XML form file");
         return 1;
     }
     if (!xForm.setContent(&xFormFile))
     {
-        log("Cannot parse input file");
+        log("Couldn't parse XML form file");
         xFormFile.close();
         return 1;
     }
@@ -190,12 +202,12 @@ int main(int argc, char *argv[])
     QFile inputFile(xmlFile);
     if (!inputFile.open(QIODevice::ReadOnly))
     {
-        log("Cannot open input file");
+        log("Couldn't open input XML data file");
         return 1;
     }
     if (!inputXML.setContent(&inputFile))
     {
-        log("Cannot parse input file");
+        log("Couldn't parse input XML data file");
         inputFile.close();
         return 1;
     }
@@ -204,20 +216,34 @@ int main(int argc, char *argv[])
     mainTag = root.tagName();
     //QString empty;
     QJsonObject JSONRoot;
-    processNode(repeatArray,false,false,root,JSONRoot);
+    processNode(repeatArray,false,root,JSONRoot);
     JSONRoot["_xform_id_string"] = root.attribute("id","");
 
-    QFile saveFile(jsonFile);
+    //Append any keys comming from stdin
+    QStringList keys;
+    keys = extRoot.keys();
+    for (int n=0; n <= keys.count()-1; n++)
+    {
+        JSONRoot[keys[n]] = extRoot.value(keys[n]).toString();
+    }
+    QJsonDocument saveDoc(JSONRoot);
 
-    if (!saveFile.open(QIODevice::WriteOnly)) {
-        qWarning("Couldn't open save file.");
-        return 1;
+    //If no output file was given the print to stdout
+    if (!jsonFile.isEmpty())
+    {
+        QFile saveFile(jsonFile);
+        if (!saveFile.open(QIODevice::WriteOnly)) {
+            log("Couldn't open output JSON file.");
+            return 1;
+        }
+        saveFile.write(saveDoc.toJson());
+        saveFile.close();
+    }
+    else
+    {
+        QTextStream out(stdout);
+        out << saveDoc.toJson();
     }
 
-    QJsonDocument saveDoc(JSONRoot);
-    saveFile.write(saveDoc.toJson());
-    saveFile.close();
-
     return 0;
-
 }
