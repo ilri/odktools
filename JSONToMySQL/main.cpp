@@ -21,6 +21,7 @@ License along with ODKTools.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.
 #include <QCoreApplication>
 #include <tclap/CmdLine.h>
 #include "mainclass.h"
+#include <QDebug>
 
 
 int main(int argc, char *argv[])
@@ -95,7 +96,7 @@ int main(int argc, char *argv[])
 
     QTimer::singleShot(0, task, SLOT(run()));
 
-
-    return app.exec();
+    app.exec();
+    return task->returnCode;
 
 }

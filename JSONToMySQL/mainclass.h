@@ -50,7 +50,7 @@ class mainClass : public QObject
     Q_OBJECT
 public:
     explicit mainClass(QObject *parent = 0);
-
+    int returnCode;
 signals:
     void finished();
     void finishedWithError(int error);
@@ -77,6 +77,7 @@ private:
     QList <TtblIndexDef > lstTblIndex;
 
     bool SQLError;
+    QString SQLErrorNumber;
     QString fileID;
     QString mainTable;
 
@@ -102,8 +103,6 @@ private:
     QString output;
     QString input;
     QString javaScript;
-
-    int returnCode;
 };
 
 #endif // MAINCLASS_H

@@ -17,7 +17,7 @@ void mainClass::run()
         {
             log("Error: Script file defined but cannot be opened");
             returnCode = 1;
-            emit finished();
+
         }
         QJSValue JSCode = JSEngine.evaluate(scriptFile.readAll(), javaScript);
         /*if (JSCode.isError())
@@ -50,7 +50,6 @@ void mainClass::run()
             {
                 log("Error calling BeforInsert JS function.");
                 returnCode = 1;
-                emit finished();
             }
             else
             {
@@ -62,7 +61,6 @@ void mainClass::run()
         {
             log("Error evaluating BeforInsert JS function. [" + error + "]");
             returnCode = 1;
-            emit finished();
         }
     }
 
@@ -95,7 +93,6 @@ void mainClass::run()
                 {
                     log("Cannot create processing file");
                     returnCode = 1;
-                    emit finished();
                 }
             }
             else
@@ -105,7 +102,6 @@ void mainClass::run()
                 {
                     log("Cannot create processing file");
                     returnCode = 1;
-                    emit finished();
                 }
             }
             QTextStream out(&file); //Stream to the processing file
@@ -118,7 +114,6 @@ void mainClass::run()
                 {
                     log("Cannot create log file");
                     returnCode = 1;
-                    emit finished();
                 }
                 logStream.setDevice(&logFile);
 
@@ -130,7 +125,6 @@ void mainClass::run()
                 {
                     log("Cannot create log file");
                     returnCode = 1;
-                    emit finished();
                 }
                 logStream.setDevice(&logFile);
             }
@@ -140,7 +134,6 @@ void mainClass::run()
                 log("Database does not support transactions");
                 db.close();
                 returnCode = 1;
-            emit finished();
             }
 
             if (outSQL)
@@ -155,27 +148,26 @@ void mainClass::run()
                 {
                     log("Cannot create sqlFile file");
                     returnCode = 1;
-                    emit finished();
                 }
                 sqlStream.setDevice(&sqlFile);
             }
 
             SQLError = false;
+            SQLErrorNumber = "";
             if (processFile(db,json,manifest,procList))
             {
                 //This will happen if the file is already processes or an error ocurred
                 db.close();
                 returnCode = 1;
-                emit finished();
             }
             if (SQLError)
             {
+                returnCode = 2;
+                log(SQLErrorNumber);
                 if (!db.rollback())
                 {
-                    log("Errors were encountered but Rollback did not succed. The processs might have ended in incomplete data.");
                     db.close();
                     returnCode = 1;
-                    emit finished();
                 }
             }
             else
@@ -190,7 +182,6 @@ void mainClass::run()
                     log("Warning: Commit did not succed. Please check the database");
                     db.close();
                     returnCode = 1;
-                    emit finished();
                 }
             }
 
@@ -201,7 +192,6 @@ void mainClass::run()
             log("Cannot connect to database");
             log(db.lastError().databaseText());
             returnCode = 1;
-            emit finished();
         }
     }
 
@@ -548,6 +538,8 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
     if (!query.exec(sql))
     {
       SQLError = true; //An error occurred. This will trigger a rollback
+      if (SQLErrorNumber == "")
+        SQLErrorNumber = query.lastError().nativeErrorCode() + "&"  + query.lastError().databaseText() + "@" + table;
       logError(db,query.lastError().databaseText(),table,tblIndex,jsonData,fields,sql); //Write the error to the log
     }
 
@@ -621,6 +613,8 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                 if (!query.exec(sql))
                 {
                   SQLError = true; //An error occurred. This will trigger a rollback
+                  if (SQLErrorNumber == "")
+                    SQLErrorNumber = query.lastError().nativeErrorCode() + "&" + query.lastError().databaseText() + "@" + mSelectTableName;
                   logErrorMSel(db,query.lastError().databaseText(),mSelectTableName,tblIndex,mSelectValues[nvalue],sql); //Write the error to the log
                 }
             }
