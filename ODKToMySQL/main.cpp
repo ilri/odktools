@@ -607,7 +607,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                         if (tables[pos].fields[clm].key)
                         {
                             fieldNode.setAttribute("key","true");
-                            if (tables[pos].fields[clm].rTable != "")
+                            if (tables[pos].fields[clm].rTable != "" && tables[pos].fields[clm].rTable.left(3) != "lkp")
                                 fieldNode.setAttribute("reference","true");
                             else
                                 fieldNode.setAttribute("reference","false");
