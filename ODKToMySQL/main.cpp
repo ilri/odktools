@@ -380,9 +380,6 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
     int idx;
     idx = 0;
 
-
-
-
     QDomDocument outputdoc;
     outputdoc = QDomDocument("ODKImportFile");
     QDomElement root;
@@ -627,6 +624,13 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                         createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                         createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
                         createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
+
+                        if (tables[pos].fields[clm].isMultiSelect == true)
+                        {
+                            createFieldNode.setAttribute("isMultiSelect","true");
+                            createFieldNode.setAttribute("multiSelectTable",prefix + tables[pos].fields[clm].multiSelectTable);
+                        }
+
                         if (tables[pos].fields[clm].key)
                             createFieldNode.setAttribute("key","true");
                         if (tables[pos].fields[clm].rTable != "")
