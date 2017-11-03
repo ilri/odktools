@@ -148,6 +148,8 @@ int main(int argc, char *argv[])
     cmd.add(formArg);
     cmd.parse( argc, argv );
 
+    bool withStdIn;
+    withStdIn = false;
     QJsonObject extRoot;
     if (!isatty(fileno(stdin)))
     {
@@ -157,11 +159,13 @@ int main(int argc, char *argv[])
         ba = stdindata.toUtf8();
         QJsonDocument exJSONDoc(QJsonDocument::fromJson(ba));
         if (!exJSONDoc.isNull())
+        {
             extRoot = exJSONDoc.object();
+            withStdIn = true;
+        }
         else
         {
-            log("Error parsing stdin JSON content");
-            return 1;
+            withStdIn = false;
         }
     }
 
@@ -219,12 +223,15 @@ int main(int argc, char *argv[])
     processNode(repeatArray,false,root,JSONRoot);
     JSONRoot["_xform_id_string"] = root.attribute("id","");
 
-    //Append any keys comming from stdin
-    QStringList keys;
-    keys = extRoot.keys();
-    for (int n=0; n <= keys.count()-1; n++)
+    if (withStdIn)
     {
-        JSONRoot[keys[n]] = extRoot.value(keys[n]).toString();
+        //Append any keys comming from stdin
+        QStringList keys;
+        keys = extRoot.keys();
+        for (int n=0; n <= keys.count()-1; n++)
+        {
+            JSONRoot[keys[n]] = extRoot.value(keys[n]).toString();
+        }
     }
     QJsonDocument saveDoc(JSONRoot);
 
