@@ -890,8 +890,11 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
         sql = sql.left(clm);
         sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))) + "\"; \n\n";
 
-        //Append UUIDs triggers to the the
-        UUIDStrm << "CREATE TRIGGER uudi_" + prefix+ tables[pos].name.toLower() + " BEFORE INSERT ON " + prefix + tables[pos].name.toLower() + " FOR EACH ROW SET new.rowuuid = uuid();\n";
+        // Append UUIDs triggers to the UUID file but only for those
+        // That are lookups. The other tables will have an UUID
+        // when data in inserted using JSONToMySQL
+        if (tables[pos].islookup == true)
+            UUIDStrm << "CREATE TRIGGER uudi_" + prefix+ tables[pos].name.toLower() + " BEFORE INSERT ON " + prefix + tables[pos].name.toLower() + " FOR EACH ROW SET new.rowuuid = uuid();\n";
 
         sqlCreateStrm << sql; //Add the final SQL to the DDL file
 
@@ -1894,7 +1897,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                     }
                     else
                     {
-                        //Processing selects
+                        //Processing selects                        
                         if (variableType.indexOf("select_one") >= 0)
                         {
                             QList<TlkpValue> values;
@@ -1911,7 +1914,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                             //Processing field
                             TfieldDef aField;
                             aField.name = fixField(variableName.toLower());
-
+                            aField.odktype = variableType;
                             if (!selectHasOrOther(variableType))
                             {
                                 if (areValuesStrings(values))
