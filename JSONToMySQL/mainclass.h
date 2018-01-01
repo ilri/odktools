@@ -19,6 +19,9 @@
 #include <QJSValue>
 #include <QJSValueList>
 #include "insertvalues.h"
+#include <QDomDocument>
+#include <QDomElement>
+#include <QDomNodeList>
 
 struct tblIndexDef
 {
@@ -35,6 +38,7 @@ struct fieldDef
   bool key;
   bool multiSelect;
   QString multiSelectTable;
+  QString uuid;
 };
 typedef fieldDef TfieldDef;
 
@@ -56,7 +60,7 @@ signals:
     void finishedWithError(int error);
 public slots:
     void run();
-    void setParameters(bool voverwrite, QString vjson, QString vmanifest, QString vhost, QString vport, QString vuser, QString vpassword, QString vschema, QString voutput, QString vinput, QString vjavaScript, bool voputSQLSwitch);
+    void setParameters(bool voverwrite, QString vjson, QString vmanifest, QString vhost, QString vport, QString vuser, QString vpassword, QString vschema, QString voutput, QString vinput, QString vjavaScript, bool voputSQLSwitch, QString mapDirectory);
 private:
 
     int getLastIndex(QString table);
@@ -65,12 +69,14 @@ private:
     void logError(QSqlDatabase db,QString errorMessage, QString table, int rowNumber,QVariantMap jsonData,QList< TfieldDef> fields, QString execSQL);
     void logErrorMSel(QSqlDatabase db,QString errorMessage, QString table, int rowNumber,QString value, QString execSQL);
     QString fixString(QString source);
-    QList<TfieldDef > createSQL(QSqlDatabase db,QVariantMap jsonData,QString table,QList< TfieldDef> fields,QList< TfieldDef> parentkeys,QVariantMap jsonData2,bool mTable = false);
+    QList<TfieldDef > createSQL(QSqlDatabase db, QVariantMap jsonData, QString table, QList< TfieldDef> fields, QList< TfieldDef> parentkeys, QVariantMap jsonData2, bool mTable);
     void debugKeys(QString table, QList< TfieldDef> keys);
     void debugMap(QVariantMap jsonData);
-    int procTable(QSqlDatabase db,QVariantMap jsonData, QDomNode table, QList< TfieldDef> parentkeys);
+    int procTable(QSqlDatabase db, QVariantMap jsonData, QDomNode table, QList< TfieldDef> parentkeys);
     int processFile(QSqlDatabase db, QString json, QString manifest, QStringList procList);
-
+    void storeRecord(QStringList parentUUIDS, QString recordUUID);
+    void storeRecord(QString parentUUID, QString recordUUID);
+    void findElementsWithAttribute(const QDomElement& elem, const QString& attr, const QString& attvalue, QList<QDomElement> &foundElements);
 
     QJSValue beforeInsertFunction;
     bool callBeforeInsert;
@@ -87,7 +93,8 @@ private:
     bool outSQL;
     QFile sqlFile;
     QTextStream sqlStream;
-
+    QDomDocument recordMap;
+    QDomElement recordMapRoot;
 
     QJSEngine JSEngine;
 
@@ -103,6 +110,7 @@ private:
     QString output;
     QString input;
     QString javaScript;
+    QString mapOutputDir;
 };
 
 #endif // MAINCLASS_H

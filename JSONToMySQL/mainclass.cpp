@@ -1,4 +1,5 @@
 #include "mainclass.h"
+#include <QUuid>
 
 mainClass::mainClass(QObject *parent) : QObject(parent)
 {
@@ -8,6 +9,11 @@ mainClass::mainClass(QObject *parent) : QObject(parent)
 void mainClass::run()
 {
     sqlStream.setCodec("UTF-8");
+
+    recordMap = QDomDocument("ODKRecordMapFile");
+    recordMapRoot = recordMap.createElement("ODKRecordMapXML");
+    recordMapRoot.setAttribute("version", "1.0");
+    recordMap.appendChild(recordMapRoot);
 
     callBeforeInsert = false;
     if (javaScript != "")
@@ -50,6 +56,7 @@ void mainClass::run()
             {
                 log("Error calling BeforInsert JS function.");
                 returnCode = 1;
+                emit finished();
             }
             else
             {
@@ -61,6 +68,7 @@ void mainClass::run()
         {
             log("Error evaluating BeforInsert JS function. [" + error + "]");
             returnCode = 1;
+            emit finished();
         }
     }
 
@@ -93,6 +101,8 @@ void mainClass::run()
                 {
                     log("Cannot create processing file");
                     returnCode = 1;
+                    db.close();
+                    emit finished();
                 }
             }
             else
@@ -102,9 +112,22 @@ void mainClass::run()
                 {
                     log("Cannot create processing file");
                     returnCode = 1;
+                    db.close();
+                    emit finished();
                 }
             }
             QTextStream out(&file); //Stream to the processing file
+            QDir mapDir(mapOutputDir);
+            if (!mapDir.exists())
+            {
+                if (mapDir.mkpath(mapOutputDir))
+                {
+                    log("Output map directory does not exist and cannot be created");
+                    returnCode = 1;
+                    db.close();
+                    emit finished();
+                }
+            }
 
             //Loggin file
             logFile.setFileName(output);
@@ -114,9 +137,10 @@ void mainClass::run()
                 {
                     log("Cannot create log file");
                     returnCode = 1;
+                    db.close();
+                    emit finished();
                 }
                 logStream.setDevice(&logFile);
-
                 logStream << "FileUUID\tTable\tRowInJSON\tJSONVariable\tError\tNotes\tSQLExecuted\n";
             }
             else
@@ -125,6 +149,8 @@ void mainClass::run()
                 {
                     log("Cannot create log file");
                     returnCode = 1;
+                    db.close();
+                    emit finished();
                 }
                 logStream.setDevice(&logFile);
             }
@@ -134,6 +160,8 @@ void mainClass::run()
                 log("Database does not support transactions");
                 db.close();
                 returnCode = 1;
+                db.close();
+                emit finished();
             }
 
             if (outSQL)
@@ -148,6 +176,8 @@ void mainClass::run()
                 {
                     log("Cannot create sqlFile file");
                     returnCode = 1;
+                    db.close();
+                    emit finished();
                 }
                 sqlStream.setDevice(&sqlFile);
             }
@@ -159,6 +189,7 @@ void mainClass::run()
                 //This will happen if the file is already processes or an error ocurred
                 db.close();
                 returnCode = 1;
+                emit finished();
             }
             if (SQLError)
             {
@@ -168,6 +199,7 @@ void mainClass::run()
                 {
                     db.close();
                     returnCode = 1;
+                    emit finished();
                 }
             }
             else
@@ -180,9 +212,25 @@ void mainClass::run()
                 if (!db.commit())
                 {
                     log("Warning: Commit did not succed. Please check the database");
+                    log(QString::number(db.lastError().number()));
                     db.close();
                     returnCode = 1;
+                    emit finished();
                 }
+                //We store the map file
+
+                QString mapFile;
+                mapFile = mapDir.path() + mapDir.separator() + fileID + ".xml";
+                QFile file(mapFile);
+                if (file.open(QIODevice::WriteOnly | QIODevice::Text))
+                {
+                    QTextStream out(&file);
+                    out.setCodec("UTF-8");
+                    recordMap.save(out,1,QDomNode::EncodingFromTextStream);
+                    file.close();
+                }
+                else
+                    log("Error: Cannot create xml manifest file");
             }
 
             db.close();
@@ -198,7 +246,7 @@ void mainClass::run()
     emit finished();
 }
 
-void mainClass::setParameters(bool voverwrite, QString vjson, QString vmanifest, QString vhost, QString vport, QString vuser, QString vpassword, QString vschema, QString voutput, QString vinput, QString vjavaScript, bool voputSQLSwitch)
+void mainClass::setParameters(bool voverwrite, QString vjson, QString vmanifest, QString vhost, QString vport, QString vuser, QString vpassword, QString vschema, QString voutput, QString vinput, QString vjavaScript, bool voputSQLSwitch, QString mapDirectory)
 {
     overwrite = voverwrite;
     json = vjson;
@@ -212,6 +260,7 @@ void mainClass::setParameters(bool voverwrite, QString vjson, QString vmanifest,
     input = vinput;
     javaScript = vjavaScript;
     outSQL = voputSQLSwitch;
+    mapOutputDir = mapDirectory;
 }
 
 
@@ -340,6 +389,66 @@ QString mainClass::fixString(QString source)
     return res;
 }
 
+void mainClass::findElementsWithAttribute(const QDomElement& elem, const QString& attr, const QString& attvalue, QList<QDomElement> &foundElements)
+{
+    if (elem.attribute(attr,"") == attvalue)
+        foundElements.append(elem);
+    //  if( elem.attributes().contains(attr) )
+//    foundElements.append(elem);
+
+  QDomElement child = elem.firstChildElement();
+  while( !child.isNull() ) {
+    findElementsWithAttribute(child, attr, attvalue, foundElements);
+    child = child.nextSiblingElement();
+  }
+}
+
+void mainClass::storeRecord(QString parentUUID, QString recordUUID)
+{
+    QStringList split;
+    split = parentUUID.split("~");
+    QList<QDomElement> foundUUIDs;
+    findElementsWithAttribute(recordMapRoot, "uuid", split[1], foundUUIDs);
+    QDomElement parentRecord;
+    parentRecord = foundUUIDs[0];
+    split = recordUUID.split("~");
+    QDomElement aRecord;
+    aRecord = recordMap.createElement("record");
+    aRecord.setAttribute("table",split[0]);
+    aRecord.setAttribute("uuid",split[1]);
+    parentRecord.appendChild(aRecord);
+}
+
+//This function stores data in the record map
+void mainClass::storeRecord(QStringList parentUUIDS, QString recordUUID)
+{
+    if (parentUUIDS.isEmpty())
+    {
+        QStringList split;
+        split = recordUUID.split("~");
+        QDomElement aRecord;
+        aRecord = recordMap.createElement("record");
+        aRecord.setAttribute("table",split[0]);
+        aRecord.setAttribute("uuid",split[1]);
+        recordMapRoot.appendChild(aRecord);
+    }
+    else
+    {
+        QStringList split;
+        split = parentUUIDS[parentUUIDS.count()-1].split("~");
+        QList<QDomElement> foundUUIDs;
+        findElementsWithAttribute(recordMapRoot, "uuid", split[1], foundUUIDs);
+        QDomElement parentRecord;
+        parentRecord = foundUUIDs[0];
+        split = recordUUID.split("~");
+        QDomElement aRecord;
+        aRecord = recordMap.createElement("record");
+        aRecord.setAttribute("table",split[0]);
+        aRecord.setAttribute("uuid",split[1]);
+        parentRecord.appendChild(aRecord);
+    }
+}
+
 //This function construct an INSERT SQL and execute it againts the database.
 QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QString table, QList< TfieldDef> fields, QList< TfieldDef> parentkeys, QVariantMap jsonData2, bool mTable)
 {
@@ -353,13 +462,11 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
 
     QString fieldValue;
     insertValues insertObject;
-
-
     int tblIndex;
-
-    //log("Table:" + table);
-
     tblIndex = getLastIndex(table);
+
+    QUuid recordUUID=QUuid::createUuid();
+    QString strRecordUUID=recordUUID.toString().replace("{","").replace("}","");
 
     sqlHeader = "INSERT INTO " + table + " (";
     sqlValues = " VALUES (";
@@ -391,6 +498,7 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
             key.multiSelectTable = fields[pos].multiSelectTable;
             key.value = jsonData[fields[pos].xmlCode].toString();
             key.value = key.value.simplified();
+            key.uuid = table + "~" + strRecordUUID;
 
             // If its empty. The try to find it in jsonData2
             // This happens when the cover information is stored in a repeat of one
@@ -503,8 +611,11 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
 
     for (pos = 0; pos < insertObject.count();pos++)
     {
-        sqlHeader = sqlHeader + insertObject.itemName(pos) + ",";
-        sqlValues = sqlValues + "'" + insertObject.itemValue(pos) + "',";
+        if (insertObject.itemName(pos) != "rowuuid")
+        {
+            sqlHeader = sqlHeader + insertObject.itemName(pos) + ",";
+            sqlValues = sqlValues + "'" + insertObject.itemValue(pos) + "',";
+        }
 
         // Key values could have changed by the external JavaScript so
         // update resKeys with the current values
@@ -520,8 +631,8 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
         }
     }
     //Removing final , and appending )
-    sqlHeader = sqlHeader.left(sqlHeader.length()-1) + ")";
-    sqlValues = sqlValues.left(sqlValues.length()-1) + ")";
+    sqlHeader = sqlHeader.left(sqlHeader.length()-1) + ",rowuuid)";
+    sqlValues = sqlValues.left(sqlValues.length()-1) + ",'" + strRecordUUID + "')";
     //Create the final sql
     sql = sqlHeader + " " + sqlValues;
     //Change all empty valued to NULL. This minimize foreign key errors in skips
@@ -542,12 +653,21 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
         SQLErrorNumber = query.lastError().nativeErrorCode() + "&"  + query.lastError().databaseText() + "@" + table;
       logError(db,query.lastError().databaseText(),table,tblIndex,jsonData,fields,sql); //Write the error to the log
     }
-
+    else
+    {
+        //Store the record in the map
+        QStringList uuids;
+        for (int nkey = 0; nkey <= parentkeys.count()-1;nkey++)
+        {
+            if (uuids.indexOf(parentkeys[nkey].uuid) == -1)
+                uuids.append(parentkeys[nkey].uuid);
+        }
+        storeRecord(uuids,table + "~" + strRecordUUID);
+    }
 
     //Now we process the MultiSelects
     QList<TinsertValueDef> currentKeys;
     currentKeys.append(insertObject.getKeys());
-
     QString mSelectTableName;
     QStringList mSelectValues;
     int nkey;
@@ -594,11 +714,16 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
 
                 for (nkey = 0; nkey < multiSelectObject.count();nkey++)
                 {
-                    sqlHeader = sqlHeader + multiSelectObject.itemName(nkey) + ",";
-                    sqlValues = sqlValues + "'" + multiSelectObject.itemValue(nkey) + "',";
+                    if (multiSelectObject.itemName(nkey) != "rowuuid")
+                    {
+                        sqlHeader = sqlHeader + multiSelectObject.itemName(nkey) + ",";
+                        sqlValues = sqlValues + "'" + multiSelectObject.itemValue(nkey) + "',";
+                    }
                 }
-                sqlHeader = sqlHeader.left(sqlHeader.length()-1) + ")";
-                sqlValues = sqlValues.left(sqlValues.length()-1) + ")";
+                sqlHeader = sqlHeader.left(sqlHeader.length()-1) + ",rowuuid)";
+                QUuid uuid=QUuid::createUuid();
+                QString uuidstr=uuid.toString().replace("{","").replace("}","");
+                sqlValues = sqlValues.left(sqlValues.length()-1) + ",'" + uuidstr + "')";
 
                 //Create the final sql
                 sql = sqlHeader + " " + sqlValues;
@@ -616,6 +741,11 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                   if (SQLErrorNumber == "")
                     SQLErrorNumber = query.lastError().nativeErrorCode() + "&" + query.lastError().databaseText() + "@" + mSelectTableName;
                   logErrorMSel(db,query.lastError().databaseText(),mSelectTableName,tblIndex,mSelectValues[nvalue],sql); //Write the error to the log
+                }
+                else
+                {
+                    //Store the record in the map
+                    storeRecord(table + "~" + strRecordUUID,mSelectTableName + "~" + uuidstr);
                 }
             }
         }
