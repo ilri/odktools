@@ -1,0 +1,79 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Household lost 2 birds to Coccidiosis ",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "1",
+                    "bexit_birdexitedacggtag": "V0144",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "1",
+                            "householdid_key": "NRV1374_20170531",
+                            "rowuuid": "d1b71cdb-58df-4b1f-8705-1472a3ee1cd6",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "NRV1374_20170531",
+                    "rowuuid": "e6256045-2846-4cbc-8f37-98d0a4c64191",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Blood stained stool",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0084",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "NRV1374_20170531",
+                            "rowuuid": "0c29f77c-1842-4ca7-94e4-a7493082688a",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "NRV1374_20170531",
+                    "rowuuid": "58ead678-ae18-4b8c-a055-3e35041cd179",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "NRV1374_20170531",
+            "rowuuid": "3a2e556a-5b69-4f8b-8f9c-9164610db001",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170531",
+    "end_time": "2017-09-28T12:30:28",
+    "householdid": "NRV1374",
+    "householdid_key": "NRV1374_20170531",
+    "meta_devid": "865770021184728",
+    "onfarm_country": "N",
+    "onfarm_enum": "23",
+    "onfarm_subnatarea": "RV",
+    "onfarm_village": "23",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "3ccd7031-f99a-4006-ad2e-f36dc3726345",
+    "start_time": "2017-09-28T12:27:15",
+    "subscriber_id": "621300286740795",
+    "survey_date": "2017-05-31T00:00:00",
+    "surveyid": "37bbc8fb-6b75-4cab-b914-381c3cb00995"
+}

@@ -1,0 +1,100 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Kuroiler strain 38 weeks",
+            "bext_birdexitedcountacgg": "1",
+            "bext_birdexitedcounthhnontag": "2",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "1",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "2 4 11",
+                    "bexit_birdexitedacggtag": "J0525",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "TCS1482_20170416",
+                            "rowuuid": "aacefcd0-61fd-497e-bc51-6db83dde0bad",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "11",
+                            "householdid_key": "TCS1482_20170416",
+                            "rowuuid": "d2d9b035-7e53-4acd-9e20-1d8e49427dec",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "TCS1482_20170416",
+                            "rowuuid": "c7e5b6c0-508d-4b31-80f2-f2026116cbfe",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1482_20170416",
+                    "rowuuid": "1e27e64b-f2d6-4079-af0d-2b179f0a0129",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "birdentext_rpt_birdexitedhhnontag": [
+                {
+                    "bexit_birdexitedhhnontagage": "2",
+                    "bexit_birdexitedhhnontagcomments": "",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "1",
+                    "bexit_birdexitedhhnontagsex": "2",
+                    "bexit_birdexitedhhnontagsymptoms": "",
+                    "bext_birdexitedhhnontagreason": "9",
+                    "householdid_key": "TCS1482_20170416",
+                    "rowuuid": "6947c02c-c0f4-4704-9b0d-148039dc2627",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "1"
+                },
+                {
+                    "bexit_birdexitedhhnontagage": "2",
+                    "bexit_birdexitedhhnontagcomments": "",
+                    "bexit_birdexitedhhnontagmoney": "12000",
+                    "bexit_birdexitedhhnontagposition": "2",
+                    "bexit_birdexitedhhnontagsex": "2",
+                    "bexit_birdexitedhhnontagsymptoms": "",
+                    "bext_birdexitedhhnontagreason": "6",
+                    "householdid_key": "TCS1482_20170416",
+                    "rowuuid": "80086d4c-bbe8-4039-8e03-20e303d91ba1",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "2"
+                }
+            ],
+            "householdid_key": "TCS1482_20170416",
+            "rowuuid": "1ae2f5c6-6ec0-4e6b-928d-4a7be07b5299",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170416",
+    "end_time": "2017-08-10T09:13:30",
+    "householdid": "TCS1482",
+    "householdid_key": "TCS1482_20170416",
+    "meta_devid": "865770021186061",
+    "onfarm_country": "T",
+    "onfarm_enum": "105",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "105",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "2868a440-8afd-4166-9e71-dde0a945adf7",
+    "start_time": "2017-08-09T15:29:39",
+    "subscriber_id": "640021068988925",
+    "survey_date": "2017-04-16T00:00:00",
+    "surveyid": "e35a37e9-7eb6-443b-974c-0898f0a5e963"
+}

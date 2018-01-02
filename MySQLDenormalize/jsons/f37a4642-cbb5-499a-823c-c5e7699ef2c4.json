@@ -1,0 +1,550 @@
+{
+    "bent_general": "1",
+    "bext_general": "1",
+    "birdentext_rpt_birdentry": [
+        {
+            "bent_birddowry": "0",
+            "bent_birdgift": "0",
+            "bent_birdloan": "0",
+            "bent_birdother": "0",
+            "bent_birdotherspecify": "",
+            "bent_birdpurchase": "0",
+            "bent_dowrycomments": "",
+            "bent_giftcomments": "",
+            "bent_hatchcomments": "",
+            "bent_hhdowrychicks": "0",
+            "bent_hhdowrychickscount": "0",
+            "bent_hhdowryfemalegreater20": "0",
+            "bent_hhdowryfemalegreater20count": "0",
+            "bent_hhdowryfemaleless20": "0",
+            "bent_hhdowryfemaleless20count": "0",
+            "bent_hhdowrymalegreater20": "0",
+            "bent_hhdowrymalegreater20count": "0",
+            "bent_hhdowrymaleless20": "0",
+            "bent_hhdowrymaleless20count": "0",
+            "bent_hhgiftchicks": "0",
+            "bent_hhgiftchickscount": "0",
+            "bent_hhgiftfemalegreater20": "0",
+            "bent_hhgiftfemalegreater20count": "0",
+            "bent_hhgiftfemaleless20": "0",
+            "bent_hhgiftfemaleless20count": "0",
+            "bent_hhgiftmalegreater20": "0",
+            "bent_hhgiftmalegreater20count": "0",
+            "bent_hhgiftmaleless20": "0",
+            "bent_hhgiftmaleless20count": "0",
+            "bent_hhhatch": "1",
+            "bent_hhhatchcount": "12",
+            "bent_hhloanchicks": "0",
+            "bent_hhloanchickscount": "0",
+            "bent_hhloanfemalegreater20": "0",
+            "bent_hhloanfemalegreater20count": "0",
+            "bent_hhloanfemaleless20": "0",
+            "bent_hhloanfemaleless20count": "0",
+            "bent_hhloanmalegreater20": "0",
+            "bent_hhloanmalegreater20count": "0",
+            "bent_hhloanmaleless20": "0",
+            "bent_hhloanmaleless20count": "0",
+            "bent_hhotherchicks": "0",
+            "bent_hhotherchickscount": "0",
+            "bent_hhotherfemalegreater20": "0",
+            "bent_hhotherfemalegreater20count": "0",
+            "bent_hhotherfemaleless20": "0",
+            "bent_hhotherfemaleless20count": "0",
+            "bent_hhothermalegreater20": "0",
+            "bent_hhothermalegreater20count": "0",
+            "bent_hhothermaleless20": "0",
+            "bent_hhothermaleless20count": "0",
+            "bent_hhpurchasechicks": "0",
+            "bent_hhpurchasechickscost": "0",
+            "bent_hhpurchasechickscount": "0",
+            "bent_hhpurchasefemalegreater20": "0",
+            "bent_hhpurchasefemalegreater20cost": "0",
+            "bent_hhpurchasefemalegreater20count": "0",
+            "bent_hhpurchasefemaleless20": "0",
+            "bent_hhpurchasefemaleless20cost": "0",
+            "bent_hhpurchasefemaleless20count": "0",
+            "bent_hhpurchasemalegreater20": "0",
+            "bent_hhpurchasemalegreater20cost": "0",
+            "bent_hhpurchasemalegreater20count": "0",
+            "bent_hhpurchasemaleless20": "0",
+            "bent_hhpurchasemaleless20cost": "0",
+            "bent_hhpurchasemaleless20count": "0",
+            "bent_loancomments": "",
+            "bent_othercomments": "",
+            "bent_purchasecomments": "",
+            "householdid_key": "TLZ1519_20161205",
+            "rowuuid": "8359a8e4-3d2d-40fe-90f8-da4ae4d55c8e",
+            "rpt_birdentry_rowid": "1"
+        }
+    ],
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "18",
+            "bext_birdexitedcounthhnontag": "3",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "1",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0011",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "8a520318-6a6d-45fd-9347-94708b067921",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "963b3241-5625-49a9-a9e2-6113a0ff0962",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0015",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "300e3a6d-8313-4a67-a2ca-b03067a8356d",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "9928ce60-f8bc-468f-bdf6-3db84e532cc1",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "4",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0016",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "639754e0-c343-4413-ae1a-a49357c394ef",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "4"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "9f7c3607-fcd0-4f8a-ae58-eaf887f86431",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "4"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "5",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0021",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "a8eeeb7a-cc0b-4e37-ab23-1cb8b452da6c",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "014620be-d805-4e25-be78-4cce632c1987",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "5"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "6",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0022",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "315e66a4-463a-4d4c-97a4-6647b768c791",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "6"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "f9cb6563-4b6b-4aa8-8b7b-d0df5fbfc8fa",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "6"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "7",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0024",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "8671b090-52a0-42d0-98cc-a38a94c0ce3a",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "7"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "fcd0f029-74da-4c8d-baa7-3e04d6574f08",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "7"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "8",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0039",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "9f04e67d-0681-4be0-a9ed-dc384c1cfd4e",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "8"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "303911f7-967b-4900-9610-1b589b383269",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "8"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl. Pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "9",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0043",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "2c2752bf-048e-4e03-8e3c-b943173df5f7",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "9"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "44521082-91e4-4cd9-b784-9eceec868852",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "9"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "10",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "V0045",
+                    "bext_birdexitedacggreason": "14",
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "5af58621-9da5-4053-b8fb-6c75df6b6cd3",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "10"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "11",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0050",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "5d6206a0-ce85-4edf-911e-8fd76843938d",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "11"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "c92d7f96-5d6a-4b3c-98d8-eb5d12ebad3b",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "11"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "12",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0068",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "81c88362-c7d7-4b9a-b461-bad34a3367de",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "12"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "1695291c-1267-438a-a752-c940d4cafb11",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "12"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "13",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0071",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "83b3c077-ce82-4782-b775-40ffc2f9c69c",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "13"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "ebe94382-5d6f-46e2-a162-ecbbddc0549c",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "13"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "14",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0072",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "59a165cd-a7ee-4c54-ac57-b6f9e7336fc8",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "14"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "90460c6d-37d0-4331-bc86-cd68baff033e",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "14"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "15",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0081",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "bb220e6c-d554-495d-aa12-93d3975a030d",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "15"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "8cd696c8-d559-4c5e-b1ab-122ae2a7dab8",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "15"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "16",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0083",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "80ca0c87-f33f-4830-9b3d-3a32418b3149",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "16"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "41eb44ea-7ed6-43c3-8769-9cb1b30da45c",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "16"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "17",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0084",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "97e17780-0eff-4645-aa3e-4cb3c7ee81b3",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "17"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "8ec17a83-8b84-4445-95e0-d18459d06b6a",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "17"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "18",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0087",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "5e5823a6-edf5-4536-b1a3-b947f15b01ec",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "18"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "45819806-eed8-4c5e-9774-be496d2b891b",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "18"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "V0010",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "83d35c5e-6d22-46c9-a408-6ac27fafae89",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "8b0c18de-19b5-4ba6-9a4d-77091fd4f417",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "birdentext_rpt_birdexitedhhnontag": [
+                {
+                    "bexit_birdexitedhhnontagage": "1",
+                    "bexit_birdexitedhhnontagcomments": "",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "1",
+                    "bexit_birdexitedhhnontagsex": "2",
+                    "bexit_birdexitedhhnontagsymptoms": "17",
+                    "bext_birdexitedhhnontagreason": "1",
+                    "birdentext_rpt_birdexitedhhnontag_msel_bexit_hhnontagsymptoms": [
+                        {
+                            "bexit_birdexitedhhnontagsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "b57094e0-80b0-4c7b-9b00-31dbb67c23ac",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedhhnontag_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "b81eb551-aff2-4e02-9506-6324c5e30b0b",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "1"
+                },
+                {
+                    "bexit_birdexitedhhnontagage": "1",
+                    "bexit_birdexitedhhnontagcomments": "",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "2",
+                    "bexit_birdexitedhhnontagsex": "2",
+                    "bexit_birdexitedhhnontagsymptoms": "17",
+                    "bext_birdexitedhhnontagreason": "1",
+                    "birdentext_rpt_birdexitedhhnontag_msel_bexit_hhnontagsymptoms": [
+                        {
+                            "bexit_birdexitedhhnontagsymptoms": "17",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "945bf6c2-0180-4e44-bcb7-5c40cc33b77b",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedhhnontag_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "6eed17a3-5d13-43d9-a636-5fa929300a60",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedhhnontagage": "1",
+                    "bexit_birdexitedhhnontagcomments": "",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "3",
+                    "bexit_birdexitedhhnontagsex": "3",
+                    "bexit_birdexitedhhnontagsymptoms": "6",
+                    "bext_birdexitedhhnontagreason": "1",
+                    "birdentext_rpt_birdexitedhhnontag_msel_bexit_hhnontagsymptoms": [
+                        {
+                            "bexit_birdexitedhhnontagsymptoms": "6",
+                            "householdid_key": "TLZ1519_20161205",
+                            "rowuuid": "5533e0c4-815c-45f5-bba1-eff3470ad985",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedhhnontag_rowid": "3"
+                        }
+                    ],
+                    "householdid_key": "TLZ1519_20161205",
+                    "rowuuid": "46873ba7-dffe-4918-9a0a-9c9120778cb7",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "3"
+                }
+            ],
+            "householdid_key": "TLZ1519_20161205",
+            "rowuuid": "31ce9473-47f1-4cb4-9e06-23cd13dd8923",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161205",
+    "end_time": "2016-12-05T15:03:27",
+    "householdid": "TLZ1519",
+    "householdid_key": "TLZ1519_20161205",
+    "meta_devid": "865770021185022",
+    "onfarm_country": "T",
+    "onfarm_enum": "137",
+    "onfarm_subnatarea": "LZ",
+    "onfarm_village": "137",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "33cc8514-23e4-4238-be9b-b57ae2ac8d98",
+    "start_time": "2016-12-05T14:40:03",
+    "subscriber_id": "640092905896659",
+    "survey_date": "2016-12-05T00:00:00",
+    "surveyid": "f37a4642-cbb5-499a-823c-c5e7699ef2c4"
+}

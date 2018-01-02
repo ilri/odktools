@@ -1,0 +1,77 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Remain with19 chicks",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Use of OTC 20%",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "2 9",
+                    "bexit_birdexitedacggtag": "R0140",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TCS1318_20161012",
+                            "rowuuid": "42f356d6-af4b-4453-8de3-c83af6ce6c7f",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "TCS1318_20161012",
+                            "rowuuid": "cd0151b4-fe01-4220-b78c-ff0fa9aa2a63",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "TCS1318_20161012",
+                    "rowuuid": "30d5833c-7c29-4694-bdf3-d4b907a8ab61",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Use of antibiotics",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "R0184",
+                    "bext_birdexitedacggreason": "2",
+                    "householdid_key": "TCS1318_20161012",
+                    "rowuuid": "09aff0f2-d72c-4f86-b836-78cd0ac39530",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1318_20161012",
+            "rowuuid": "87242328-1e23-4536-9afe-82a27c6c7c26",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161012",
+    "end_time": "2017-11-08T21:03:00",
+    "householdid": "TCS1318",
+    "householdid_key": "TCS1318_20161012",
+    "meta_devid": "865770021184645",
+    "onfarm_country": "T",
+    "onfarm_enum": "100",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "100",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "22bbe155-d279-4317-b610-70b0b9e625c3",
+    "start_time": "2017-11-08T21:00:24",
+    "subscriber_id": "640092914765765",
+    "survey_date": "2016-10-12T00:00:00",
+    "surveyid": "f101d893-e3d0-40a9-952a-b0bc8a157b6d"
+}

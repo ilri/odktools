@@ -1,0 +1,58 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "The data of 36 week",
+            "bext_birdexitedcountacgg": "1",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Give the bird antibiotic ,clean the bird house",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "4",
+                    "bexit_birdexitedacggtag": "R0466",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "TCS1245_20170630",
+                            "rowuuid": "9638e7eb-ebb4-4c67-bda0-f91661005444",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1245_20170630",
+                    "rowuuid": "dd5f158f-5d50-41ca-8bca-9cb3d9978fb3",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1245_20170630",
+            "rowuuid": "2b40d21c-a6e9-400e-9281-510aaaef6c4a",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170630",
+    "end_time": "2017-06-30T22:51:41",
+    "householdid": "TCS1245",
+    "householdid_key": "TCS1245_20170630",
+    "meta_devid": "865770021189792",
+    "onfarm_country": "T",
+    "onfarm_enum": "99",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "99",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "9baf706e-564e-4fa6-8dd0-fef92ac46585",
+    "start_time": "2017-06-30T22:49:02",
+    "subscriber_id": "640044158018510",
+    "survey_date": "2017-06-30T00:00:00",
+    "surveyid": "07812775-97b5-4de4-bffc-43fcee96ce6a"
+}

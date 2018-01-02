@@ -1,0 +1,79 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Successfuly",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Pox around the face, watery eyes",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "E0707",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "NNS1093_20170817",
+                            "rowuuid": "6aa8cfd6-20bf-4463-a1a6-23e4c494e556",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "NNS1093_20170817",
+                    "rowuuid": "e9679edf-e4ce-4dd7-9865-a0094e7c2be1",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Pox around the face",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "E0725",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "NNS1093_20170817",
+                            "rowuuid": "3e15e164-df50-4129-a822-5a597c51fcfc",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "NNS1093_20170817",
+                    "rowuuid": "0a284e23-828b-45ba-b951-43c57e41d836",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "NNS1093_20170817",
+            "rowuuid": "b503c636-bd4f-48ff-83fb-468e565a98e4",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170817",
+    "end_time": "2017-08-18T13:39:45",
+    "householdid": "NNS1093",
+    "householdid_key": "NNS1093_20170817",
+    "meta_devid": "865770021185709",
+    "onfarm_country": "N",
+    "onfarm_enum": "39",
+    "onfarm_subnatarea": "NS",
+    "onfarm_village": "39",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "289afd0f-f37d-4956-93eb-6a0793ffee3d",
+    "start_time": "2017-08-18T13:13:02",
+    "subscriber_id": "621300286752350",
+    "survey_date": "2017-08-17T00:00:00",
+    "surveyid": "c60dc15b-0557-44eb-b1d4-c562930e55f4"
+}

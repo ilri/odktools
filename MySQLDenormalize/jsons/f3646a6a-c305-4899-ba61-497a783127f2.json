@@ -1,0 +1,70 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "It died ",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "13",
+                    "bexit_birdexitedacggtag": "D0280",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "13",
+                            "householdid_key": "THL1585_20161101",
+                            "rowuuid": "5ad29257-426c-4404-bafb-ec68cfbcd4c5",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "THL1585_20161101",
+                    "rowuuid": "fa5e7116-52a2-47c0-80a5-0b40d28fc273",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Slaughtered due to severe swolled legs",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "D0248",
+                    "bext_birdexitedacggreason": "9",
+                    "householdid_key": "THL1585_20161101",
+                    "rowuuid": "4434c004-d2b5-4844-82d9-0f54e7f615fb",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "THL1585_20161101",
+            "rowuuid": "b9d353f7-590d-4b58-9039-2053d5985dd9",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161101",
+    "end_time": "2016-11-01T13:17:21",
+    "householdid": "THL1585",
+    "householdid_key": "THL1585_20161101",
+    "meta_devid": "865770021184264",
+    "onfarm_country": "T",
+    "onfarm_enum": "91",
+    "onfarm_subnatarea": "HL",
+    "onfarm_village": "91",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "2430492f-c53e-4e79-83f8-cc203d4aa232",
+    "start_time": "2016-11-01T13:12:13",
+    "subscriber_id": "640092908911422",
+    "survey_date": "2016-11-01T00:00:00",
+    "surveyid": "f3646a6a-c305-4899-ba61-497a783127f2"
+}

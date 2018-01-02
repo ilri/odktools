@@ -1,0 +1,66 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Kuroiler strain 30 weeks",
+            "bext_birdexitedcountacgg": "0",
+            "bext_birdexitedcounthhnontag": "1",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "0",
+            "bext_birdtypehhnontag": "1",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedhhnontag": [
+                {
+                    "bexit_birdexitedhhnontagage": "1",
+                    "bexit_birdexitedhhnontagcomments": "",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "1",
+                    "bexit_birdexitedhhnontagsex": "3",
+                    "bexit_birdexitedhhnontagsymptoms": "2 4",
+                    "bext_birdexitedhhnontagreason": "1",
+                    "birdentext_rpt_birdexitedhhnontag_msel_bexit_hhnontagsymptoms": [
+                        {
+                            "bexit_birdexitedhhnontagsymptoms": "4",
+                            "householdid_key": "TCS1509_20170606",
+                            "rowuuid": "8f0e1909-0da8-4304-a317-ade06090335c",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedhhnontag_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedhhnontagsymptoms": "2",
+                            "householdid_key": "TCS1509_20170606",
+                            "rowuuid": "66072c69-52ff-4111-83cc-65c3d529e609",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedhhnontag_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1509_20170606",
+                    "rowuuid": "5e61e024-3ad7-4375-8ed7-5c8f2e397848",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1509_20170606",
+            "rowuuid": "b9b589d0-ce78-46b8-9cae-ef270b939b40",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170606",
+    "end_time": "2017-06-06T20:34:11",
+    "householdid": "TCS1509",
+    "householdid_key": "TCS1509_20170606",
+    "meta_devid": "865770021186061",
+    "onfarm_country": "T",
+    "onfarm_enum": "105",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "105",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "fc5f186f-2ca6-4c1d-9dc3-867076532d46",
+    "start_time": "2017-06-06T15:09:17",
+    "subscriber_id": "640021068988925",
+    "survey_date": "2017-06-06T00:00:00",
+    "surveyid": "6ce216cc-0fff-4334-a3ce-54fdb7a24b91"
+}

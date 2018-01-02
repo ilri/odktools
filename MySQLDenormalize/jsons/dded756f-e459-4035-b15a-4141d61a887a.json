@@ -1,0 +1,79 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Diarhoea watery",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "2",
+                    "bexit_birdexitedacggtag": "C0448",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "ETG2137_20170710",
+                            "rowuuid": "89ce0d3b-23e8-4431-a434-d1da150d9082",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "ETG2137_20170710",
+                    "rowuuid": "55a82103-4acd-4840-8638-369dd11ea90d",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Diarhoea watery",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "5",
+                    "bexit_birdexitedacggtag": "C0431",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "5",
+                            "householdid_key": "ETG2137_20170710",
+                            "rowuuid": "46db24d5-b4f9-48cd-90a6-09511158010f",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "ETG2137_20170710",
+                    "rowuuid": "b0aa6ebe-76d5-4547-95b0-1cfee37323a9",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "ETG2137_20170710",
+            "rowuuid": "45b27712-60e9-47b1-a1ab-c7705d61b415",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170710",
+    "end_time": "2017-07-18T15:39:42",
+    "householdid": "ETG2137",
+    "householdid_key": "ETG2137_20170710",
+    "meta_devid": "865770027213273",
+    "onfarm_country": "E",
+    "onfarm_enum": "177",
+    "onfarm_subnatarea": "TG",
+    "onfarm_village": "177",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "c0c70f01-bf47-42e3-9492-ddca2606dde2",
+    "start_time": "2017-07-18T15:36:28",
+    "subscriber_id": "636013060856047",
+    "survey_date": "2017-07-10T00:00:00",
+    "surveyid": "dded756f-e459-4035-b15a-4141d61a887a"
+}

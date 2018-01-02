@@ -1,0 +1,86 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "None",
+            "bext_birdexitedcountacgg": "1",
+            "bext_birdexitedcounthhnontag": "2",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "1",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "The bird attached by motorcycle",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "J0001",
+                    "bext_birdexitedacggreason": "2",
+                    "householdid_key": "TCS1427_20160810",
+                    "rowuuid": "57757d4e-ad7a-4978-9e0e-9c0fd8470562",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "birdentext_rpt_birdexitedhhnontag": [
+                {
+                    "bexit_birdexitedhhnontagage": "1",
+                    "bexit_birdexitedhhnontagcomments": "Local",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "1",
+                    "bexit_birdexitedhhnontagsex": "3",
+                    "bexit_birdexitedhhnontagsymptoms": "",
+                    "bext_birdexitedhhnontagreason": "5",
+                    "householdid_key": "TCS1427_20160810",
+                    "rowuuid": "c2894bb9-1a87-44ce-ac5c-7061207f105f",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "1"
+                },
+                {
+                    "bexit_birdexitedhhnontagage": "1",
+                    "bexit_birdexitedhhnontagcomments": "",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "2",
+                    "bexit_birdexitedhhnontagsex": "3",
+                    "bexit_birdexitedhhnontagsymptoms": "15",
+                    "bext_birdexitedhhnontagreason": "1",
+                    "birdentext_rpt_birdexitedhhnontag_msel_bexit_hhnontagsymptoms": [
+                        {
+                            "bexit_birdexitedhhnontagsymptoms": "15",
+                            "householdid_key": "TCS1427_20160810",
+                            "rowuuid": "88ec9ef2-7b55-44bb-b991-22da8d6d46e5",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedhhnontag_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "TCS1427_20160810",
+                    "rowuuid": "849541c6-b0c9-422b-8c5b-943ab5d7c8e2",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "2"
+                }
+            ],
+            "householdid_key": "TCS1427_20160810",
+            "rowuuid": "148edf32-bdb6-4670-bb46-bfc932358f8c",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20160810",
+    "end_time": "2017-10-20T11:46:28",
+    "householdid": "TCS1427",
+    "householdid_key": "TCS1427_20160810",
+    "meta_devid": "865770021185188",
+    "onfarm_country": "T",
+    "onfarm_enum": "103",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "103",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "79638d7a-e857-4b3a-98b5-380515fe9afe",
+    "start_time": "2017-10-20T11:39:09",
+    "subscriber_id": "640092915690916",
+    "survey_date": "2016-08-10T00:00:00",
+    "surveyid": "3b6f70be-2640-4cff-b0cf-18526e5c017d"
+}

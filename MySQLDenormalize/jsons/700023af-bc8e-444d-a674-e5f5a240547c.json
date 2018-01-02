@@ -1,0 +1,91 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "I think distance covered in addition to change of environment has contributed to the exit of birds tagged: G0017, G0046, G0019.",
+            "bext_birdexitedcountacgg": "3",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Weakness due to distance and may be cold",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "7",
+                    "bexit_birdexitedacggtag": "G0046",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "NKW1144_20161021",
+                            "rowuuid": "40173f88-a7b7-49b4-ad75-bda48b34347f",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "NKW1144_20161021",
+                    "rowuuid": "89e479aa-8baf-44c3-8289-46655790790b",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "The body weakness may be because of long journey.",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "G0019",
+                    "bext_birdexitedacggreason": "14",
+                    "householdid_key": "NKW1144_20161021",
+                    "rowuuid": "b46a1b8c-f888-41a1-ae18-b813743dbfa2",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "The weakness may be due to long journey",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "7",
+                    "bexit_birdexitedacggtag": "G0017",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "NKW1144_20161021",
+                            "rowuuid": "89389a38-0c62-470f-9ccc-e2474e06a4a3",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "NKW1144_20161021",
+                    "rowuuid": "b4efbbbf-2a84-4559-a81e-443c6bb44337",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "NKW1144_20161021",
+            "rowuuid": "d9059956-05b0-41ed-84d4-e33dee10b74d",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161021",
+    "end_time": "2016-11-21T21:03:06",
+    "householdid": "NKW1144",
+    "householdid_key": "NKW1144_20161021",
+    "meta_devid": "865770021187176",
+    "onfarm_country": "N",
+    "onfarm_enum": "5",
+    "onfarm_subnatarea": "KW",
+    "onfarm_village": "5",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "eb3cd4eb-8fc0-48f2-8546-ae3c08363bd4",
+    "start_time": "2016-10-21T22:54:10",
+    "subscriber_id": "621300336542223",
+    "survey_date": "2016-10-21T00:00:00",
+    "surveyid": "700023af-bc8e-444d-a674-e5f5a240547c"
+}

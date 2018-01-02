@@ -1,0 +1,61 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Allow the birds to move freely to avoid cannibalism",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Vent picking",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "R0313",
+                    "bext_birdexitedacggreason": "14",
+                    "householdid_key": "TCS1261_20170105",
+                    "rowuuid": "35454111-3dd2-4477-8897-382f3f3123a8",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Vent picking",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "R0323",
+                    "bext_birdexitedacggreason": "14",
+                    "householdid_key": "TCS1261_20170105",
+                    "rowuuid": "14229a80-78f4-4d4f-b71e-f8f1d11d092c",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1261_20170105",
+            "rowuuid": "ba207b86-3143-485b-b802-22e547ea4b26",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170105",
+    "end_time": "2017-02-21T13:46:42",
+    "householdid": "TCS1261",
+    "householdid_key": "TCS1261_20170105",
+    "meta_devid": "865770021189792",
+    "onfarm_country": "T",
+    "onfarm_enum": "99",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "99",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "bfb692be-2238-4c03-9026-4cb8dd53d9e2",
+    "start_time": "2017-01-05T19:51:10",
+    "subscriber_id": "640092901093201",
+    "survey_date": "2017-01-05T00:00:00",
+    "surveyid": "935d741a-a4a9-4c27-9e2f-a9bc1beb11c9"
+}

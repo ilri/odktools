@@ -1,0 +1,73 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Allow the bird to move freely to avoid cannibalism",
+            "bext_birdexitedcountacgg": "3",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Vent pecking",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "R0115",
+                    "bext_birdexitedacggreason": "3",
+                    "householdid_key": "TCS1270_20161209",
+                    "rowuuid": "1e3a88a3-43dd-4c42-8d08-36980260a36e",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Vent pecking",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "R0117",
+                    "bext_birdexitedacggreason": "3",
+                    "householdid_key": "TCS1270_20161209",
+                    "rowuuid": "1926728b-bac9-4384-b582-006a662cec2e",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "None",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "R0121",
+                    "bext_birdexitedacggreason": "5",
+                    "householdid_key": "TCS1270_20161209",
+                    "rowuuid": "fbed4efa-184e-4870-b557-9bfe3982fd02",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1270_20161209",
+            "rowuuid": "62f35592-ec53-407c-8cc6-59f4aec7a422",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161209",
+    "end_time": "2017-02-21T13:49:44",
+    "householdid": "TCS1270",
+    "householdid_key": "TCS1270_20161209",
+    "meta_devid": "865770021189792",
+    "onfarm_country": "T",
+    "onfarm_enum": "99",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "99",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "fad0d6c7-b7f2-4625-bf00-c622c1a22889",
+    "start_time": "2016-12-09T09:12:28",
+    "subscriber_id": "640092901093201",
+    "survey_date": "2016-12-09T00:00:00",
+    "surveyid": "2a17d91c-6a77-42a1-b791-d3b738558135"
+}

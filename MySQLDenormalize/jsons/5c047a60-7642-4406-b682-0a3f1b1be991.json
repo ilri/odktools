@@ -1,0 +1,86 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "None",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "2 11",
+                    "bexit_birdexitedacggtag": "J0421",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "11",
+                            "householdid_key": "TCS1510_20170126",
+                            "rowuuid": "8a705a90-0f02-4513-b095-d62a4b2b91df",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "TCS1510_20170126",
+                            "rowuuid": "a220e6ba-109b-4b8b-8fb9-632823c1d23f",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "TCS1510_20170126",
+                    "rowuuid": "ec5423a8-3ded-4e52-9729-eb245f891057",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Eat Sharp things such as nail",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "J0447",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TCS1510_20170126",
+                            "rowuuid": "6cf90d46-0dbd-4639-8893-6be36d93f3b0",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1510_20170126",
+                    "rowuuid": "db369a44-d4f0-4431-bab3-51f016428348",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1510_20170126",
+            "rowuuid": "d102ef86-7e91-4a7f-97fb-f1287579d51e",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170126",
+    "end_time": "2017-01-27T11:01:59",
+    "householdid": "TCS1510",
+    "householdid_key": "TCS1510_20170126",
+    "meta_devid": "865770021186061",
+    "onfarm_country": "T",
+    "onfarm_enum": "105",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "105",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "65ad1d3b-7b69-4a36-a0cf-35d8166ff0cd",
+    "start_time": "2017-01-26T12:25:06",
+    "subscriber_id": "640021068988925",
+    "survey_date": "2017-01-26T00:00:00",
+    "surveyid": "5c047a60-7642-4406-b682-0a3f1b1be991"
+}

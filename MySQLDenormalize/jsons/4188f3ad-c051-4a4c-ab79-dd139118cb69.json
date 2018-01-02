@@ -1,0 +1,79 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "No",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Feed calcium.",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "15",
+                    "bexit_birdexitedacggtag": "E0217",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "15",
+                            "householdid_key": "THL1375_20160907",
+                            "rowuuid": "850105d9-2f13-4536-b033-452f648d7eeb",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "THL1375_20160907",
+                    "rowuuid": "f66b5148-09cd-430b-85ab-e97f7d3ab56c",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Feed minerals (calcium)",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "15",
+                    "bexit_birdexitedacggtag": "E0203",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "15",
+                            "householdid_key": "THL1375_20160907",
+                            "rowuuid": "29cecb68-a9b1-4d35-a02e-7ede18d0a83f",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "THL1375_20160907",
+                    "rowuuid": "a41c373d-56ef-42f6-b272-8a874b21edb5",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "THL1375_20160907",
+            "rowuuid": "3d480a38-d305-4acc-81a8-8328b2ae94fa",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20160907",
+    "end_time": "2016-09-08T15:24:32",
+    "householdid": "THL1375",
+    "householdid_key": "THL1375_20160907",
+    "meta_devid": "865770021184785",
+    "onfarm_country": "T",
+    "onfarm_enum": "86",
+    "onfarm_subnatarea": "HL",
+    "onfarm_village": "86",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "46286725-96df-48ab-8d71-9f62d4ce9933",
+    "start_time": "2016-09-07T09:38:40",
+    "subscriber_id": "",
+    "survey_date": "2016-09-07T00:00:00",
+    "surveyid": "4188f3ad-c051-4a4c-ab79-dd139118cb69"
+}

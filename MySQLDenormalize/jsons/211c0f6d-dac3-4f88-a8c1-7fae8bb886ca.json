@@ -1,0 +1,58 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "No comment",
+            "bext_birdexitedcountacgg": "1",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Infectious coryza",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "P0264",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TCS1151_20170329",
+                            "rowuuid": "492e9b52-9a53-4785-a246-a781395b1677",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1151_20170329",
+                    "rowuuid": "53f9b84d-da0a-48aa-8f67-d533e3de1318",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1151_20170329",
+            "rowuuid": "4cb894ee-fb85-4913-81d4-9a11f6bb258a",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170329",
+    "end_time": "2017-04-01T23:32:47",
+    "householdid": "TCS1151",
+    "householdid_key": "TCS1151_20170329",
+    "meta_devid": "865770021189776",
+    "onfarm_country": "T",
+    "onfarm_enum": "96",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "96",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "7802f9db-4df1-4f78-93c1-e35447b0e60c",
+    "start_time": "2017-03-29T21:39:54",
+    "subscriber_id": "",
+    "survey_date": "2017-03-29T00:00:00",
+    "surveyid": "211c0f6d-dac3-4f88-a8c1-7fae8bb886ca"
+}

@@ -1,0 +1,93 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "1 4",
+                    "bexit_birdexitedacggtag": "J0042",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "ESR2307_20171027",
+                            "rowuuid": "e67a8827-ab20-4ecd-8bd0-7e99eb162d5b",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "1",
+                            "householdid_key": "ESR2307_20171027",
+                            "rowuuid": "58dbd5aa-fbd9-444d-9ab0-5b865dbe1976",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "ESR2307_20171027",
+                    "rowuuid": "e3978cf9-4086-4a64-a81a-592a6dfb452f",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "1 4",
+                    "bexit_birdexitedacggtag": "J0030",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "ESR2307_20171027",
+                            "rowuuid": "26558a55-31df-49ac-bc57-f97ef4f265eb",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "1",
+                            "householdid_key": "ESR2307_20171027",
+                            "rowuuid": "3144c877-573d-413a-a3e8-1937f957c0ae",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "ESR2307_20171027",
+                    "rowuuid": "54218d5c-71cf-4204-bb68-ece17976c35f",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "ESR2307_20171027",
+            "rowuuid": "9600991c-27cf-404d-a624-6b90364b0484",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20171027",
+    "end_time": "2017-10-27T03:11:21",
+    "householdid": "ESR2307",
+    "householdid_key": "ESR2307_20171027",
+    "meta_devid": "865770027213208",
+    "onfarm_country": "E",
+    "onfarm_enum": "190",
+    "onfarm_subnatarea": "SR",
+    "onfarm_village": "190",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "ca090c96-719e-4bdb-8477-5cc0ef2f7bda",
+    "start_time": "2017-10-27T02:56:24",
+    "subscriber_id": "636013079374545",
+    "survey_date": "2017-10-27T00:00:00",
+    "surveyid": "2df81f93-7d0d-44bd-aa81-ed2d4118e320"
+}

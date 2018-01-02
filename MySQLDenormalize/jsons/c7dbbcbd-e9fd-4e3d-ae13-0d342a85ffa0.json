@@ -1,0 +1,114 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "None",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Hardware disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "7 9 16 17",
+                    "bexit_birdexitedacggtag": "P0334",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TCS1005_20170324",
+                            "rowuuid": "43124351-9a2a-4190-8fcc-4b06213405e8",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1005_20170324",
+                            "rowuuid": "ed6fee87-fe9d-4b20-ae2b-91d668f2848a",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TCS1005_20170324",
+                            "rowuuid": "d0565592-faea-4187-819d-e6348e01058a",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "TCS1005_20170324",
+                            "rowuuid": "b83d92ad-763b-41d4-b15c-80b5cdd42b83",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "TCS1005_20170324",
+                    "rowuuid": "78c04e5a-46be-4e3f-9345-aa34e968491f",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Hardware disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "7 16 17",
+                    "bexit_birdexitedacggtag": "P0318",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1005_20170324",
+                            "rowuuid": "8d99981b-9cc2-4f13-96de-9079f248ab17",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TCS1005_20170324",
+                            "rowuuid": "37d7ec74-0d70-478f-bf58-476489c2a6c8",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "TCS1005_20170324",
+                            "rowuuid": "f1b5bded-e20b-45b4-8f92-81efafea0369",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1005_20170324",
+                    "rowuuid": "d3769051-86ff-44e6-a88d-63ce6d992cbe",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1005_20170324",
+            "rowuuid": "aa6737ad-19c7-4fe2-8665-de45489c53cd",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170324",
+    "end_time": "2017-03-24T13:00:04",
+    "householdid": "TCS1005",
+    "householdid_key": "TCS1005_20170324",
+    "meta_devid": "865770021184991",
+    "onfarm_country": "T",
+    "onfarm_enum": "93",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "93",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "3e372579-0c35-4d6f-98df-fb335dbb09fc",
+    "start_time": "2017-03-24T12:56:39",
+    "subscriber_id": "640044166524182",
+    "survey_date": "2017-03-24T00:00:00",
+    "surveyid": "c7dbbcbd-e9fd-4e3d-ae13-0d342a85ffa0"
+}

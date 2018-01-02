@@ -1,0 +1,465 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "This are of 32-36",
+            "bext_birdexitedcountacgg": "12",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Coryza",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "4 8 9 10 11 16 17",
+                    "bexit_birdexitedacggtag": "P0109",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "8",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "c9b89e0d-31ed-4ed0-badf-9797f55eedb8",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "b2e837a3-b1f2-46a0-91be-e09046a21cca",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "10",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "6fa81d61-9745-4c8d-b917-6f246c683495",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "11",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "6342bba2-c9ec-455c-90f8-f41f882b1f2b",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "90b42431-8fb3-44ed-bb20-71dd27453b03",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "9df17dd4-5c7d-42c2-b85d-a9ea3ba92667",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "4024bf32-f812-4af4-bbf9-5978000c2332",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "TCS1002_20170423",
+                    "rowuuid": "5917b39d-6e44-430d-b4c5-41aa73467d38",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Yellow diarrhoea",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "6 9 11 16 17",
+                    "bexit_birdexitedacggtag": "P0114",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "3a85d957-113c-4cab-8ae7-90b16593a368",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "11",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "1aa3a219-2978-4036-80de-f33812e78c2b",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "70a09d1d-1814-40ad-adb4-3a0ebad6eabe",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "a2a48ec2-a69a-46d7-b9a3-fce4760be840",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "6",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "441ca45d-0afa-46d2-ae35-12eb3411fc19",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        }
+                    ],
+                    "householdid_key": "TCS1002_20170423",
+                    "rowuuid": "47c5c02d-ecbb-46ab-a225-a8c833b553a7",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Yellow diarrhoea",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "4",
+                    "bexit_birdexitedacggsymptoms": "6 9 16 17",
+                    "bexit_birdexitedacggtag": "P0118",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "a1b05f8e-8e81-4fc0-a391-3486ca14e7de",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "4"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "492e1ba2-7b37-4a29-90b8-7bdc6be71123",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "4"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "4bc29333-47e0-4873-a3ac-13f3432cbbce",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "4"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "6",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "f64e6b80-b74b-4aab-8558-243e0996ed55",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "4"
+                        }
+                    ],
+                    "householdid_key": "TCS1002_20170423",
+                    "rowuuid": "1d3be30d-4a30-4188-b7d5-1048b816cbab",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "4"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Yellow diarrhoea",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "5",
+                    "bexit_birdexitedacggsymptoms": "6 9 11 16 17",
+                    "bexit_birdexitedacggtag": "P0119",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "b0a37259-ed56-4361-a2cb-d49d8e805bea",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "11",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "b631a526-cd86-4aa1-b70d-80a18fc35518",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "c7fdf9f2-77a5-4676-a337-398184aff429",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "c6365038-b90d-42d3-bdeb-3629c0244a66",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "6",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "44c1a574-80df-41bb-baca-98918ed2fe17",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        }
+                    ],
+                    "householdid_key": "TCS1002_20170423",
+                    "rowuuid": "fea9699c-069f-4651-a55c-8f1f4b1be8d5",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "5"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Coccidiosis",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "6",
+                    "bexit_birdexitedacggsymptoms": "1 6 9 16",
+                    "bexit_birdexitedacggtag": "P0123",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "6",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "592c3409-f79e-465d-afda-03a188813b9d",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "6"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "7c917077-4ce1-4445-aeff-eae71b42b9a2",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "6"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "b091e41c-ea12-4163-bd6a-659478a92a22",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "6"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "1",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "331cc9da-caa1-4791-b994-4e8d6158734d",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "6"
+                        }
+                    ],
+                    "householdid_key": "TCS1002_20170423",
+                    "rowuuid": "e5ca3734-ef3d-4651-82fc-2037c23ad8a4",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "6"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Coccidiosis",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "7",
+                    "bexit_birdexitedacggsymptoms": "1 9 16",
+                    "bexit_birdexitedacggtag": "P0141",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "72f7b7ef-0dd7-4e6b-9623-f34ccfd781a6",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "7"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "e02e3e8d-9d9a-46a6-a327-8656a8c02418",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "7"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "1",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "ae5ea0bd-1585-4d11-8885-ba7dc153f00f",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "7"
+                        }
+                    ],
+                    "householdid_key": "TCS1002_20170423",
+                    "rowuuid": "a17bbe66-4f15-4ce9-90b4-9902c5b65db5",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "7"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Sudden",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "8",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "P0143",
+                    "bext_birdexitedacggreason": "5",
+                    "householdid_key": "TCS1002_20170423",
+                    "rowuuid": "cc5bd27f-f302-4df0-b59d-32f4c1cadbd8",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "8"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Cannibalism",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "9",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "P0150",
+                    "bext_birdexitedacggreason": "14",
+                    "householdid_key": "TCS1002_20170423",
+                    "rowuuid": "900c23ba-1afb-4fa7-8147-175189870298",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "9"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Sudden",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "10",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "P0168",
+                    "bext_birdexitedacggreason": "2",
+                    "householdid_key": "TCS1002_20170423",
+                    "rowuuid": "0488d3ed-7bbd-4ab8-a6d0-46d4d9f02ae2",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "10"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Hardware disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "11",
+                    "bexit_birdexitedacggsymptoms": "9 16",
+                    "bexit_birdexitedacggtag": "P0176",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "bfe5e464-9755-44f4-aa98-dafbcbc3e2e6",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "11"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "f712607e-5de8-4c36-86ac-422f31244d01",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "11"
+                        }
+                    ],
+                    "householdid_key": "TCS1002_20170423",
+                    "rowuuid": "0ad29aeb-f0d1-4b57-8a9b-bea40a7c0cc1",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "11"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Hardware disease",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "12",
+                    "bexit_birdexitedacggsymptoms": "9 16",
+                    "bexit_birdexitedacggtag": "P0177",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "b53ea480-eb7b-4a90-b628-8ff55c302129",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "12"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "07abd82d-9c6e-49d8-b6f6-74d508cafdb7",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "12"
+                        }
+                    ],
+                    "householdid_key": "TCS1002_20170423",
+                    "rowuuid": "dd0c73bf-53e8-4da8-becd-e9e1a5c3df60",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "12"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Coryza",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "4 8 9 10 11 16",
+                    "bexit_birdexitedacggtag": "P0105",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "8",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "857ca162-6e85-4b82-935f-b7344ce64c53",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "a7e69b9d-ab1d-4ed0-9deb-be2e063e801b",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "10",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "f9b9057c-0010-41e2-90e4-bd84f302fc64",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "11",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "498f30aa-df6d-4d0e-bac9-c0617e4e7fda",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "7453c8f8-fafc-4e1e-9126-5fe2999ffe08",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "TCS1002_20170423",
+                            "rowuuid": "1ea4dd5b-2cdc-4317-af52-4aef474cd591",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1002_20170423",
+                    "rowuuid": "8b0c7a25-c6b0-4b45-b010-f7f513018787",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1002_20170423",
+            "rowuuid": "f1f39b88-7366-4a6c-90fd-7bf0e67c9a84",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170423",
+    "end_time": "2017-04-23T08:41:25",
+    "householdid": "TCS1002",
+    "householdid_key": "TCS1002_20170423",
+    "meta_devid": "865770021184991",
+    "onfarm_country": "T",
+    "onfarm_enum": "93",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "93",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "084be985-9e4f-4bd2-b65c-d878f17ed74c",
+    "start_time": "2017-04-23T08:27:55",
+    "subscriber_id": "640044166524182",
+    "survey_date": "2017-04-23T00:00:00",
+    "surveyid": "7e714099-3291-493f-b1b1-50046a78bbef"
+}

@@ -1,0 +1,79 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Farmer has lost two introduced birds",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "2",
+                    "bexit_birdexitedacggtag": "G0947",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "NNS1267_20170613",
+                            "rowuuid": "79bc8a76-fa2d-47d9-9adc-112d4fa0edca",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "NNS1267_20170613",
+                    "rowuuid": "b890bcb6-30db-472a-919a-edb72453f886",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "2",
+                    "bexit_birdexitedacggtag": "G0807",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "NNS1267_20170613",
+                            "rowuuid": "5f4270f6-7c19-4183-9441-ed883a2009fc",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "NNS1267_20170613",
+                    "rowuuid": "669e7918-1633-48a3-9fa9-da882967402f",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "NNS1267_20170613",
+            "rowuuid": "7ecdb972-2f74-4077-b4f0-48519000954b",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170613",
+    "end_time": "2017-06-13T05:03:31",
+    "householdid": "NNS1267",
+    "householdid_key": "NNS1267_20170613",
+    "meta_devid": "358264078387404",
+    "onfarm_country": "N",
+    "onfarm_enum": "44",
+    "onfarm_subnatarea": "NS",
+    "onfarm_village": "44",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "5ee83909-3d94-40fa-9345-634a4e85ee5b",
+    "start_time": "2017-06-13T05:02:08",
+    "subscriber_id": "621500213992265",
+    "survey_date": "2017-06-13T00:00:00",
+    "surveyid": "2232858b-3d87-427f-9d55-b73646620915"
+}

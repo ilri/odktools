@@ -1,0 +1,79 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "I tried to give medication to the disease infection chicken but two of them died among the five days infected",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "2",
+                    "bexit_birdexitedacggtag": "R0501",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "TCS1062_20161122",
+                            "rowuuid": "47dee0d3-5553-433f-98a8-c3c2ad1c8ad2",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "TCS1062_20161122",
+                    "rowuuid": "1e4439b5-01c5-4abf-89e6-b6c38f15a8c8",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "2",
+                    "bexit_birdexitedacggtag": "R0590",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "TCS1062_20161122",
+                            "rowuuid": "1287d58e-3f98-45d2-8192-919bcc2402a4",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1062_20161122",
+                    "rowuuid": "f0b75877-14df-47eb-b8e3-4f924a786ea2",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1062_20161122",
+            "rowuuid": "b71ac74a-4763-4510-9868-7425798fbd13",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161122",
+    "end_time": "2016-11-22T14:03:50",
+    "householdid": "TCS1062",
+    "householdid_key": "TCS1062_20161122",
+    "meta_devid": "865770021185725",
+    "onfarm_country": "T",
+    "onfarm_enum": "94",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "94",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "37f35ddc-5d54-411c-bc48-32a108ca22f4",
+    "start_time": "2016-11-22T08:53:24",
+    "subscriber_id": "640050943608020",
+    "survey_date": "2016-11-22T00:00:00",
+    "surveyid": "6fa1a33f-ded7-42e1-a523-e32f087a8295"
+}

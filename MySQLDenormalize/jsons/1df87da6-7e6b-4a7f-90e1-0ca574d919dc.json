@@ -1,0 +1,58 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Successful",
+            "bext_birdexitedcountacgg": "1",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Died",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "4",
+                    "bexit_birdexitedacggtag": "E0317",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "NNS1084_20161219",
+                            "rowuuid": "8c7463b5-741a-46b7-8a9d-8796e2428137",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "NNS1084_20161219",
+                    "rowuuid": "1dc1b70f-dcde-4b94-b014-ba07d9310046",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "NNS1084_20161219",
+            "rowuuid": "cc4266cb-3885-410f-b8b5-724d09bc2d64",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161219",
+    "end_time": "2016-12-19T11:42:34",
+    "householdid": "NNS1084",
+    "householdid_key": "NNS1084_20161219",
+    "meta_devid": "865770021185709",
+    "onfarm_country": "N",
+    "onfarm_enum": "39",
+    "onfarm_subnatarea": "NS",
+    "onfarm_village": "39",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "293bd005-a2b4-4e57-9aec-99f862e49352",
+    "start_time": "2016-12-19T11:41:07",
+    "subscriber_id": "621300286752350",
+    "survey_date": "2016-12-19T00:00:00",
+    "surveyid": "1df87da6-7e6b-4a7f-90e1-0ca574d919dc"
+}

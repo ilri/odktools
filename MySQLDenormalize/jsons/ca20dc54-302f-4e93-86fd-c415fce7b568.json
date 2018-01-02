@@ -1,0 +1,79 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "I see the weight loss is as a result of malnutrition.",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "16",
+                    "bexit_birdexitedacggtag": "G0086",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "NKW1143_20170307",
+                            "rowuuid": "3b3d08b6-11d3-45a7-9803-8af9f9e7241f",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "NKW1143_20170307",
+                    "rowuuid": "79338f8d-f150-4176-b1d8-48ced7a4b349",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "16",
+                    "bexit_birdexitedacggtag": "G0036",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "NKW1143_20170307",
+                            "rowuuid": "757f7236-bedc-4d6a-a85b-ce802391e0b7",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "NKW1143_20170307",
+                    "rowuuid": "c9707ce4-621d-42af-8bc7-b9b4fa20dbae",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "NKW1143_20170307",
+            "rowuuid": "000da40e-91d6-4821-8c1b-c925b2353c41",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170307",
+    "end_time": "2017-03-07T17:53:50",
+    "householdid": "NKW1143",
+    "householdid_key": "NKW1143_20170307",
+    "meta_devid": "865770021187176",
+    "onfarm_country": "N",
+    "onfarm_enum": "5",
+    "onfarm_subnatarea": "KW",
+    "onfarm_village": "5",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "1d37a0ae-5a03-4ac4-9a3a-7bd875a75b87",
+    "start_time": "2017-03-07T17:50:54",
+    "subscriber_id": "621300336542223",
+    "survey_date": "2017-03-07T00:00:00",
+    "surveyid": "ca20dc54-302f-4e93-86fd-c415fce7b568"
+}

@@ -1,0 +1,91 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "3",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "9",
+                    "bexit_birdexitedacggtag": "A0053",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TSH1163_20170905",
+                            "rowuuid": "831b84dc-d62b-41b5-aeb7-c24a6393ef7f",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "TSH1163_20170905",
+                    "rowuuid": "d47f11d3-7ecb-4338-8e3d-a41ee4eb612b",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "A0057",
+                    "bext_birdexitedacggreason": "2",
+                    "householdid_key": "TSH1163_20170905",
+                    "rowuuid": "22c3efa7-581c-4f4c-84a2-fd1c6bb0c2b8",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "11",
+                    "bexit_birdexitedacggtag": "A0030",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "11",
+                            "householdid_key": "TSH1163_20170905",
+                            "rowuuid": "c67d2e5e-17a5-4192-ae09-76b2c9788f5e",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TSH1163_20170905",
+                    "rowuuid": "52c371ab-85a1-4c1f-97fe-c9d32fc887a1",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TSH1163_20170905",
+            "rowuuid": "318297e7-3eb6-4a23-9653-0ad584feee52",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170905",
+    "end_time": "2017-09-05T14:12:49",
+    "householdid": "TSH1163",
+    "householdid_key": "TSH1163_20170905",
+    "meta_devid": "865770021186160",
+    "onfarm_country": "T",
+    "onfarm_enum": "65",
+    "onfarm_subnatarea": "SH",
+    "onfarm_village": "65",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "76ce25a8-1fe8-4ff3-8d5e-0b66c84f3a19",
+    "start_time": "2017-09-05T14:07:34",
+    "subscriber_id": "640092914058773",
+    "survey_date": "2017-09-05T00:00:00",
+    "surveyid": "ab02132f-70ab-4c21-aa56-560ed43c6d2d"
+}

@@ -1,0 +1,70 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "More treatment and vaccination",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Bush clearing around",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "H0450",
+                    "bext_birdexitedacggreason": "3",
+                    "householdid_key": "TLZ1209_20170119",
+                    "rowuuid": "0998602d-20c2-4380-b939-d785c084b230",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Its required treatment by more antbiotics",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "4",
+                    "bexit_birdexitedacggtag": "H0554",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "TLZ1209_20170119",
+                            "rowuuid": "650a1d50-2a19-4cab-a2fa-103dc674b471",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TLZ1209_20170119",
+                    "rowuuid": "eb41b324-e3fc-4cf7-afae-5c0c78680728",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TLZ1209_20170119",
+            "rowuuid": "d7555af0-39b8-473d-aa78-8a91bdba7aec",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170119",
+    "end_time": "2017-01-20T15:21:13",
+    "householdid": "TLZ1209",
+    "householdid_key": "TLZ1209_20170119",
+    "meta_devid": "865770021186285",
+    "onfarm_country": "T",
+    "onfarm_enum": "130",
+    "onfarm_subnatarea": "LZ",
+    "onfarm_village": "130",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "b8c6df0d-1ec9-4262-a949-09a83a80e163",
+    "start_time": "2017-01-19T21:35:26",
+    "subscriber_id": "640092910942852",
+    "survey_date": "2017-01-19T00:00:00",
+    "surveyid": "39710953-a63f-4689-b822-b29aa50a649a"
+}

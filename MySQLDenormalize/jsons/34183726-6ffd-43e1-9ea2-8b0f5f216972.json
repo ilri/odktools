@@ -1,0 +1,79 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Yai kupasukia tumboni",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "00283",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "THL1100_20170305",
+                            "rowuuid": "c001d445-cdd8-47c8-a4b0-05874dfd8175",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "THL1100_20170305",
+                    "rowuuid": "b1071f9b-7c9b-487f-bff2-9404363c9e76",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "4",
+                    "bexit_birdexitedacggtag": "00297",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "THL1100_20170305",
+                            "rowuuid": "71ff4e97-fbe5-4284-a701-3ad82aaafd64",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "THL1100_20170305",
+                    "rowuuid": "501b606d-2ffb-4cd7-ae7f-db5074d016b5",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "THL1100_20170305",
+            "rowuuid": "aa82cac3-c6a1-46b7-bff6-85a5f0d2cfa9",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170305",
+    "end_time": "2017-03-05T21:37:08",
+    "householdid": "THL1100",
+    "householdid_key": "THL1100_20170305",
+    "meta_devid": "865770021190295",
+    "onfarm_country": "T",
+    "onfarm_enum": "79",
+    "onfarm_subnatarea": "HL",
+    "onfarm_village": "79",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "018a2bb2-6b6d-4a57-9daf-900de9a7829c",
+    "start_time": "2017-03-05T21:31:00",
+    "subscriber_id": "",
+    "survey_date": "2017-03-05T00:00:00",
+    "surveyid": "34183726-6ffd-43e1-9ea2-8b0f5f216972"
+}

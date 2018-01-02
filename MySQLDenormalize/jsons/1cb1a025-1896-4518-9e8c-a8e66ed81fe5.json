@@ -1,0 +1,91 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "3",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "Z0018",
+                    "bext_birdexitedacggreason": "2",
+                    "householdid_key": "TES1171_20170122",
+                    "rowuuid": "86c6e917-aa6e-4086-817a-165b911f563f",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "1",
+                    "bexit_birdexitedacggtag": "Z0025",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "1",
+                            "householdid_key": "TES1171_20170122",
+                            "rowuuid": "da06cf6a-f346-4de8-a466-60788e12049b",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        }
+                    ],
+                    "householdid_key": "TES1171_20170122",
+                    "rowuuid": "44e6ce8d-9602-4a9b-8832-f43033a40539",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "4",
+                    "bexit_birdexitedacggtag": "Z0008",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "TES1171_20170122",
+                            "rowuuid": "ac819069-5c80-453f-99bf-9a81cd57e34c",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TES1171_20170122",
+                    "rowuuid": "25bf43f9-3e95-4da5-bea8-07fde1d0aea6",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TES1171_20170122",
+            "rowuuid": "a1c2ba21-5705-45ce-9e5a-b65e7734e6e0",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170122",
+    "end_time": "2017-10-24T08:59:25",
+    "householdid": "TES1171",
+    "householdid_key": "TES1171_20170122",
+    "meta_devid": "865770021186475",
+    "onfarm_country": "T",
+    "onfarm_enum": "113",
+    "onfarm_subnatarea": "ES",
+    "onfarm_village": "113",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "ea6e60cc-71a8-4dd4-87b8-852b2fed438f",
+    "start_time": "2017-10-24T08:49:49",
+    "subscriber_id": "640050941070336",
+    "survey_date": "2017-01-22T00:00:00",
+    "surveyid": "1cb1a025-1896-4518-9e8c-a8e66ed81fe5"
+}

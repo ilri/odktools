@@ -1,0 +1,98 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Successful",
+            "bext_birdexitedcountacgg": "3",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Died- Watery eyes",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "9 17",
+                    "bexit_birdexitedacggtag": "E0741",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "NNS1093_20170303",
+                            "rowuuid": "9d4b3bb3-71da-4bc4-9d4f-95cc8abb536b",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "NNS1093_20170303",
+                            "rowuuid": "61024da4-5358-4966-ab23-6938cc3959bb",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "NNS1093_20170303",
+                    "rowuuid": "71b03541-ba25-453b-ab53-fedf4afe6f2a",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Died-watery eyes",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "E9767",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "NNS1093_20170303",
+                            "rowuuid": "3a9379c3-d761-43bd-9eee-7e97d27e1432",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        }
+                    ],
+                    "householdid_key": "NNS1093_20170303",
+                    "rowuuid": "a67aac77-ded6-4bc5-a9ad-679fc10b0f59",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Died",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "E0780",
+                    "bext_birdexitedacggreason": "2",
+                    "householdid_key": "NNS1093_20170303",
+                    "rowuuid": "1b6885b8-c004-4d24-87bb-9137dc90f233",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "NNS1093_20170303",
+            "rowuuid": "91244aa0-d626-488a-85b3-98138bf657e5",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170303",
+    "end_time": "2017-03-03T08:06:05",
+    "householdid": "NNS1093",
+    "householdid_key": "NNS1093_20170303",
+    "meta_devid": "865770021185709",
+    "onfarm_country": "N",
+    "onfarm_enum": "39",
+    "onfarm_subnatarea": "NS",
+    "onfarm_village": "39",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "924b8f29-33fe-4e20-b649-d069a38b205e",
+    "start_time": "2017-03-03T01:37:33",
+    "subscriber_id": "621300286752350",
+    "survey_date": "2017-03-03T00:00:00",
+    "surveyid": "a4c3569b-d76f-4a99-9b1e-f7cf0fbe3570"
+}

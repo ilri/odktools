@@ -1,0 +1,98 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "None",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "2",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "1",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "No",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "J0551",
+                    "bext_birdexitedacggreason": "9",
+                    "householdid_key": "TCS1423_20171015",
+                    "rowuuid": "7e1aac06-f2e5-420c-9785-2284611ee6ad",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Egg peritonitis",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "J0600",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TCS1423_20171015",
+                            "rowuuid": "42811df6-4383-4d76-b1ed-ee4371c642e8",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1423_20171015",
+                    "rowuuid": "4b571831-b339-4a20-9353-548d6284fd8f",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "birdentext_rpt_birdexitedhhnontag": [
+                {
+                    "bexit_birdexitedhhnontagage": "2",
+                    "bexit_birdexitedhhnontagcomments": "Cross bred",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "1",
+                    "bexit_birdexitedhhnontagsex": "2",
+                    "bexit_birdexitedhhnontagsymptoms": "",
+                    "bext_birdexitedhhnontagreason": "9",
+                    "householdid_key": "TCS1423_20171015",
+                    "rowuuid": "1f86d977-c131-48a4-a428-9f92b7fdb595",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "1"
+                },
+                {
+                    "bexit_birdexitedhhnontagage": "1",
+                    "bexit_birdexitedhhnontagcomments": "Cross bred",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "2",
+                    "bexit_birdexitedhhnontagsex": "2",
+                    "bexit_birdexitedhhnontagsymptoms": "",
+                    "bext_birdexitedhhnontagreason": "10",
+                    "householdid_key": "TCS1423_20171015",
+                    "rowuuid": "520c3e6f-ec84-4e14-899b-ed67769fd7e4",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "2"
+                }
+            ],
+            "householdid_key": "TCS1423_20171015",
+            "rowuuid": "595bf85d-1302-4944-8ebb-061e2139e6f0",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20171015",
+    "end_time": "2017-11-03T17:20:15",
+    "householdid": "TCS1423",
+    "householdid_key": "TCS1423_20171015",
+    "meta_devid": "865770021185188",
+    "onfarm_country": "T",
+    "onfarm_enum": "103",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "103",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "0cefcba4-8865-460e-88cc-525eb6bb756e",
+    "start_time": "2017-11-03T17:05:05",
+    "subscriber_id": "640092915690916",
+    "survey_date": "2017-10-15T00:00:00",
+    "surveyid": "a0fa2114-d821-485e-b0f5-8c70cb7f63ff"
+}

@@ -1,0 +1,136 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "The remaining flock is good",
+            "bext_birdexitedcountacgg": "3",
+            "bext_birdexitedcounthhnontag": "4",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "1",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "The scropion attach this bird",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "J0093",
+                    "bext_birdexitedacggreason": "5",
+                    "householdid_key": "TCS1418_20171004",
+                    "rowuuid": "4f3953a6-ca1c-48d5-96d7-776b3731d259",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "None",
+                    "bexit_birdexitedacggmoney": "20000",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "J0501",
+                    "bext_birdexitedacggreason": "6",
+                    "householdid_key": "TCS1418_20171004",
+                    "rowuuid": "4f46dae6-8284-4357-99e3-14df85a56842",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Fail to deliver the egg",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "17",
+                    "bexit_birdexitedacggtag": "J0034",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TCS1418_20171004",
+                            "rowuuid": "be155095-9e5b-418e-a7dd-4e9b1fed9b40",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1418_20171004",
+                    "rowuuid": "838a0ef8-b9b1-45b0-a0ac-75573f9e48cf",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "birdentext_rpt_birdexitedhhnontag": [
+                {
+                    "bexit_birdexitedhhnontagage": "1",
+                    "bexit_birdexitedhhnontagcomments": "Local breed",
+                    "bexit_birdexitedhhnontagmoney": "8000",
+                    "bexit_birdexitedhhnontagposition": "1",
+                    "bexit_birdexitedhhnontagsex": "2",
+                    "bexit_birdexitedhhnontagsymptoms": "",
+                    "bext_birdexitedhhnontagreason": "6",
+                    "householdid_key": "TCS1418_20171004",
+                    "rowuuid": "c84ac29d-a7ee-43cb-b27d-4d091c3e2614",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "1"
+                },
+                {
+                    "bexit_birdexitedhhnontagage": "2",
+                    "bexit_birdexitedhhnontagcomments": "Local breed",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "2",
+                    "bexit_birdexitedhhnontagsex": "2",
+                    "bexit_birdexitedhhnontagsymptoms": "",
+                    "bext_birdexitedhhnontagreason": "9",
+                    "householdid_key": "TCS1418_20171004",
+                    "rowuuid": "e650f080-0d9e-4ec4-a730-64b655e06e05",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedhhnontagage": "1",
+                    "bexit_birdexitedhhnontagcomments": "Cross bred",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "3",
+                    "bexit_birdexitedhhnontagsex": "2",
+                    "bexit_birdexitedhhnontagsymptoms": "",
+                    "bext_birdexitedhhnontagreason": "10",
+                    "householdid_key": "TCS1418_20171004",
+                    "rowuuid": "d44fb480-a11a-4177-9f29-bbee4157ecfa",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedhhnontagage": "1",
+                    "bexit_birdexitedhhnontagcomments": "Local breed",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "4",
+                    "bexit_birdexitedhhnontagsex": "2",
+                    "bexit_birdexitedhhnontagsymptoms": "",
+                    "bext_birdexitedhhnontagreason": "10",
+                    "householdid_key": "TCS1418_20171004",
+                    "rowuuid": "4f876f4c-1309-4803-8f31-3f2d54298fa0",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "4"
+                }
+            ],
+            "householdid_key": "TCS1418_20171004",
+            "rowuuid": "4658e701-a3df-4eef-8208-bb8f5cfc9ce9",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20171004",
+    "end_time": "2017-10-22T18:10:18",
+    "householdid": "TCS1418",
+    "householdid_key": "TCS1418_20171004",
+    "meta_devid": "865770021185188",
+    "onfarm_country": "T",
+    "onfarm_enum": "103",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "103",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "d126dced-4646-42ed-894a-0a012c367bab",
+    "start_time": "2017-10-22T18:02:05",
+    "subscriber_id": "640092915690916",
+    "survey_date": "2017-10-04T00:00:00",
+    "surveyid": "0e2f424c-f63b-4e1b-a56c-c307f526a6b7"
+}

@@ -1,0 +1,73 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "The flock is good",
+            "bext_birdexitedcountacgg": "1",
+            "bext_birdexitedcounthhnontag": "1",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "1",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "15",
+                    "bexit_birdexitedacggtag": "J0499",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "15",
+                            "householdid_key": "TCS1411_20161111",
+                            "rowuuid": "74bf7475-95db-4815-97fb-d2c3d685feb7",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1411_20161111",
+                    "rowuuid": "c9106206-bbe0-4705-bcd9-6f83eabcca0b",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "birdentext_rpt_birdexitedhhnontag": [
+                {
+                    "bexit_birdexitedhhnontagage": "2",
+                    "bexit_birdexitedhhnontagcomments": "Local breed",
+                    "bexit_birdexitedhhnontagmoney": "9000",
+                    "bexit_birdexitedhhnontagposition": "1",
+                    "bexit_birdexitedhhnontagsex": "1",
+                    "bexit_birdexitedhhnontagsymptoms": "",
+                    "bext_birdexitedhhnontagreason": "6",
+                    "householdid_key": "TCS1411_20161111",
+                    "rowuuid": "db219282-6701-4a05-b1b3-e3c2a58191f8",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1411_20161111",
+            "rowuuid": "8c57e23c-14dc-4752-8808-a7c6250d23b6",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161111",
+    "end_time": "2017-12-07T15:06:39",
+    "householdid": "TCS1411",
+    "householdid_key": "TCS1411_20161111",
+    "meta_devid": "865770021185188",
+    "onfarm_country": "T",
+    "onfarm_enum": "103",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "103",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "3091be6d-e56a-41bf-99e4-a46915c14c14",
+    "start_time": "2017-12-07T15:02:22",
+    "subscriber_id": "640092915690916",
+    "survey_date": "2016-11-11T00:00:00",
+    "surveyid": "aadd1f69-efb1-4411-bb71-3c1142e6eec5"
+}

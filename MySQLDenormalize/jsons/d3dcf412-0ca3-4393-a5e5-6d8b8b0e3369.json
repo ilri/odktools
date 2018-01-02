@@ -1,0 +1,91 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "3",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "2",
+                    "bexit_birdexitedacggtag": "K0315",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "TES1096_20170531",
+                            "rowuuid": "774cbcba-5a86-4b36-993b-ada701051410",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "TES1096_20170531",
+                    "rowuuid": "0f1a346c-086e-463a-ab62-0a0dd5bd491b",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "15000",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "K0303",
+                    "bext_birdexitedacggreason": "7",
+                    "householdid_key": "TES1096_20170531",
+                    "rowuuid": "9a384137-e881-4caf-a2f1-2c9cdb7feb7e",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "2",
+                    "bexit_birdexitedacggtag": "K0323",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "TES1096_20170531",
+                            "rowuuid": "fd4e38fa-9771-489e-839c-d604ddb729cd",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TES1096_20170531",
+                    "rowuuid": "da7e2fb1-d0cd-4f7f-86f6-b5f07e9490e3",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TES1096_20170531",
+            "rowuuid": "40ba3bf8-7a83-4577-afb7-36f7866e5554",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170531",
+    "end_time": "2017-05-31T21:19:36",
+    "householdid": "TES1096",
+    "householdid_key": "TES1096_20170531",
+    "meta_devid": "865770021186020",
+    "onfarm_country": "T",
+    "onfarm_enum": "111",
+    "onfarm_subnatarea": "ES",
+    "onfarm_village": "111",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "a7d57a8d-c1f2-42c6-bc50-7c7d70c31ba9",
+    "start_time": "2017-05-31T21:17:53",
+    "subscriber_id": "640092903696141",
+    "survey_date": "2017-05-31T00:00:00",
+    "surveyid": "d3dcf412-0ca3-4393-a5e5-6d8b8b0e3369"
+}

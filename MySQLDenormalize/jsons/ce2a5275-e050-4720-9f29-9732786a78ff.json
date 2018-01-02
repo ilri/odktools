@@ -1,0 +1,79 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "None",
+            "bext_birdexitedcountacgg": "1",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Fowl typhoid",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "6 9 11 16",
+                    "bexit_birdexitedacggtag": "P0284",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TCS1038_20170530",
+                            "rowuuid": "85cfb7f5-667e-4369-832c-5660f7bc86ad",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "11",
+                            "householdid_key": "TCS1038_20170530",
+                            "rowuuid": "13ecd4e4-9d12-45d1-a736-389bc374b9b3",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1038_20170530",
+                            "rowuuid": "5b6c28ff-07a9-4787-bf76-6ca64b57fb96",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "6",
+                            "householdid_key": "TCS1038_20170530",
+                            "rowuuid": "f563b9f5-4701-4562-9588-c3efa3d9c92d",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1038_20170530",
+                    "rowuuid": "6d1792fa-d032-45ea-b5a3-fdd805fdc3d0",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1038_20170530",
+            "rowuuid": "f8117dac-d54a-430e-af27-1cfb858ee258",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170530",
+    "end_time": "2017-05-30T10:17:43",
+    "householdid": "TCS1038",
+    "householdid_key": "TCS1038_20170530",
+    "meta_devid": "865770021184991",
+    "onfarm_country": "T",
+    "onfarm_enum": "93",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "93",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "d622bc51-dea7-4dbc-97df-c9416edd98e8",
+    "start_time": "2017-05-30T10:13:55",
+    "subscriber_id": "640044166524182",
+    "survey_date": "2017-05-30T00:00:00",
+    "surveyid": "ce2a5275-e050-4720-9f29-9732786a78ff"
+}

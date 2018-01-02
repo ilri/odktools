@@ -1,0 +1,65 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "The data of 24 week",
+            "bext_birdexitedcountacgg": "1",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Allow free range to avoid canibalism also give the rest bird antibiotic",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "4 15",
+                    "bexit_birdexitedacggtag": "R0184",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "15",
+                            "householdid_key": "TCS1260_20170418",
+                            "rowuuid": "26e9d43b-b7c8-430d-af23-4f984e848787",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "TCS1260_20170418",
+                            "rowuuid": "9ff86049-28fc-47cb-a312-d798f6c9e5b4",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1260_20170418",
+                    "rowuuid": "5446a429-f63b-4c90-a1e0-78ddf58b73a3",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1260_20170418",
+            "rowuuid": "cf4af352-ccfc-4ab1-8237-cb419d5d401f",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170418",
+    "end_time": "2017-04-18T15:41:49",
+    "householdid": "TCS1260",
+    "householdid_key": "TCS1260_20170418",
+    "meta_devid": "865770021189792",
+    "onfarm_country": "T",
+    "onfarm_enum": "99",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "99",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "22338030-d262-416b-ab94-1a7ac80690c7",
+    "start_time": "2017-04-18T15:38:32",
+    "subscriber_id": "640092901093201",
+    "survey_date": "2017-04-18T00:00:00",
+    "surveyid": "67a1f18c-1740-4d55-8a7c-dcfa34e31615"
+}

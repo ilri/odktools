@@ -1,0 +1,73 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "On average, the farmer incurred a loss as she spent a high cost to feeding and other requirements to protect the chicken but she sold the chickens at a minimal price.",
+            "bext_birdexitedcountacgg": "3",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "The farmer incurred a loss following the reason that she sold the chicken at a lower price as compared to the amount of money spent on feeding the chicken.",
+                    "bexit_birdexitedacggmoney": "13000",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "R0390",
+                    "bext_birdexitedacggreason": "6",
+                    "householdid_key": "TCS1074_20161106",
+                    "rowuuid": "04d2bb01-d436-4a3e-81f5-515bc9a7020b",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "The farmer incurred a loss due to the fact that  she spent a high cost in feeding the chicken as compared to the amount of money earned on the sale of chicken.",
+                    "bexit_birdexitedacggmoney": "13000",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "R0385",
+                    "bext_birdexitedacggreason": "6",
+                    "householdid_key": "TCS1074_20161106",
+                    "rowuuid": "0ea4205a-c8b1-48a8-93b0-6398fd573e3a",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "The farmer sold the chicken at a non profitable price due to the fact that she used a high amount of money on feeding the chicken as compared to the  price at which the chicken was sold",
+                    "bexit_birdexitedacggmoney": "13000",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "R0355",
+                    "bext_birdexitedacggreason": "6",
+                    "householdid_key": "TCS1074_20161106",
+                    "rowuuid": "54356f25-453f-4a54-bb78-8c80cf013866",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1074_20161106",
+            "rowuuid": "3ba4a69b-7757-4861-84f9-bdade1e77051",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161106",
+    "end_time": "2016-11-06T16:09:29",
+    "householdid": "TCS1074",
+    "householdid_key": "TCS1074_20161106",
+    "meta_devid": "865770021185725",
+    "onfarm_country": "T",
+    "onfarm_enum": "94",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "94",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "b9b42e10-a0f4-4144-8a87-c1bbd3b105d7",
+    "start_time": "2016-11-06T15:55:29",
+    "subscriber_id": "640050943608020",
+    "survey_date": "2016-11-06T00:00:00",
+    "surveyid": "da25a103-b969-4e73-b298-dd6c5e91709e"
+}

@@ -1,0 +1,58 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Bird died of disease ",
+            "bext_birdexitedcountacgg": "1",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "1",
+                    "bexit_birdexitedacggtag": "V0857",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "1",
+                            "householdid_key": "NRV1384_20170726",
+                            "rowuuid": "44a82582-e600-4ad8-b0d6-ec16fe5dc364",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "NRV1384_20170726",
+                    "rowuuid": "cbb8094f-fe3e-4515-94f1-e8102f12a14e",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "NRV1384_20170726",
+            "rowuuid": "2707f0e7-d416-458e-a2a8-aa6edbd59add",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170726",
+    "end_time": "2017-10-06T21:14:50",
+    "householdid": "NRV1384",
+    "householdid_key": "NRV1384_20170726",
+    "meta_devid": "865770021184728",
+    "onfarm_country": "N",
+    "onfarm_enum": "23",
+    "onfarm_subnatarea": "RV",
+    "onfarm_village": "23",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "6e1a9877-1024-4e8f-926f-e9cf2b86c4b9",
+    "start_time": "2017-10-06T21:07:17",
+    "subscriber_id": "621300286740795",
+    "survey_date": "2017-07-26T00:00:00",
+    "surveyid": "49c03d87-3285-4893-872d-e6f04e9faa65"
+}

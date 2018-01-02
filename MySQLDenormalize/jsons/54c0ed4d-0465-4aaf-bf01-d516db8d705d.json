@@ -1,0 +1,100 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Fowl pox",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "9 16",
+                    "bexit_birdexitedacggtag": "V0068",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TLZ1394_20160827",
+                            "rowuuid": "c15636f1-7fb2-46c2-82af-2568315ff85d",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TLZ1394_20160827",
+                            "rowuuid": "0221f169-8ea1-4ec5-986f-9446a98420a1",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "TLZ1394_20160827",
+                    "rowuuid": "a047cf47-e28f-4727-92e7-4ced22addc4f",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "The bird was so weak may be due to long journey from the brooder.",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "7 9 16",
+                    "bexit_birdexitedacggtag": "V0087",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "TLZ1394_20160827",
+                            "rowuuid": "ff430af0-6872-4069-8a39-810bc7b1530d",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TLZ1394_20160827",
+                            "rowuuid": "a4d7d007-905c-4290-8686-6e398af4d1c2",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "TLZ1394_20160827",
+                            "rowuuid": "6f05587d-2155-4e34-8001-9ab10ae31828",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TLZ1394_20160827",
+                    "rowuuid": "434c6566-fd3b-4c06-bb18-fd8a36b98b57",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TLZ1394_20160827",
+            "rowuuid": "30463128-c452-4ad1-9816-935f9ddd0eb2",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20160827",
+    "end_time": "2016-10-11T17:52:49",
+    "householdid": "TLZ1394",
+    "householdid_key": "TLZ1394_20160827",
+    "meta_devid": "865770021184249",
+    "onfarm_country": "T",
+    "onfarm_enum": "134",
+    "onfarm_subnatarea": "LZ",
+    "onfarm_village": "134",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "0717117125",
+    "rowuuid": "1b3ed2d8-0c0b-4185-b416-e3a97e9d1816",
+    "start_time": "2016-08-27T17:54:24",
+    "subscriber_id": "640021064642740",
+    "survey_date": "2016-08-27T00:00:00",
+    "surveyid": "54c0ed4d-0465-4aaf-bf01-d516db8d705d"
+}

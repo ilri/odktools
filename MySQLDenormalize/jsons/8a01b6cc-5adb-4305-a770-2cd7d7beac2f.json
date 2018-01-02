@@ -1,0 +1,84 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Swelling leg",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "8 13 14",
+                    "bexit_birdexitedacggtag": "R0506",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "13",
+                            "householdid_key": "EAA2082_20170310",
+                            "rowuuid": "ccd972f7-9810-4ce4-8b78-da5e21ff57f9",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "14",
+                            "householdid_key": "EAA2082_20170310",
+                            "rowuuid": "82b50d8f-b573-407a-b683-0e403071713d",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "8",
+                            "householdid_key": "EAA2082_20170310",
+                            "rowuuid": "db22a30d-e33e-4fb2-aa24-2e908b402f02",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "EAA2082_20170310",
+                    "rowuuid": "e7cff4ff-3102-412d-9eff-794bdd4a7b47",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "P0002",
+                    "bext_birdexitedacggreason": "2",
+                    "householdid_key": "EAA2082_20170310",
+                    "rowuuid": "0c7bcadb-a5c1-421b-9696-787b37ce77b7",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "EAA2082_20170310",
+            "rowuuid": "011fcabb-6f8d-439b-bd3f-05dcc236c4d3",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170310",
+    "end_time": "2017-03-12T10:56:31",
+    "householdid": "EAA2082",
+    "householdid_key": "EAA2082_20170310",
+    "meta_devid": "865770027211855",
+    "onfarm_country": "E",
+    "onfarm_enum": "200",
+    "onfarm_subnatarea": "AA",
+    "onfarm_village": "200",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "8f4c76cf-a193-4f57-89d4-369fca0fa99f",
+    "start_time": "2017-03-10T20:42:39",
+    "subscriber_id": "",
+    "survey_date": "2017-03-10T00:00:00",
+    "surveyid": "8a01b6cc-5adb-4305-a770-2cd7d7beac2f"
+}

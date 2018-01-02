@@ -1,0 +1,93 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "2 4 7",
+                    "bexit_birdexitedacggtag": "D0026",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "THL1561_20161003",
+                            "rowuuid": "4f9ed718-f75b-43b2-a22b-8379619a069d",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "THL1561_20161003",
+                            "rowuuid": "d701c37b-70e9-4967-bac0-47a064880303",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "THL1561_20161003",
+                            "rowuuid": "82925a93-8ed6-490b-adff-3b7ac378e697",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "THL1561_20161003",
+                    "rowuuid": "d9308d5d-e309-47c4-ac1b-e03571526738",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "2",
+                    "bexit_birdexitedacggtag": "D0043",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "THL1561_20161003",
+                            "rowuuid": "be772736-7a21-4831-a10b-1d6af0bc52d0",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "THL1561_20161003",
+                    "rowuuid": "9af63d19-5ab1-40d5-9f53-ca2b49bf58f7",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "THL1561_20161003",
+            "rowuuid": "3f3f8b83-3f62-468a-8d36-3380f67d6674",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161003",
+    "end_time": "2016-11-11T15:53:37",
+    "householdid": "THL1561",
+    "householdid_key": "THL1561_20161003",
+    "meta_devid": "865770021184264",
+    "onfarm_country": "T",
+    "onfarm_enum": "91",
+    "onfarm_subnatarea": "HL",
+    "onfarm_village": "91",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "301868bb-a21c-4be7-80d1-70ed5e51cd25",
+    "start_time": "2016-10-03T12:15:54",
+    "subscriber_id": "640092908911422",
+    "survey_date": "2016-10-03T00:00:00",
+    "surveyid": "7ddee487-cc92-444f-9ce4-05b45546b972"
+}

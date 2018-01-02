@@ -1,0 +1,58 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "The bird was treated but it didn`t survive.",
+            "bext_birdexitedcountacgg": "1",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "D0962",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "2",
+                    "bexit_birdexitedacggtag": "D0962",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "NIM1264_20161107",
+                            "rowuuid": "3d20e6e6-e204-4537-a9ee-f17fac54e79c",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "NIM1264_20161107",
+                    "rowuuid": "8ee732c6-3ee9-4948-8928-5a6b56ee783c",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "NIM1264_20161107",
+            "rowuuid": "f58b61de-b71c-4273-bd7e-cc34a72228dd",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161107",
+    "end_time": "2016-11-21T23:16:47",
+    "householdid": "NIM1264",
+    "householdid_key": "NIM1264_20161107",
+    "meta_devid": "865770021187820",
+    "onfarm_country": "N",
+    "onfarm_enum": "32",
+    "onfarm_subnatarea": "IM",
+    "onfarm_village": "32",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "ad6562f5-0ab4-4bb7-a697-ce2a97da5f5b",
+    "start_time": "2016-11-07T10:27:53",
+    "subscriber_id": "621300288471031",
+    "survey_date": "2016-11-07T00:00:00",
+    "surveyid": "a3158404-5f96-4737-aad5-d629a30ddf78"
+}

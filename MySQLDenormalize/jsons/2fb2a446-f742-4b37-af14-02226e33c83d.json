@@ -1,0 +1,76 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "None",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "1",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "1",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "No any sign shows the cause of death",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "J0153",
+                    "bext_birdexitedacggreason": "5",
+                    "householdid_key": "TCS1432_20170906",
+                    "rowuuid": "9449cd53-25e4-4fda-ba6d-42d194487414",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Egg peritonitis",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "J0104",
+                    "bext_birdexitedacggreason": "2",
+                    "householdid_key": "TCS1432_20170906",
+                    "rowuuid": "109eb15a-a4e8-4bd8-9680-2be36aad1ea4",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "birdentext_rpt_birdexitedhhnontag": [
+                {
+                    "bexit_birdexitedhhnontagage": "2",
+                    "bexit_birdexitedhhnontagcomments": "Cross bred",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "1",
+                    "bexit_birdexitedhhnontagsex": "2",
+                    "bexit_birdexitedhhnontagsymptoms": "",
+                    "bext_birdexitedhhnontagreason": "9",
+                    "householdid_key": "TCS1432_20170906",
+                    "rowuuid": "fd532d57-3c26-4a2f-8095-048bb286bcb1",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1432_20170906",
+            "rowuuid": "36649ea4-86d4-4bef-a724-dbcc6af0dcb0",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170906",
+    "end_time": "2017-11-02T15:38:58",
+    "householdid": "TCS1432",
+    "householdid_key": "TCS1432_20170906",
+    "meta_devid": "865770021185188",
+    "onfarm_country": "T",
+    "onfarm_enum": "103",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "103",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "cdb71688-e9a1-455e-8bbc-708fa44c6d2f",
+    "start_time": "2017-11-02T15:32:19",
+    "subscriber_id": "640092915690916",
+    "survey_date": "2017-09-06T00:00:00",
+    "surveyid": "2fb2a446-f742-4b37-af14-02226e33c83d"
+}

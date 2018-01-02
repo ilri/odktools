@@ -1,0 +1,103 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Nice interview",
+            "bext_birdexitedcountacgg": "3",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Killed by predator at night",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "N0318",
+                    "bext_birdexitedacggreason": "3",
+                    "householdid_key": "ESR2267_20170102",
+                    "rowuuid": "6a1e49ee-4763-49fb-ab6c-2b2756effa1d",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "9 10 11 16",
+                    "bexit_birdexitedacggtag": "N0331",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "10",
+                            "householdid_key": "ESR2267_20170102",
+                            "rowuuid": "6cbe8cbd-54f6-44bf-a318-76417829ee4b",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "11",
+                            "householdid_key": "ESR2267_20170102",
+                            "rowuuid": "b01e2fe8-766c-4f30-95c9-1400e7748e5b",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "ESR2267_20170102",
+                            "rowuuid": "d7008f13-62a1-43b8-a575-e8d9959c5c5e",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "ESR2267_20170102",
+                            "rowuuid": "1398ad10-2e3c-4b36-a3e2-831b1b641950",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        }
+                    ],
+                    "householdid_key": "ESR2267_20170102",
+                    "rowuuid": "a01d2504-0a34-464a-835f-3fda1abf835b",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Killed by dog",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "N0484",
+                    "bext_birdexitedacggreason": "14",
+                    "householdid_key": "ESR2267_20170102",
+                    "rowuuid": "65dcc7e8-e148-4124-b706-c3b719146f31",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "ESR2267_20170102",
+            "rowuuid": "338d49a2-ab07-45ab-ba42-195bf9f1a606",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170102",
+    "end_time": "2017-01-02T17:58:45",
+    "householdid": "ESR2267",
+    "householdid_key": "ESR2267_20170102",
+    "meta_devid": "865770021184298",
+    "onfarm_country": "E",
+    "onfarm_enum": "189",
+    "onfarm_subnatarea": "SR",
+    "onfarm_village": "189",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "421f9e65-4479-4e0c-8ac6-2b3f0c97e768",
+    "start_time": "2017-01-02T16:48:16",
+    "subscriber_id": "636013068219440",
+    "survey_date": "2017-01-02T00:00:00",
+    "surveyid": "bbce6bed-9bb4-47ba-9ae1-7ba6c6cce839"
+}

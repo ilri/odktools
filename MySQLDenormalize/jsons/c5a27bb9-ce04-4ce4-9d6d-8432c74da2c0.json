@@ -1,0 +1,65 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "1",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "This bird was sick for three consecutive months could not walk erectly circling twisting its head on its neck ",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "3 14",
+                    "bexit_birdexitedacggtag": "R0432",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "14",
+                            "householdid_key": "ESR2440_20170607",
+                            "rowuuid": "0dd7f1e0-2cdd-4607-a699-1c941b3d50f3",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "3",
+                            "householdid_key": "ESR2440_20170607",
+                            "rowuuid": "aa4b7554-1a82-4422-ae24-19948e33a1c5",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "ESR2440_20170607",
+                    "rowuuid": "16bcd9f4-8fd2-4560-b9f5-698ab8ad53cf",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "ESR2440_20170607",
+            "rowuuid": "e11a8b72-1520-4d73-95bf-38a39a1df6bd",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170607",
+    "end_time": "2017-06-09T21:26:48",
+    "householdid": "ESR2440",
+    "householdid_key": "ESR2440_20170607",
+    "meta_devid": "865770027212283",
+    "onfarm_country": "E",
+    "onfarm_enum": "193",
+    "onfarm_subnatarea": "SR",
+    "onfarm_village": "193",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "c24efbb1-45b0-4159-afe5-23303f3df5d4",
+    "start_time": "2017-06-07T11:41:53",
+    "subscriber_id": "",
+    "survey_date": "2017-06-07T00:00:00",
+    "surveyid": "c5a27bb9-ce04-4ce4-9d6d-8432c74da2c0"
+}

@@ -1,0 +1,79 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "The bird only had a brief illness as a result of weather",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Cold weather",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "4",
+                    "bexit_birdexitedacggtag": "A0153",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "NKW1071_20170102",
+                            "rowuuid": "b6e88b4f-afaa-43a9-84ed-e7ac88af7974",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "NKW1071_20170102",
+                    "rowuuid": "94d6e20c-f698-4996-adff-4f36c8b4af48",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Male bird ",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "4",
+                    "bexit_birdexitedacggtag": "A0363",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "NKW1071_20170102",
+                            "rowuuid": "e53f313d-2a0e-43be-802c-8cac51773020",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "NKW1071_20170102",
+                    "rowuuid": "b802b3dc-466c-4abe-abb9-be983a4267dd",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "NKW1071_20170102",
+            "rowuuid": "988850bb-f70e-43f2-94c0-fb57f512e23c",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170102",
+    "end_time": "2017-01-02T08:38:19",
+    "householdid": "NKW1071",
+    "householdid_key": "NKW1071_20170102",
+    "meta_devid": "865770021185352",
+    "onfarm_country": "N",
+    "onfarm_enum": "3",
+    "onfarm_subnatarea": "KW",
+    "onfarm_village": "3",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "a425e2ed-1095-4f1c-8d80-adcb445a15ff",
+    "start_time": "2017-01-02T08:28:31",
+    "subscriber_id": "621300286733737",
+    "survey_date": "2017-01-02T00:00:00",
+    "surveyid": "00558a40-6b71-4710-b512-083c4d16ae86"
+}

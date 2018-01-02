@@ -1,0 +1,66 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Sasso strain 26 weeks",
+            "bext_birdexitedcountacgg": "0",
+            "bext_birdexitedcounthhnontag": "1",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "0",
+            "bext_birdtypehhnontag": "1",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedhhnontag": [
+                {
+                    "bexit_birdexitedhhnontagage": "1",
+                    "bexit_birdexitedhhnontagcomments": "",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "1",
+                    "bexit_birdexitedhhnontagsex": "3",
+                    "bexit_birdexitedhhnontagsymptoms": "2 4",
+                    "bext_birdexitedhhnontagreason": "1",
+                    "birdentext_rpt_birdexitedhhnontag_msel_bexit_hhnontagsymptoms": [
+                        {
+                            "bexit_birdexitedhhnontagsymptoms": "4",
+                            "householdid_key": "TCS1485_20170606",
+                            "rowuuid": "81184b5f-7695-4669-9186-352e2d00716c",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedhhnontag_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedhhnontagsymptoms": "2",
+                            "householdid_key": "TCS1485_20170606",
+                            "rowuuid": "751380a3-4c41-4c92-a132-20e29fec2d12",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedhhnontag_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1485_20170606",
+                    "rowuuid": "c0d9cc41-a971-456b-bec5-e0389ca1d07a",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1485_20170606",
+            "rowuuid": "df8735e3-bbfc-4c02-a331-a3526ededc68",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170606",
+    "end_time": "2017-06-06T12:44:07",
+    "householdid": "TCS1485",
+    "householdid_key": "TCS1485_20170606",
+    "meta_devid": "865770021186061",
+    "onfarm_country": "T",
+    "onfarm_enum": "105",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "105",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "bb6e9fce-d42c-4903-8c96-cb9cf81178f9",
+    "start_time": "2017-06-06T10:50:47",
+    "subscriber_id": "640021068988925",
+    "survey_date": "2017-06-06T00:00:00",
+    "surveyid": "7121389d-adfa-4525-9967-dd03e598ea09"
+}

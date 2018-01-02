@@ -1,0 +1,91 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "3",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "R0298",
+                    "bext_birdexitedacggreason": "2",
+                    "householdid_key": "ERM2591_20170510",
+                    "rowuuid": "32af95ac-5a87-4da1-9bda-f60fac85f58c",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "14",
+                    "bexit_birdexitedacggtag": "R0280",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "14",
+                            "householdid_key": "ERM2591_20170510",
+                            "rowuuid": "005eada6-28a9-4b40-8ee2-3183267f6074",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        }
+                    ],
+                    "householdid_key": "ERM2591_20170510",
+                    "rowuuid": "68dceb8f-f630-435c-8da1-5aaaa5bafcae",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "14",
+                    "bexit_birdexitedacggtag": "R0276",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "14",
+                            "householdid_key": "ERM2591_20170510",
+                            "rowuuid": "f522bfe2-7dbf-462f-aae9-837918b714ae",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "ERM2591_20170510",
+                    "rowuuid": "2be0a8dc-1b66-4b0a-9429-125446bde845",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "ERM2591_20170510",
+            "rowuuid": "b04dc472-fcda-4156-a141-a758518646ae",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170510",
+    "end_time": "2017-08-28T22:38:27",
+    "householdid": "ERM2591",
+    "householdid_key": "ERM2591_20170510",
+    "meta_devid": "865770027212457",
+    "onfarm_country": "E",
+    "onfarm_enum": "155",
+    "onfarm_subnatarea": "RM",
+    "onfarm_village": "155",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "f4d07795-2a40-4a96-b945-27e46ae5de4c",
+    "start_time": "2017-08-28T22:33:32",
+    "subscriber_id": "",
+    "survey_date": "2017-05-10T00:00:00",
+    "surveyid": "eb68f84e-7346-468e-9f3d-30d36b0a0043"
+}

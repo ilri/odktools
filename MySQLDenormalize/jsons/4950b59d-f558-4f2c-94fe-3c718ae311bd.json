@@ -1,0 +1,86 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Remain with 17 chicks",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Use of fluban",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "4",
+                    "bexit_birdexitedacggtag": "R0405",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "TCS1298_20161012",
+                            "rowuuid": "1906ff9f-8fab-4f0e-8f36-ace3cdfb75a7",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "TCS1298_20161012",
+                    "rowuuid": "5879d6e4-adfd-4adf-9ab2-1c330fcb588d",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Use of Antibiotics",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "4 7",
+                    "bexit_birdexitedacggtag": "R0491",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "TCS1298_20161012",
+                            "rowuuid": "b4ed7c24-ec0c-40dc-a511-54544b447d5a",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "TCS1298_20161012",
+                            "rowuuid": "77a712c1-75ee-4b26-8d4e-4435bf8a27f2",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1298_20161012",
+                    "rowuuid": "939e57a2-6cc6-4365-857b-2b35faa30877",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1298_20161012",
+            "rowuuid": "52c89531-0695-4f93-900c-972076cb8f49",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161012",
+    "end_time": "2017-11-08T21:24:14",
+    "householdid": "TCS1298",
+    "householdid_key": "TCS1298_20161012",
+    "meta_devid": "865770021184645",
+    "onfarm_country": "T",
+    "onfarm_enum": "100",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "100",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "712d140e-987f-415e-9450-60a94d8208fc",
+    "start_time": "2017-11-08T21:20:01",
+    "subscriber_id": "640092914765765",
+    "survey_date": "2016-10-12T00:00:00",
+    "surveyid": "4950b59d-f558-4f2c-94fe-3c718ae311bd"
+}

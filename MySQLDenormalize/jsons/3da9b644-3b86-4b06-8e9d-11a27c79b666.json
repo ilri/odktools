@@ -1,0 +1,86 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Mortality rate was low in this household",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "7",
+                    "bexit_birdexitedacggtag": "H0146",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "NRV1367_20161114",
+                            "rowuuid": "fcc6393a-8f65-4bc4-ae91-d0cecd9e0a19",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "NRV1367_20161114",
+                    "rowuuid": "8794791e-8bb3-49a1-977c-6eff6af923f5",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "7 9",
+                    "bexit_birdexitedacggtag": "R0073",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "NRV1367_20161114",
+                            "rowuuid": "e586be89-a798-4292-a84d-0f5047a4e194",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "NRV1367_20161114",
+                            "rowuuid": "5f1123e7-efd7-42a1-b67d-2e21c989f45c",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "NRV1367_20161114",
+                    "rowuuid": "8f3125d8-0e4c-48f4-b3dc-b4212ce92758",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "NRV1367_20161114",
+            "rowuuid": "2c1213ee-c6eb-463d-8d27-de80a6bd0668",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161114",
+    "end_time": "2016-11-14T19:20:17",
+    "householdid": "NRV1367",
+    "householdid_key": "NRV1367_20161114",
+    "meta_devid": "865770021184728",
+    "onfarm_country": "N",
+    "onfarm_enum": "23",
+    "onfarm_subnatarea": "RV",
+    "onfarm_village": "23",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "04d0b902-936c-4e7b-914b-da9c9422a137",
+    "start_time": "2016-11-14T16:43:55",
+    "subscriber_id": "621300286740795",
+    "survey_date": "2016-11-14T00:00:00",
+    "surveyid": "3da9b644-3b86-4b06-8e9d-11a27c79b666"
+}

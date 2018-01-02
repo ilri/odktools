@@ -1,0 +1,61 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "Household wasn`t happy about bird exit.",
+            "bext_birdexitedcountacgg": "2",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "No observable disease symptoms",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "R0658",
+                    "bext_birdexitedacggreason": "5",
+                    "householdid_key": "NIM1180_20161213",
+                    "rowuuid": "07097b43-2693-4327-8073-42735123a335",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "No observable disease symptoms",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "R0045",
+                    "bext_birdexitedacggreason": "5",
+                    "householdid_key": "NIM1180_20161213",
+                    "rowuuid": "fcbaca9b-c47c-426f-9100-3fb665416c9d",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "NIM1180_20161213",
+            "rowuuid": "2598cffb-99f0-49ce-9ed2-c10a0639e750",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161213",
+    "end_time": "2016-12-13T19:05:01",
+    "householdid": "NIM1180",
+    "householdid_key": "NIM1180_20161213",
+    "meta_devid": "865770021186947",
+    "onfarm_country": "N",
+    "onfarm_enum": "30",
+    "onfarm_subnatarea": "IM",
+    "onfarm_village": "30",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "46a5881c-3b14-4bf1-a51b-276ebb99c178",
+    "start_time": "2016-12-13T19:02:47",
+    "subscriber_id": "621300337016982",
+    "survey_date": "2016-12-13T00:00:00",
+    "surveyid": "60ac768c-a1d7-4447-a7b9-cae7160e2b7a"
+}

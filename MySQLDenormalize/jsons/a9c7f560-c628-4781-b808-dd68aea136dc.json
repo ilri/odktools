@@ -1,0 +1,455 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "9",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Swelling of eyes.",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "2 7 9 13 17",
+                    "bexit_birdexitedacggtag": "J0480",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "e14ab64b-4f08-46f8-af9a-1a5374d8cde7",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "3b8a6e7f-bc47-4ea3-b560-f038411bba9f",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "13",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "f2410a98-353e-4ee3-a246-9fd01a47a5b6",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "deaab405-386a-4211-8806-0d4ea5a614a3",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "a089d108-9c5e-4ad6-b783-f1859e9fab58",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "ESR2229_20171031",
+                    "rowuuid": "3c203264-b1a9-4e43-badf-6ee103ff12b4",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Swelling of eyes.",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "2 7 9 10 13 17",
+                    "bexit_birdexitedacggtag": "J0431",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "9db8fd62-333e-4690-9b87-48103fb022a2",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "4d302146-7103-43e1-9acd-d42149ce5d59",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "10",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "2aa1fe8e-60c2-4a9c-8f94-e6978f6cfe2f",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "13",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "fa0aa827-09dc-492e-aed8-c8c4415aef25",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "412de002-f4b2-4ea2-ac97-89d4caf88477",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "a87ad6e6-a8d1-450d-b668-4e354c1b6ac5",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        }
+                    ],
+                    "householdid_key": "ESR2229_20171031",
+                    "rowuuid": "70ef3582-3d0c-43e1-9f05-e9c44476cf6d",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "4",
+                    "bexit_birdexitedacggsymptoms": "2 7 9 10",
+                    "bexit_birdexitedacggtag": "J0479",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "7d871ea7-18cf-4b8e-aade-b195c121fc56",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "4"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "f07d5c89-b1f2-4e17-94bf-5302252db3c2",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "4"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "10",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "27088741-f829-4830-89a7-95f20aa1067b",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "4"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "3f15cef7-b1dd-433d-8eed-d2d53895ea91",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "4"
+                        }
+                    ],
+                    "householdid_key": "ESR2229_20171031",
+                    "rowuuid": "6ee68b7b-22c8-40a3-9b02-bcf835b13049",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "4"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "5",
+                    "bexit_birdexitedacggsymptoms": "2 6 7 9 10 13",
+                    "bexit_birdexitedacggtag": "J0463",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "6",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "6e5681fb-68cf-46e6-905b-acb5ce95622f",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "91f4af38-278d-449e-8d8b-8a5cce659d74",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "13dc796f-a8be-4c39-849f-609444dae423",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "10",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "47bff20a-bb46-44d1-89dd-d6bd9003a236",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "13",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "c0a6b1b6-5536-4c80-82b3-63b27997d923",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "f485a61c-0a66-4b22-afe5-619b7904592b",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        }
+                    ],
+                    "householdid_key": "ESR2229_20171031",
+                    "rowuuid": "c94f4483-6a0e-43c2-9ae4-c0f792ac56dc",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "5"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Swelling of eyes.",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "6",
+                    "bexit_birdexitedacggsymptoms": "2 7 9 13 17",
+                    "bexit_birdexitedacggtag": "J0451",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "56cf48d4-1e21-4e96-b694-afe5d2df59bd",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "6"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "d39264cc-ebb5-45af-ad4e-480eca2752e1",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "6"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "13",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "8e38d78a-2ca4-4b2b-9a9b-49b5952142a1",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "6"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "6d721e9f-5314-4515-8ae2-6f888faaa4b9",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "6"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "7ebcbbb9-3ae5-4f26-b4c0-610cfe210dbd",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "6"
+                        }
+                    ],
+                    "householdid_key": "ESR2229_20171031",
+                    "rowuuid": "af6dcef4-c94f-4184-9d17-4061abcba371",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "6"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "7",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "J0439",
+                    "bext_birdexitedacggreason": "3",
+                    "householdid_key": "ESR2229_20171031",
+                    "rowuuid": "18ba8471-30bc-411d-8d48-40e989e2b4f2",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "7"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Swelling of eyes.",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "8",
+                    "bexit_birdexitedacggsymptoms": "2 7 9 10 13 17",
+                    "bexit_birdexitedacggtag": "J0496",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "a55631ea-c12c-4dab-b7f5-5d1d4118d359",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "8"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "b5373582-08b6-458d-a44f-ffdd8b0e10a5",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "8"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "10",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "777c97cb-7d78-44ae-820f-5b471e18b9af",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "8"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "13",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "9d6dec7f-afdf-416c-89da-bb3be796dc89",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "8"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "4522878a-824d-44c7-974f-7d920809aecf",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "8"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "d43acc2b-a0db-4d0c-9266-b6ef3d256e18",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "8"
+                        }
+                    ],
+                    "householdid_key": "ESR2229_20171031",
+                    "rowuuid": "f510f5c7-647f-46e7-b285-684bb6f6f7fc",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "8"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Swelling of eyes.",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "9",
+                    "bexit_birdexitedacggsymptoms": "2 7 9 17",
+                    "bexit_birdexitedacggtag": "J0444",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "b299b38c-abcf-498b-904e-e7979c4a06ba",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "9"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "a0999ffe-b828-4311-96a0-de22c38dc0aa",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "9"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "ad22b9e0-c137-40d1-afc4-12e6e251fb73",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "9"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "03d39eb9-f446-41e0-bd4f-0f2d4a675c34",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "9"
+                        }
+                    ],
+                    "householdid_key": "ESR2229_20171031",
+                    "rowuuid": "0f5534f6-c087-4a2f-bdce-426c6d2c56d6",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "9"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Swelling of eyes.",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "2 7 9 10 13 17",
+                    "bexit_birdexitedacggtag": "J0436",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "7",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "5543eb62-d358-4bfa-802d-e6f74ecfdb44",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "38403a86-b4dd-4941-b31e-1b2e532d54ea",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "10",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "8328e581-f226-4a10-bb5c-0bbbbf73b20f",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "13",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "414fb68e-ec02-4079-8659-2bcefa9f7153",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "eaeb63fe-f017-42ec-a237-edcf6240836d",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "ESR2229_20171031",
+                            "rowuuid": "ef97a4df-2e23-4997-a056-4672eba872b7",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "ESR2229_20171031",
+                    "rowuuid": "57456fc8-7860-4a10-a636-5b4720685ce7",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "ESR2229_20171031",
+            "rowuuid": "3780a516-525c-4f3b-9a3f-6ceb9ab16cfc",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20171031",
+    "end_time": "2017-11-19T12:53:40",
+    "householdid": "ESR2229",
+    "householdid_key": "ESR2229_20171031",
+    "meta_devid": "865770021185493",
+    "onfarm_country": "E",
+    "onfarm_enum": "188",
+    "onfarm_subnatarea": "SR",
+    "onfarm_village": "188",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "988066012",
+    "rowuuid": "2ae50780-ba5a-422d-a1c2-e1cbac1805f3",
+    "start_time": "2017-11-19T12:47:42",
+    "subscriber_id": "636013084098299",
+    "survey_date": "2017-10-31T00:00:00",
+    "surveyid": "a9c7f560-c628-4781-b808-dd68aea136dc"
+}

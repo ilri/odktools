@@ -1,0 +1,142 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "None",
+            "bext_birdexitedcountacgg": "3",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Egg peritonitis",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "5 12 16",
+                    "bexit_birdexitedacggtag": "P0216",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "12",
+                            "householdid_key": "TCS1010_20170103",
+                            "rowuuid": "ce4d5bdb-937c-4860-8847-467302745140",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1010_20170103",
+                            "rowuuid": "1dfb5642-fe1e-42fb-8fe5-6f3fd51977fe",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "5",
+                            "householdid_key": "TCS1010_20170103",
+                            "rowuuid": "f9c0c795-95a4-4afc-9973-af09eee22464",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "TCS1010_20170103",
+                    "rowuuid": "ed21a2d3-a040-458d-817b-51d3cb0df4c5",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Abdominal prolapse",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "5 12 16",
+                    "bexit_birdexitedacggtag": "P0211",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "12",
+                            "householdid_key": "TCS1010_20170103",
+                            "rowuuid": "a4ce71f1-2099-4a6c-bd4f-89bc39cbc917",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1010_20170103",
+                            "rowuuid": "fc048d8c-2539-428b-8d1e-17cf573cf967",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "5",
+                            "householdid_key": "TCS1010_20170103",
+                            "rowuuid": "1c496a55-17df-44a8-9b9f-76517a336440",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        }
+                    ],
+                    "householdid_key": "TCS1010_20170103",
+                    "rowuuid": "32500439-68ba-46f9-b76c-5202efcb554a",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Egg peritonitis",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "5 12 16",
+                    "bexit_birdexitedacggtag": "P0205",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "12",
+                            "householdid_key": "TCS1010_20170103",
+                            "rowuuid": "2979dd07-21ee-45d7-9c97-ad2f13acdfab",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TCS1010_20170103",
+                            "rowuuid": "f657a5a8-1e16-4172-bd45-ef73e7930cea",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "5",
+                            "householdid_key": "TCS1010_20170103",
+                            "rowuuid": "fd884d9c-e6d6-486f-88bf-f4b0fd6dbb0b",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1010_20170103",
+                    "rowuuid": "84381767-eb8b-4df5-9df6-3051be351993",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1010_20170103",
+            "rowuuid": "d42edabb-619a-45d9-a4c1-7c1301c7a31b",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20170103",
+    "end_time": "2017-01-03T09:22:03",
+    "householdid": "TCS1010",
+    "householdid_key": "TCS1010_20170103",
+    "meta_devid": "865770021184991",
+    "onfarm_country": "T",
+    "onfarm_enum": "93",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "93",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "dce9ab63-06b5-432f-a16c-07ffe6687c27",
+    "start_time": "2017-01-03T09:17:26",
+    "subscriber_id": "640044166524182",
+    "survey_date": "2017-01-03T00:00:00",
+    "surveyid": "96b48371-4c3c-47a6-9a98-8c569d7e0a8d"
+}

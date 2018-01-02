@@ -1,0 +1,226 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "There was no treatment administered in any of the bird.",
+            "bext_birdexitedcountacgg": "5",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Lesions on the skin",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "2 9 14 17",
+                    "bexit_birdexitedacggtag": "D0201",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "a8a47399-eaf0-4d62-8ad1-c6118bae4277",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "14",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "44f61ac1-1d64-4646-9f62-5dc253d9f841",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "bd7d838d-e64a-44cb-b7dc-864a8b3ecdf5",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "b2f4eb92-a3d9-47e2-9cce-b512bd4aba4d",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "NRV1411_20161109",
+                    "rowuuid": "63294c16-b3dc-4cf2-b513-f40a78b29948",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Treatment was not administered",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "2 11 14",
+                    "bexit_birdexitedacggtag": "J0806",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "11",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "7e4e0c72-5736-40d1-8ea2-572aed080717",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "14",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "4d3bcd88-cf45-4fb1-8b78-537346fc1233",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "c839d6c6-23cd-4fc0-8fcf-d4f0f2cadaec",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "3"
+                        }
+                    ],
+                    "householdid_key": "NRV1411_20161109",
+                    "rowuuid": "bc772a37-e900-46cf-9ed0-49ca126040f3",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Treatment was not administered",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "4",
+                    "bexit_birdexitedacggsymptoms": "9 11 14",
+                    "bexit_birdexitedacggtag": "D0447",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "11",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "9f75535c-7199-4285-adf8-c4c6dffa67be",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "4"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "14",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "bfd5b34d-e97f-4d1f-a2fc-ca8976356008",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "4"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "9",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "4faa99e5-42d4-4b30-8cab-b389d5fdc4a6",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "4"
+                        }
+                    ],
+                    "householdid_key": "NRV1411_20161109",
+                    "rowuuid": "000cd1ea-d847-40ac-8c99-5e13a26bb3cf",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "4"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Treatment was not administered",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "5",
+                    "bexit_birdexitedacggsymptoms": "2 11 14",
+                    "bexit_birdexitedacggtag": "D0868",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "11",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "d5706705-47f3-44e4-901d-ce2994486f46",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "14",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "a3bb95fc-cd4c-405a-962f-a80942387bb2",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "d3855f91-a878-4c83-a46b-2c6c414c655d",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "5"
+                        }
+                    ],
+                    "householdid_key": "NRV1411_20161109",
+                    "rowuuid": "d47e0120-afb9-4f78-9af4-5969995b854c",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "5"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Lesions on the skin",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "2 11 14 17",
+                    "bexit_birdexitedacggtag": "D0201",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "11",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "690179cf-6a97-4ece-a4ce-469b2d78214e",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "14",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "48398a78-0750-4c6d-b98c-6c3b7e4881b8",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "4a2557ea-942b-4d32-ac56-8cf5f0da1f2e",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "2",
+                            "householdid_key": "NRV1411_20161109",
+                            "rowuuid": "19a3628c-d594-41dc-a5f3-5ba68b381bc9",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "NRV1411_20161109",
+                    "rowuuid": "67fe5189-e7a1-4b22-98bc-1a600f7ba5ca",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "NRV1411_20161109",
+            "rowuuid": "43d091e6-abaf-4364-876c-3100a12b7184",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161109",
+    "end_time": "2016-11-09T14:19:29",
+    "householdid": "NRV1411",
+    "householdid_key": "NRV1411_20161109",
+    "meta_devid": "865770021186640",
+    "onfarm_country": "N",
+    "onfarm_enum": "24",
+    "onfarm_subnatarea": "RV",
+    "onfarm_village": "24",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "64f5f81b-6bb9-4a1a-8772-a2f3547e6705",
+    "start_time": "2016-11-09T14:02:33",
+    "subscriber_id": "621300338469307",
+    "survey_date": "2016-11-09T00:00:00",
+    "surveyid": "49aa4b30-5b5c-4344-a206-d0d877c71bf6"
+}

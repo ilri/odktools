@@ -1,0 +1,65 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "1",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "10 11",
+                    "bexit_birdexitedacggtag": "P0064",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "11",
+                            "householdid_key": "TCS1594_20161015",
+                            "rowuuid": "09d756d0-1175-4ba1-bcc9-33db5c016e5c",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "10",
+                            "householdid_key": "TCS1594_20161015",
+                            "rowuuid": "ee6a2138-ec3f-486c-98cc-7d16c5b68f06",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1594_20161015",
+                    "rowuuid": "61eec18c-6ecd-44b7-b949-85f40e92a97a",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1594_20161015",
+            "rowuuid": "e1cf1efd-b011-4771-96a1-a8d5e62e0b5d",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161015",
+    "end_time": "2017-11-15T07:28:48",
+    "householdid": "TCS1594",
+    "householdid_key": "TCS1594_20161015",
+    "meta_devid": "865770021189602",
+    "onfarm_country": "T",
+    "onfarm_enum": "107",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "107",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "7ccc6cac-e96e-45d1-bbac-b3ffe1bbafb7",
+    "start_time": "2017-11-15T07:27:11",
+    "subscriber_id": "640050938899445",
+    "survey_date": "2016-10-15T00:00:00",
+    "surveyid": "43c84028-c920-4c1d-a9ff-d1406db2fb31"
+}

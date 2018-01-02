@@ -1,0 +1,66 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "No comment",
+            "bext_birdexitedcountacgg": "0",
+            "bext_birdexitedcounthhnontag": "1",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "0",
+            "bext_birdtypehhnontag": "1",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedhhnontag": [
+                {
+                    "bexit_birdexitedhhnontagage": "1",
+                    "bexit_birdexitedhhnontagcomments": "Mineral deficiency",
+                    "bexit_birdexitedhhnontagmoney": "0",
+                    "bexit_birdexitedhhnontagposition": "1",
+                    "bexit_birdexitedhhnontagsex": "2",
+                    "bexit_birdexitedhhnontagsymptoms": "13 14",
+                    "bext_birdexitedhhnontagreason": "1",
+                    "birdentext_rpt_birdexitedhhnontag_msel_bexit_hhnontagsymptoms": [
+                        {
+                            "bexit_birdexitedhhnontagsymptoms": "14",
+                            "householdid_key": "TCS1002_20161016",
+                            "rowuuid": "6fefe7ca-8a73-42f7-ab08-c9e411d08c50",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedhhnontag_rowid": "1"
+                        },
+                        {
+                            "bexit_birdexitedhhnontagsymptoms": "13",
+                            "householdid_key": "TCS1002_20161016",
+                            "rowuuid": "e093debf-eb5b-4fe9-b1a2-f6f78951f9e4",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedhhnontag_rowid": "1"
+                        }
+                    ],
+                    "householdid_key": "TCS1002_20161016",
+                    "rowuuid": "3ebca90a-706d-420f-bc4d-ba68e3b54964",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedhhnontag_rowid": "1"
+                }
+            ],
+            "householdid_key": "TCS1002_20161016",
+            "rowuuid": "dfd9ce1d-5ac9-4b50-8a72-b7eef8937a97",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161016",
+    "end_time": "2016-11-01T19:59:37",
+    "householdid": "TCS1002",
+    "householdid_key": "TCS1002_20161016",
+    "meta_devid": "865770021184991",
+    "onfarm_country": "T",
+    "onfarm_enum": "93",
+    "onfarm_subnatarea": "CS",
+    "onfarm_village": "93",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "",
+    "rowuuid": "da765029-83e0-4b0d-9181-922f7d59648a",
+    "start_time": "2016-10-16T08:58:02",
+    "subscriber_id": "640044166524182",
+    "survey_date": "2016-10-16T00:00:00",
+    "surveyid": "5ed92c1c-8bab-40e7-9fc3-ebd09481d5fc"
+}

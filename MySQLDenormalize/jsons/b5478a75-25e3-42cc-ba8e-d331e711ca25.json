@@ -1,0 +1,117 @@
+{
+    "bent_general": "0",
+    "bext_general": "1",
+    "birdentext_rpt_birdexit": [
+        {
+            "bexit_comments": "",
+            "bext_birdexitedcountacgg": "4",
+            "bext_birdexitedcounthhnontag": "0",
+            "bext_birdexitedcounthhtag": "0",
+            "bext_birdtype": "0",
+            "bext_birdtypeacgg": "1",
+            "bext_birdtypehhnontag": "0",
+            "bext_birdtypehhtag": "0",
+            "birdentext_rpt_birdexitedacgg": [
+                {
+                    "bexit_birdexitedacggcomments": "Long worm killed the bird.",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "2",
+                    "bexit_birdexitedacggsymptoms": "16 17",
+                    "bexit_birdexitedacggtag": "V0336",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "17",
+                            "householdid_key": "TLZ1391_20161127",
+                            "rowuuid": "c02df619-94ba-42df-9b0c-87a4052e7b6b",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TLZ1391_20161127",
+                            "rowuuid": "a7fedd0e-b062-404b-96d3-bc730d5e7b13",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "2"
+                        }
+                    ],
+                    "householdid_key": "TLZ1391_20161127",
+                    "rowuuid": "d8be521b-0b32-4c19-a127-7ceeaed9cf28",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "2"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "3",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "V0311",
+                    "bext_birdexitedacggreason": "9",
+                    "householdid_key": "TLZ1391_20161127",
+                    "rowuuid": "e9a65f8d-1405-4df1-ba98-5390ec18acc2",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "3"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "4",
+                    "bexit_birdexitedacggsymptoms": "4 16",
+                    "bexit_birdexitedacggtag": "V0321",
+                    "bext_birdexitedacggreason": "1",
+                    "birdentext_rpt_birdexitedacgg_msel_bexit_birdexitedacggsymptoms": [
+                        {
+                            "bexit_birdexitedacggsymptoms": "16",
+                            "householdid_key": "TLZ1391_20161127",
+                            "rowuuid": "6244fcc4-4318-482a-b4a0-65e424f62d31",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "4"
+                        },
+                        {
+                            "bexit_birdexitedacggsymptoms": "4",
+                            "householdid_key": "TLZ1391_20161127",
+                            "rowuuid": "6951425c-0f8b-46d7-96c6-e0560bda0bcd",
+                            "rpt_birdexit_rowid": "1",
+                            "rpt_birdexitedacgg_rowid": "4"
+                        }
+                    ],
+                    "householdid_key": "TLZ1391_20161127",
+                    "rowuuid": "265f8068-763c-4125-b3fc-66f2a4aa641c",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "4"
+                },
+                {
+                    "bexit_birdexitedacggcomments": "Bicycle accident.",
+                    "bexit_birdexitedacggmoney": "0",
+                    "bexit_birdexitedacggposition": "1",
+                    "bexit_birdexitedacggsymptoms": "",
+                    "bexit_birdexitedacggtag": "V0322",
+                    "bext_birdexitedacggreason": "2",
+                    "householdid_key": "TLZ1391_20161127",
+                    "rowuuid": "bd043c51-c308-4be6-9b09-36c93bebf402",
+                    "rpt_birdexit_rowid": "1",
+                    "rpt_birdexitedacgg_rowid": "1"
+                }
+            ],
+            "householdid_key": "TLZ1391_20161127",
+            "rowuuid": "e33a978c-0632-43b0-b862-a878af5c1666",
+            "rpt_birdexit_rowid": "1"
+        }
+    ],
+    "date_yyyymmdd": "20161127",
+    "end_time": "2016-11-27T12:00:36",
+    "householdid": "TLZ1391",
+    "householdid_key": "TLZ1391_20161127",
+    "meta_devid": "865770021184249",
+    "onfarm_country": "T",
+    "onfarm_enum": "134",
+    "onfarm_subnatarea": "LZ",
+    "onfarm_village": "134",
+    "originid": "FORMHUB-JSON",
+    "phone_number": "0717117125",
+    "rowuuid": "b7c6b9a4-91bc-46c6-a96b-6e23cd0b30a2",
+    "start_time": "2016-11-27T11:55:10",
+    "subscriber_id": "640021064642740",
+    "survey_date": "2016-11-27T00:00:00",
+    "surveyid": "b5478a75-25e3-42cc-ba8e-d331e711ca25"
+}
