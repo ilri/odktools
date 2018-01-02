@@ -207,7 +207,9 @@ void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, 
     }
     clm = sql.lastIndexOf(",");
     sql = sql.left(clm);
-    sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + tableDesc + "\"; \n\n";
+    sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + tableDesc + "\"; \n";
+    idx++;
+    sql = sql + "CREATE UNIQUE INDEX rowuuid" + QString::number(idx) + " ON " + tableName + "(rowuuid);\n\n";
     outstrm << sql;
 }
 
