@@ -33,7 +33,7 @@ typedef relatedField TrelatedField;
 
 struct relatedTable
 {
-    QString name;    
+    QString name;
     QList< TrelatedField> fields;
 };
 typedef relatedTable TrelatedTable;
@@ -82,7 +82,7 @@ QString getRelatedFields(TrelatedTable table)
 }
 
 void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, QString tableDesc)
-{    
+{
     QStringList sfields;
     QStringList indexes;
     QStringList keys;
@@ -118,11 +118,11 @@ void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, 
 
         if (efield.attribute("key","false") == "true")
         {
-            field = field + " NOT NULL COMMENT '" + efield.attribute("desc","") + "', ";
+            field = field + " NOT NULL COMMENT \"" + efield.attribute("desc","") + "\", ";
             keys << efield.attribute("name","") + " , ";
         }
         else
-            field = field + " COMMENT '" + efield.attribute("desc","") + "', ";
+            field = field + " COMMENT \"" + efield.attribute("desc","") + "\", ";
 
         sfields << field << "\n";
 
@@ -143,7 +143,7 @@ void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, 
                 rels << "ON UPDATE NO ACTION," << "\n";
             }
             else
-            {                              
+            {
                 pos = relTableFound(relTables,efield.attribute("rtable",""));
                 if (pos >= 0)
                 {
@@ -207,7 +207,7 @@ void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, 
     }
     clm = sql.lastIndexOf(",");
     sql = sql.left(clm);
-    sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8 COMMENT = '" + tableDesc + "'; \n\n";
+    sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + tableDesc + "\"; \n\n";
     outstrm << sql;
 }
 

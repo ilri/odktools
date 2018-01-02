@@ -18,7 +18,9 @@ unix:INCLUDEPATH += /usr/include ../3rdparty
 unix:LIBS += -L/usr/lib64 -l qjson-qt5
 
 SOURCES += main.cpp \
-    insertvalues.cpp
+    insertvalues.cpp \
+    mainclass.cpp
 
 HEADERS += \
-    insertvalues.h
+    insertvalues.h \
+    mainclass.h
