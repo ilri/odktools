@@ -778,10 +778,10 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                 if (isRelatedTableLookUp(tables[pos].fields[clm].rTable))
                 {
                     idx++;
-                    index = "INDEX fk" + QString::number(idx) + "_" + prefix + tables[pos].name.toLower() + "_" + tables[pos].fields[clm].rTable.toLower() ;
+                    index = "INDEX fk" + QString::number(idx) + "_" + prefix + tables[pos].name.toLower() + "_" + prefix + tables[pos].fields[clm].rTable.toLower() ;
                     indexes << index.left(64) + " (" + tables[pos].fields[clm].name.toLower() + ") , " << "\n";
 
-                    constraint = "CONSTRAINT fk" + QString::number(idx) + "_" + prefix + tables[pos].name.toLower() + "_" + tables[pos].fields[clm].rTable.toLower();
+                    constraint = "CONSTRAINT fk" + QString::number(idx) + "_" + prefix + tables[pos].name.toLower() + "_" + prefix + tables[pos].fields[clm].rTable.toLower();
                     rels << constraint.left(64) << "\n";
                     rels << "FOREIGN KEY (" + tables[pos].fields[clm].name.toLower() + ")" << "\n";
                     rels << "REFERENCES " + prefix + tables[pos].fields[clm].rTable.toLower() + " (" + tables[pos].fields[clm].rField.toLower() + ")" << "\n";
@@ -850,10 +850,10 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
         for (clm = 0; clm <= rTables.count()-1; clm++)
         {
             idx++;
-            index = "INDEX fk" + QString::number(idx) + "_" + prefix + tables[pos].name.toLower() + "_" + rTables[clm].toLower() ;
+            index = "INDEX fk" + QString::number(idx) + "_" + prefix + tables[pos].name.toLower() + "_" + prefix + rTables[clm].toLower() ;
             indexes << index.left(64) + " (" + getForeignColumns(tables[pos],rTables[clm]) + ") , " << "\n";
 
-            constraint = "CONSTRAINT fk" + QString::number(idx) + "_" + prefix + tables[pos].name.toLower() + "_" + rTables[clm].toLower();
+            constraint = "CONSTRAINT fk" + QString::number(idx) + "_" + prefix + tables[pos].name.toLower() + "_" + prefix + rTables[clm].toLower();
             rels << constraint.left(64) << "\n";
             rels << "FOREIGN KEY (" + getForeignColumns(tables[pos],rTables[clm]) + ")" << "\n";
             rels << "REFERENCES " + prefix + rTables[clm].toLower() + " (" + getReferencedColumns(tables[pos],rTables[clm]) + ")" << "\n";
@@ -888,7 +888,9 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
         }
         clm = sql.lastIndexOf(",");
         sql = sql.left(clm);
-        sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))) + "\"; \n\n";
+        sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))) + "\"; \n";
+        idx++;
+        sql = sql + "CREATE UNIQUE INDEX rowuuid" + QString::number(idx) + " ON " + prefix + tables[pos].name.toLower() + "(rowuuid);\n\n";
 
         // Append UUIDs triggers to the UUID file but only for those
         // That are lookups. The other tables will have an UUID
