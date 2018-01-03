@@ -56,6 +56,13 @@ struct lngDesc
 };
 typedef lngDesc TlngLkpDesc;
 
+struct sepSection
+{
+    QString name;
+    QString desc;
+};
+typedef sepSection TsepSection;
+
 //Variable mapping structure between ODK and MySQL
 struct fieldMap
 {
@@ -2015,7 +2022,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                     }
                                     else
                                     {
-                                        log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
+                                        //log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
                                         aField.rTable = lkpTable.name;
                                         aField.rField = getKeyField(lkpTable.name);
                                     }
@@ -2207,7 +2214,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                 }
                                 else
                                 {
-                                    log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
+                                    //log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
                                     //Linkin the multiselect table to the existing lookup table
                                     mselKeyField.rTable = lkpTable.name;
                                     mselKeyField.rField = getKeyField(lkpTable.name);
@@ -2293,6 +2300,16 @@ void moveMultiSelectToTable(QString msTable, QString fromTable, QString toTable)
     }
 }
 
+bool separationSectionFound(QList<sepSection> sections, QString name)
+{
+    for (int pos = 0; pos <= sections.count()-1; pos++)
+    {
+        if (sections[pos].name == name)
+            return true;
+    }
+    return false;
+}
+
 // Separate a table into different subtables.
 // This because MySQL cant handle a maximum of 64 reference tables or a row structure of more than 65,535 bytes.
 
@@ -2304,10 +2321,11 @@ void moveMultiSelectToTable(QString msTable, QString fromTable, QString toTable)
 int separateTable(TtableDef &table, QDomNode groups)
 {
     //log("separateTable");
-    QStringList sections;
+    QList<TsepSection> sections;
     int pos;
     int pos2;
     QString grpName;
+    QString grpDesc;
     QDomNode temp;
     QDomNode field;
     temp = groups;
@@ -2318,13 +2336,19 @@ int separateTable(TtableDef &table, QDomNode groups)
     while (!temp.isNull())
     {
         grpName = temp.toElement().attribute("name","unknown");
+        grpDesc = temp.toElement().attribute("description","unknown");
         if (grpName == "main")
             mainFound = true;
-        if (temp.childNodes().count() > 100)
-            log("WARNING!: " + grpName + " has more than 200 fields. This might end up in further separation");
-        if (sections.indexOf(grpName) < 0)
-            sections.append(grpName);
-        else
+        //if (temp.childNodes().count() > 100)
+            //log("WARNING!: " + grpName + " has more than 200 fields. This might end up in further separation");
+        if (separationSectionFound(sections,grpName) == false)
+        {
+            TsepSection aSection;
+            aSection.name = grpName;
+            aSection.desc = grpDesc;
+            sections.append(aSection);
+        }
+            else
         {
             log("ERROR!: " + grpName + " is repated. Cannot continue with separation");
             return 1;
@@ -2359,17 +2383,20 @@ int separateTable(TtableDef &table, QDomNode groups)
     }
     for (pos = 0; pos <= sections.count()-1;pos++)
     {
-        if (sections[pos] != "main")
+        if (sections[pos].name != "main")
         {
             tableIndex++;
             TtableDef ntable;
-            ntable.name = table.name + "_" + sections[pos];
+            ntable.name = table.name + "_" + sections[pos].name;
 
             for (int lang = 0; lang < languages.count()-1; lang++)
             {
                 TlngLkpDesc langDesc;
                 langDesc.langCode = languages[lang].code;
-                langDesc.desc = "Subsection " + sections[pos] + " of " + table.name + " - Edit this description";
+                if (sections[pos].desc == "unknown")
+                    langDesc.desc = "Subsection " + sections[pos].name + " of " + table.name + " - Edit this description";
+                else
+                    langDesc.desc = sections[pos].desc;
                 ntable.desc.append(langDesc);
             }
             ntable.xmlCode = table.xmlCode;
@@ -2457,7 +2484,7 @@ int separeteTables(QString sepFile)
         if (tblIndex >= 0)
         {
             groups = table.firstChild();
-            log("Separating table: " + tables[tblIndex].name);
+            //log("Separating table: " + tables[tblIndex].name);
             if (separateTable(tables[tblIndex],groups) == 1)
             {
                 return 1;
@@ -2478,14 +2505,24 @@ QDomElement getTableXML(QDomDocument doc, TtableDef table)
     tnode.setAttribute("name",table.name);
     gnode = doc.createElement("group");
     gnode.setAttribute("name","main");
+    gnode.setAttribute("description",fixString(getDescForLanguage(table.desc,getLanguageCode(getDefLanguage()))));
+    bool notdisplay;
     for (int pos = 0; pos <= table.fields.count()-1;pos++)
     {
+        notdisplay = false;
         if (table.fields[pos].key == false)
         {
+            if ((table.fields[pos].name == "surveyid") || (table.fields[pos].name == "originid") || (table.fields[pos].name == "rowuuid"))
+                notdisplay = true;
             QDomElement fnode;
             fnode = doc.createElement("field");
             fnode.setAttribute("name",table.fields[pos].name);
             fnode.setAttribute("xmlcode",table.fields[pos].xmlCode);
+            fnode.setAttribute("description",fixString(getDescForLanguage(table.fields[pos].desc,getLanguageCode(getDefLanguage()))));
+            if (notdisplay)
+                fnode.setAttribute("notdisplay","true");
+            else
+                fnode.setAttribute("notdisplay","false");
             gnode.appendChild(fnode);
         }
     }
@@ -2525,10 +2562,10 @@ int checkTables()
         }
         if ((rfcount > 60) || (fcount >= 100))
         {
-            if (rfcount > 60)
-                log(tables[pos].name + " has more than 60 relationships");
-            if (fcount > 100)
-                log(tables[pos].name + " has more than 100 fields.");
+//            if (rfcount > 60)
+//                log(tables[pos].name + " has more than 60 relationships");
+//            if (fcount > 100)
+//                log(tables[pos].name + " has more than 100 fields.");
             root.appendChild(getTableXML(outputdoc,tables[pos]));
             count++;
             error = true;
@@ -2550,14 +2587,18 @@ int checkTables()
             outputdoc.save(out,1,QDomNode::EncodingFromTextStream);
             file.close();
         }
-        QString msg;
-        msg = QString::number(count) + " tables have more than 60 relationships or 100 fields. A separation file (";
-        msg = msg + fname + ".xml) was created. Edit this file and separate the fields in logical groups of data that share something in common.";
-        msg = msg + "For example if such table contains variables about crops, livestock, household members, health,etc create a group for each set of variables";
-        msg = msg + "in the separation file";
-        log(msg);
-        msg = "Once you are done run the same command with -s '/where/my/separation/file/is/separationFile.xml' to separate the table(s) in sections.";
-        log(msg);
+        QDir dir(".");
+        QString sepFileName;
+        sepFileName = dir.absolutePath() + dir.separator() + fname + ".xml";
+        log("Separation file:" + sepFileName);
+//        QString msg;
+//        msg = QString::number(count) + " tables have more than 60 relationships or 100 fields. A separation file (";
+//        msg = msg + fname + ".xml) was created. Edit this file and separate the fields in logical groups of data that share something in common.";
+//        msg = msg + "For example if such table contains variables about crops, livestock, household members, health,etc create a group for each set of variables";
+//        msg = msg + "in the separation file";
+//        log(msg);
+//        msg = "Once you are done run the same command with -s '/where/my/separation/file/is/separationFile.xml' to separate the table(s) in sections.";
+//        log(msg);
         return 1;
     }
     else
@@ -2732,7 +2773,7 @@ int main(int argc, char *argv[])
         //dumpTablesForDebug();
         if (sepFile != "") //If we have a separation file
         {
-            log("Separating tables");
+            //log("Separating tables");
             QFile file(sepFile);
             if (file.exists())
             {
@@ -2741,16 +2782,16 @@ int main(int argc, char *argv[])
             }
         }
         appendUUIDs();
-        log("Checking tables");
+        //log("Checking tables");
         if (checkTables() == 1) //Check the tables to see if they have less than 60 related fields. If so a separation file is created
         {
             return 1; //If a table has more than 60 related field then exit
         }
-        log("Generating SQL scripts");
+        //log("Generating SQL scripts");
         genSQL(ddl,insert,metadata,xmlFile,transFile,UUIDFile,xmlCreateFile,insertXML,drop);
     }
     else
         return 1;
-    log("Done");
+    //log("Done");
     return 0;
 }
