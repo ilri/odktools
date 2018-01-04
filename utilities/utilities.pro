@@ -5,4 +5,6 @@ CONFIG += debug
 SUBDIRS = compareCreateXML \
     compareInsertXML \
     createFromXML \
-    insertFromXML
+    insertFromXML \
+    MySQLDenormalize \
+    JSONToCSV

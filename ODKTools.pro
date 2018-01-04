@@ -5,5 +5,4 @@ CONFIG += debug
 SUBDIRS = ODKToMySQL/odktomysql.pro \
 JSONToMySQL/jsontomysql.pro \
     utilities \
-    XMLtoJSON/xmltojson.pro \
-    MySQLDenormalize/MySQLDenormalize.pro
+    XMLtoJSON/xmltojson.pro
