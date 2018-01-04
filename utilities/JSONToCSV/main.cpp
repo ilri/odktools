@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
     QString title;
     title = title + "************************************************************************************** \n";
     title = title + " * JSON to CSV                                                                       * \n";
-    title = title + " * This tool creates a CSV file based a JSON file by flatening the JSON structure    * \n";
+    title = title + " * This tool creates a CSV file based a JSON file by flattening the JSON structure   * \n";
     title = title + " * as described in                                                                   * \n";
     title = title + " * https://sunlightfoundation.com/2014/03/11/making-json-as-simple-as-a-spreadsheet/ * \n";
     title = title + " *                                                                                   * \n";
