@@ -33,7 +33,7 @@ typedef relatedField TrelatedField;
 
 struct relatedTable
 {
-    QString name;
+    QString name;    
     QList< TrelatedField> fields;
 };
 typedef relatedTable TrelatedTable;
@@ -81,8 +81,8 @@ QString getRelatedFields(TrelatedTable table)
     return res;
 }
 
-void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, QString tableDesc)
-{
+void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, QString tableDesc, bool isLookUp)
+{    
     QStringList sfields;
     QStringList indexes;
     QStringList keys;
@@ -143,7 +143,7 @@ void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, 
                 rels << "ON UPDATE NO ACTION," << "\n";
             }
             else
-            {
+            {                              
                 pos = relTableFound(relTables,efield.attribute("rtable",""));
                 if (pos >= 0)
                 {
@@ -209,7 +209,11 @@ void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, 
     sql = sql.left(clm);
     sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + tableDesc + "\"; \n";
     idx++;
-    sql = sql + "CREATE UNIQUE INDEX rowuuid" + QString::number(idx) + " ON " + tableName + "(rowuuid);\n\n";
+    sql = sql + "CREATE UNIQUE INDEX rowuuid" + QString::number(idx) + " ON " + tableName + "(rowuuid);\n";
+    if (isLookUp)
+        sql = sql + "CREATE TRIGGER uudi_" + tableName + " BEFORE INSERT ON " + tableName + " FOR EACH ROW SET new.rowuuid = uuid();\n\n";
+    else
+        sql = sql + "\n";
     outstrm << sql;
 }
 
@@ -226,7 +230,7 @@ void procLKPTables(QDomNode start, QTextStream &outstrm)
             fields.append(field);
             field = field.nextSibling();
         }
-        createTable(node.toElement().attribute("name",""),fields,outstrm,node.toElement().attribute("desc",""));
+        createTable(node.toElement().attribute("name",""),fields,outstrm,node.toElement().attribute("desc",""),true);
         //Here we create the insert with the table definition
         node = node.nextSibling();
     }
@@ -251,7 +255,7 @@ void procTables(QDomNode start, QTextStream &outstrm)
         {
             if (proc == false)
             {
-                createTable(tableName,fields,outstrm,tabledesc); //Create the current table
+                createTable(tableName,fields,outstrm,tabledesc,false); //Create the current table
                 fields.clear(); //Clear the fields
                 proc = true;
             }
@@ -261,7 +265,7 @@ void procTables(QDomNode start, QTextStream &outstrm)
     }
     if (fields.count() > 0)
     {
-        createTable(tableName,fields,outstrm,tabledesc);
+        createTable(tableName,fields,outstrm,tabledesc,false);
     }
 }
 

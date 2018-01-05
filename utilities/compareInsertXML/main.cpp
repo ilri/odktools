@@ -22,6 +22,23 @@ License along with ODKTools.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.
 #include <QtCore>
 #include <QDomElement>
 
+QString outputType;
+bool fatalError;
+QStringList diff;
+
+struct compError
+{
+  QString code;
+  QString desc;
+  QString table;
+  QString value;
+  QString from;
+  QString to;
+};
+typedef compError TcompError;
+
+QList<TcompError> errorList;
+
 //This logs messages to the terminal. We use printf because qDebug does not log in relase
 void log(QString message)
 {
@@ -32,6 +49,7 @@ void log(QString message)
 
 void fatal(QString message)
 {
+    fatalError = true;
     fprintf(stderr, "\033[31m%s\033[0m \n", message.toUtf8().data());
 }
 
@@ -62,6 +80,57 @@ QDomNode findValue(QDomNode table,QString code)
     return null;
 }
 
+void addValueToDiff(QDomElement table, QDomElement field)
+{
+    QString sql;
+    sql = "INSERT INTO " + table.attribute("name","") + " (";
+    sql = sql + table.attribute("clmcode","") + ",";
+    sql = sql + table.attribute("clmdesc","") + ") VALUES ('";
+    sql = sql + field.attribute("code","") + "','";
+    sql = sql + field.attribute("description","") + "');";
+    diff.append(sql);
+}
+
+void UpdateValue(QDomElement table, QDomElement field)
+{
+   QString sql;
+   sql = "UPDATE " + table.attribute("name","") + " SET ";
+   sql = sql + table.attribute("clmdesc","") + " = '";
+   sql = sql + field.attribute("description","") + "' WHERE ";
+   sql = sql + table.attribute("clmcode","") + " = '";
+   sql = sql + field.attribute("code","") + "';";
+   diff.append(sql);
+
+}
+
+void addTableToDiff(QDomElement table)
+{
+    QDomNode field;
+    field = table.firstChild();
+    while (!field.isNull())
+    {
+        addValueToDiff(table,field.toElement());
+        field = field.nextSibling();
+    }
+}
+
+void changeValueInC(QDomNode table, QString code, QString newDescription)
+{
+    QDomNode field;
+    field = table.firstChild();
+    while (!field.isNull())
+    {
+        QDomElement efield;
+        efield = field.toElement();
+        if (efield.attribute("code","") == code)
+        {
+            efield.setAttribute("description",newDescription);
+            return;
+        }
+        field = field.nextSibling();
+    }
+}
+
 void compareLKPTables(QDomNode table,QDomDocument &docB)
 {
     QDomNode node;
@@ -78,20 +147,53 @@ void compareLKPTables(QDomNode table,QDomDocument &docB)
                 if (!fieldFound.isNull())
                 {
                     if (field.toElement().attribute("description","") != fieldFound.toElement().attribute("description",""))
-                        fatal("VNS:Value " + field.toElement().attribute("code","") + " of lookup table " + node.toElement().attribute("name","") + " from A not the same in B");
+                    {
+                        if (outputType == "h")
+                        {
+                            fatal("VNS:Value " + field.toElement().attribute("code","") + " of lookup table " + node.toElement().attribute("name","") + " has changed from \"" + fieldFound.toElement().attribute("description","") + "\" to \"" + field.toElement().attribute("description","") + "\"");
+                            log("Do you want to change this value in the database? Y/N");
+                            std::string line;
+                            std::getline(std::cin, line);
+                            QString result = QString::fromStdString(line);
+                            if (std::cin.eof() || result.toLower() == "y")
+                            {
+                                fatalError = false;
+                                UpdateValue(node.toElement(),field.toElement());
+                                changeValueInC(tableFound,field.toElement().attribute("code",""),field.toElement().attribute("description",""));
+                            }
+                            else
+                            {
+                                fatalError = true;
+                            }
+                        }
+                        {
+                            TcompError error;
+                            error.code = "VNS";
+                            error.desc = "Value " + field.toElement().attribute("code","") + " of lookup table " + node.toElement().attribute("name","") + " from A not the same in B";
+                            error.table = node.toElement().attribute("name","");
+                            error.value = field.toElement().attribute("code","");
+                            error.from = fieldFound.toElement().attribute("description","");
+                            error.to = field.toElement().attribute("description","");
+                            errorList.append(error);
+                        }
+                    }
                 }
                 else
                 {
-                    log("VNF:Value " + field.toElement().attribute("code","") + " of lookup table " + node.toElement().attribute("name","") + " from A not found in B");
+                    if (outputType == "h")
+                        log("VNF:Value " + field.toElement().attribute("code","") + "(" + field.toElement().attribute("description","") + ") will be included in table " + node.toElement().attribute("name",""));
                     tableFound.appendChild(field.cloneNode(true));
+                    addValueToDiff(node.toElement(),field.toElement());
                 }
                 field = field.nextSibling();
             }
         }
         else
         {
-            log("TNF:Lookup table " + node.toElement().attribute("name","") + " from A not found in B");
+            if (outputType == "h")
+                log("TNF:The lookup table " + node.toElement().attribute("name","") + " will be included in the database.");
             //Now adds the lookup table
+            addTableToDiff(node.toElement());
             docB.documentElement().appendChild(node.cloneNode(true));
         }
         node = node.nextSibling();
@@ -127,10 +229,14 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> aArg("a","inputa","Input insert XML file A",true,"","string");
     TCLAP::ValueArg<std::string> bArg("b","inputb","Input insert XML file B",true,"","string");
     TCLAP::ValueArg<std::string> cArg("c","outputc","Output insert XML file C",false,"./combined-insert.xml","string");
+    TCLAP::ValueArg<std::string> dArg("d","diff","Output diff SQL script",false,"./diff.sql","string");
+    TCLAP::ValueArg<std::string> oArg("o","outputype","Output type: (h)uman readble or (m)achine readble",false,"m","string");
 
     cmd.add(aArg);
     cmd.add(bArg);
     cmd.add(cArg);
+    cmd.add(dArg);
+    cmd.add(oArg);
 
 
     //Parsing the command lines
@@ -140,7 +246,10 @@ int main(int argc, char *argv[])
     QString inputA = QString::fromUtf8(aArg.getValue().c_str());
     QString inputB = QString::fromUtf8(bArg.getValue().c_str());
     QString outputC = QString::fromUtf8(cArg.getValue().c_str());
+    QString outputD = QString::fromUtf8(dArg.getValue().c_str());
+    outputType = QString::fromUtf8(oArg.getValue().c_str());
 
+    fatalError = false;
     if (inputA != inputB)
     {
         if ((QFile::exists(inputA)) && (QFile::exists(inputB)))
@@ -181,10 +290,35 @@ int main(int argc, char *argv[])
             QDomElement rootB = docB.documentElement();
             if ((rootA.tagName() == "insertValuesXML") && (rootB.tagName() == "insertValuesXML"))
             {
-                //Comparing lookup tables
-                if ((!rootA.firstChild().isNull()) && (!rootB.firstChild().isNull()))
-                    qDebug() << "Comparing lookup tables";
                 compareLKPTables(rootA.firstChild(),docB);
+
+                if (outputType == "m")
+                {
+                    QDomDocument XMLResult;
+                    XMLResult = QDomDocument("XMLResult");
+                    QDomElement XMLRoot;
+                    XMLRoot = XMLResult.createElement("XMLResult");
+                    XMLResult.appendChild(XMLRoot);
+                    QDomDocument eErrors;
+                    eErrors = QDomDocument("errors");
+                    XMLRoot.appendChild(eErrors);
+                    if (errorList.count() > 0)
+                        fatalError = true;
+                    for (int pos = 0; pos <= errorList.count()-1; pos++)
+                    {
+                        QDomElement anError;
+                        anError = XMLResult.createElement("error");
+                        anError.setAttribute("table",errorList[pos].table);
+                        anError.setAttribute("value",errorList[pos].value);
+                        anError.setAttribute("code",errorList[pos].code);
+                        anError.setAttribute("desc",errorList[pos].desc);
+                        anError.setAttribute("from",errorList[pos].from);
+                        anError.setAttribute("to",errorList[pos].to);
+                        eErrors.appendChild(anError);
+                    }
+                    log(XMLResult.toString());
+                }
+
 
                 //Create the manifext file. If exist it get overwriten
                 if (QFile::exists(outputC))
@@ -198,8 +332,29 @@ int main(int argc, char *argv[])
                     file.close();
                 }
                 else
+                {
                     log("Error: Cannot create XML combined file");
+                    return 1;
+                }
 
+                if (QFile::exists(outputD))
+                    QFile::remove(outputD);
+                QFile dfile(outputD);
+                if (dfile.open(QIODevice::WriteOnly | QIODevice::Text))
+                {
+                    QTextStream outD(&dfile);
+                    outD.setCodec("UTF-8");
+                    for (int dpos = 0; dpos < diff.count();dpos++)
+                    {
+                        outD << diff[dpos] + "\n";
+                    }
+                    file.close();
+                }
+                else
+                {
+                    log("Error: Cannot create Diff file");
+                    return 1;
+                }
             }
             else
             {
@@ -235,6 +390,8 @@ int main(int argc, char *argv[])
         log("Input files A and B are the same. No point in comparing them.");
         return 1;
     }
-
-    return 0;
+    if (!fatalError)
+        return 0;
+    else
+        return 1;
 }

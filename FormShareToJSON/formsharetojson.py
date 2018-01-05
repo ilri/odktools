@@ -67,8 +67,8 @@ def exportSurvey(mongoColl, surveyID, outputDir, overWrite):
 
 #Print the help of the script
 def usage():
-    helptext = '\nFormHub to JSON\n\n'
-    helptext = helptext + 'This script export Formhub data submissions from MongoDB to JSON files. \n'
+    helptext = '\FormShare to JSON\n\n'
+    helptext = helptext + 'This script export FormShare data submissions from MongoDB to JSON files. \n'
     helptext = helptext + 'Each submission is exported with the UUID as file name.\n'
     helptext = helptext + 'Parameters:\n'
 
@@ -76,7 +76,7 @@ def usage():
     helptext = helptext + '-y --surveyID : Survey ID to process \n'
     helptext = helptext + '-o --output : Output directory. Default ./output (Created if not exists)  \n'
     helptext = helptext + '-m --mongoURI : URI for the Mongo Server. For example mongodb://localhost:27017/ \n'
-    helptext = helptext + '-d --mongoDB : Formhub database. Usually "formhub" \n'
+    helptext = helptext + '-d --mongoDB : FormShare database. Usually "formshare" \n'
     helptext = helptext + '-c --mongoCollection : Formhub collection storing the surveys. Usually "instances" \n'
     helptext = helptext + '-w : Overwrite JSON files if exist. Otherwise JSON data will be ignored. Default false \n'
     helptext = helptext + '-l --help : Print this help \n\n'
@@ -100,7 +100,7 @@ def main():
     outputDir = './output' #The file to log the error
     overWrite = False #If the process overwrites the log file
     mongoURI = 'mongodb://localhost:27017/' #Connect to Mongo in ocalhost
-    mongoDB = "formhub" #Database containing the surveys
+    mongoDB = "formshare" #Database containing the surveys
     mongoCollection = 'instances' #Collection containing the surveys
 
     if len(opts) == 0:
