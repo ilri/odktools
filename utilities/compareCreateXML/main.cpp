@@ -21,10 +21,25 @@ License along with ODKTools.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.
 #include <tclap/CmdLine.h>
 #include <QtCore>
 #include <QDomElement>
+#include <QList>
 
 bool fatalError;
 QStringList diff;
+QString outputType;
 int idx;
+
+struct compError
+{
+  QString code;
+  QString desc;
+  QString table;
+  QString field;
+  QString from;
+  QString to;
+};
+typedef compError TcompError;
+
+QList<TcompError> errorList;
 
 struct rfieldDef
 {
@@ -42,6 +57,28 @@ typedef rtableDef TrtableDef;
 
 QList<TrtableDef> rtables;
 
+
+void addAlterFieldToDiff(QString table, QDomElement eField, int newSize, int newDec)
+{
+    QString sql;
+    QString fieldName;
+    fieldName = eField.attribute("name","");
+    if (eField.attribute("type","") == "varchar")
+    {
+        sql = "ALTER TABLE " + table + " MODIFY " + fieldName + "varchar(" + QString::number(newSize) + ");";
+        diff.append(sql);
+    }
+    if (eField.attribute("type","") == "int")
+    {
+        sql = "ALTER TABLE " + table + " MODIFY " + fieldName + "int(" + QString::number(newSize) + ");";
+        diff.append(sql);
+    }
+    if (eField.attribute("type","") == "decimal")
+    {
+        sql = "ALTER TABLE " + table + " MODIFY " + fieldName + "decimal(" + QString::number(newSize) + "," + QString::number(newDec) + ");";
+        diff.append(sql);
+    }
+}
 
 //This adds the modifications to a table to the diff list
 void addFieldToDiff(QString table, QDomElement eField)
@@ -182,12 +219,12 @@ void log(QString message)
     QString temp;
     temp = message + "\n";
     printf(temp.toUtf8().data());
-    fatalError = true;
 }
 
 void fatal(QString message)
 {
     fprintf(stderr, "\033[31m%s\033[0m \n", message.toUtf8().data());
+    fatalError = true;
 }
 
 QDomNode findField(QDomNode table,QString field)
@@ -217,24 +254,102 @@ QDomNode findTable(QDomDocument docB,QString tableName)
     return null;
 }
 
-bool compareFields(QDomElement a, QDomElement b)
+bool compareFields(QDomElement a, QDomElement b, bool &increased, int &newSize, int &newDec)
 {
     bool same;
+    increased = false;
+    newSize = a.attribute("size","0").toInt();
+    newDec = a.attribute("decsize","0").toInt();
     same = true;
+    bool isKey;
+    isKey = false;
+    if (a.attribute("key","false") == "true")
+        isKey = true;
+
     if (a.attribute("key","") != b.attribute("key",""))
         same = false;
     if (a.attribute("type","") != b.attribute("type",""))
         same = false;
     if (a.attribute("size","") != b.attribute("size",""))
-        same = false;
+    {
+        if (a.attribute("size","0").toInt() >= b.attribute("size","0").toInt())
+        {
+            if (a.attribute("type","") == "decimal")
+            {
+                if (a.attribute("decsize","0").toInt() >= b.attribute("decsize","0").toInt())
+                {
+                    if ((a.attribute("size","0").toInt() - a.attribute("decsize","0").toInt()) >= (b.attribute("size","0").toInt() - b.attribute("decsize","0").toInt()))
+                    {
+                        increased = true;
+                        newSize = a.attribute("size","0").toInt();
+                        newDec = a.attribute("decsize","0").toInt();
+                        if (isKey == false)
+                            same = true;
+                        else
+                            same = false;
+                    }
+                    else
+                    {
+                        same = false;
+                    }
+                }
+                else
+                {
+                    same = false;
+                }
+            }
+            else
+            {
+                increased = true;
+                newSize = a.attribute("size","0").toInt();
+                if (isKey == false)
+                    same = true;
+                else
+                    same = false;
+            }
+
+        }
+        else
+            same = false;
+    }
     if (a.attribute("decsize","") != b.attribute("decsize",""))
-        same = false;
+    {
+        if (a.attribute("decsize","0").toInt() >= b.attribute("decsize","0").toInt())
+        {
+            if ((a.attribute("size","0").toInt() - a.attribute("decsize","0").toInt()) >= (b.attribute("size","0").toInt() - b.attribute("decsize","0").toInt()))
+            {
+                increased = true;
+                newSize = a.attribute("size","0").toInt();
+                newDec = a.attribute("decsize","0").toInt();
+                if (isKey == false)
+                    same = true;
+                else
+                    same = false;
+            }
+            else
+                same = false;
+        }
+        else
+            same = false;
+    }
     if (a.attribute("rtable","") != b.attribute("rtable",""))
         same = false;
     if (a.attribute("rfield","") != b.attribute("rfield",""))
         same = false;
 
     return same;
+}
+
+QString getFieldDefinition(QDomElement field)
+{
+    QString result;
+    result = "[Key=" + field.attribute("key","false") + ",";
+    result = result + "Type=" + field.attribute("type","") + ",";
+    result = result + "Size=" + field.attribute("size","0") + ",";
+    result = result + "DecimalSize=" + field.attribute("decsize","0") + ",";
+    result = result + "RelatedTable=" + field.attribute("rtable","NULL") + ",";
+    result = result + "RelatedField=" + field.attribute("rfield","NULL") + "]";
+    return result;
 }
 
 void compareLKPTables(QDomNode table,QDomDocument &docB)
@@ -254,12 +369,44 @@ void compareLKPTables(QDomNode table,QDomDocument &docB)
                QDomNode fieldFound = findField(tablefound,eField.attribute("name",""));
                if (!fieldFound.isNull())
                {
-                   if (compareFields(eField,fieldFound.toElement()) == false)
-                       fatal("FNS:Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " from A is not the same in B");
+                   bool increased;
+                   int newSize;
+                   int newDec;
+                   if (compareFields(eField,fieldFound.toElement(),increased,newSize,newDec) == false)
+                   {
+                       if (outputType == "h")
+                           fatal("FNS:Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " from A is not the same in B. You need to fix it in the XLSX file");
+                       else
+                       {
+                           TcompError error;
+                           error.code = "FNS";
+                           error.table = node.toElement().attribute("name","");
+                           error.field = eField.attribute("name","");
+                           error.desc = "Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " from A is not the same in B";
+                           error.from = getFieldDefinition(fieldFound.toElement());
+                           error.to = getFieldDefinition(eField);
+                           errorList.append(error);
+                       }
+                   }
+                   else
+                   {
+                       if (increased)
+                       {
+                           if (outputType == "h")
+                           {
+                               if (eField.attribute("type","") != "decimal")
+                                   log("FIC: Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " will be increased from " + fieldFound.toElement().attribute("size",0) + " to " + eField.toElement().attribute("size","0"));
+                               else
+                                   log("FIC: Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " will be increased from " + fieldFound.toElement().attribute("size",0) + " to " + eField.toElement().attribute("size","0") + ". Decimal size from " + fieldFound.toElement().attribute("decsize",0) + " to " + eField.toElement().attribute("decsize","0"));
+                           }
+                           addAlterFieldToDiff(node.toElement().attribute("name",""),eField,newSize,newDec);
+                       }
+                   }
                }
                else
                {
-                   log("FNF:Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " from A is not found in B");
+                   if (outputType == "h")
+                       log("FNF:Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " from A is not found in B");
                    addFieldToDiff(node.toElement().attribute("name",""),eField);
                }
                field = field.nextSibling();
@@ -267,7 +414,8 @@ void compareLKPTables(QDomNode table,QDomDocument &docB)
        }
        else
        {
-           log("TNF:Lookup table " + node.toElement().attribute("name","") + " from A not found in B");
+           if (outputType == "h")
+               log("TNF:Lookup table " + node.toElement().attribute("name","") + " from A not found in B");
            addTableToSDiff(node);
            //Now adds the lookup table
            docB.documentElement().firstChild().appendChild(node.cloneNode(true));
@@ -297,12 +445,44 @@ void compareTables(QDomNode table,QDomDocument &docB)
                     QDomNode fieldFound = findField(tablefound,eField.attribute("name",""));
                     if (!fieldFound.isNull())
                     {
-                        if (compareFields(eField,fieldFound.toElement()) == false)
-                            fatal("FNS:Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " from A is not the same in B");
+                        bool increased;
+                        int newSize;
+                        int newDec;
+                        if (compareFields(eField,fieldFound.toElement(),increased,newSize,newDec) == false)
+                        {
+                            if (outputType == "h")
+                                fatal("FNS:Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " from A is not the same in B. You need to fix it in the XLSX file");
+                            else
+                            {
+                                TcompError error;
+                                error.code = "FNS";
+                                error.table = eTable.toElement().attribute("name","");
+                                error.field = eField.attribute("name","");
+                                error.desc = "Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " from A is not the same in B";
+                                error.from = getFieldDefinition(fieldFound.toElement());
+                                error.to = getFieldDefinition(eField);
+                                errorList.append(error);
+                            }
+                        }
+                        else
+                        {
+                            if (increased)
+                            {
+                                if (outputType == "h")
+                                {
+                                    if (eField.attribute("type","") != "decimal")
+                                        log("FIC: Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " will be increased from " + fieldFound.toElement().attribute("size",0) + " to " + eField.toElement().attribute("size","0"));
+                                    else
+                                        log("FIC: Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " will be increased from " + fieldFound.toElement().attribute("size",0) + " to " + eField.toElement().attribute("size","0") + ". Decimal size from " + fieldFound.toElement().attribute("decsize",0) + " to " + eField.toElement().attribute("decsize","0"));
+                                }
+                                addAlterFieldToDiff(eTable.attribute("name",""),eField,newSize,newDec);
+                            }
+                        }
                     }
                     else
                     {
-                        log("FNF:Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " from A is not found in B");
+                        if (outputType == "h")
+                            log("FNF:Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " from A is not found in B");
                         addFieldToDiff( eTable.toElement().attribute("name",""),eField);
                         tablefound.insertBefore(eField.cloneNode(true),tablefound.firstChild());
                     }
@@ -312,23 +492,50 @@ void compareTables(QDomNode table,QDomDocument &docB)
         }
         else
         {
-            fatal("TNS:Table " + eTable.toElement().attribute("name","") + " from A does not have the same parent in B");
+            if (outputType == "h")
+                fatal("TNS:Table " + eTable.toElement().attribute("name","") + " from A does not have the same parent in B");
+            else
+            {
+                TcompError error;
+                error.code = "TNS";
+                error.table = "NA";
+                error.field = "NA";
+                error.desc = "Table " + eTable.toElement().attribute("name","") + " from A does not have the same parent in B";
+                error.from = tablefound.parentNode().toElement().attribute("name","");
+                error.to = table.parentNode().toElement().attribute("name","");
+                errorList.append(error);
+            }
         }
     }
     else
     {
         //Now adds the table to doc2
         QDomNode parentfound;
-        parentfound = findTable(docB,table.parentNode().toElement().attribute("name",""));
+        QString parentTableName;
+        parentTableName = table.parentNode().toElement().attribute("name","");
+        parentfound = findTable(docB,parentTableName);
         if (!parentfound.isNull())
         {
-            log("TNF:Table " + eTable.toElement().attribute("name","") + " from A not found in B");
+            if (outputType == "h")
+                log("TNF:Table " + eTable.toElement().attribute("name","") + " from A not found in B");
             addTableToSDiff(eTable);
             parentfound.appendChild(table.cloneNode(true));
         }
         else
         {
-            fatal("TNF:Table " + eTable.toElement().attribute("name","") + " from A not found in B. Its parent in A is not found in B");
+            if (outputType == "h")
+                fatal("TNF:Table " + eTable.toElement().attribute("name","") + " from A not found in B. Its parent in A is not found in B");
+            else
+            {
+                TcompError error;
+                error.code = "TNF";
+                error.table = "NA";
+                error.field = "NA";
+                error.desc = "Table " + eTable.toElement().attribute("name","") + " from A not found in B. Its parent in A is not found in B";
+                error.from = "NULL";
+                error.to = parentTableName;
+                errorList.append(error);
+            }
         }
     }
 }
@@ -379,11 +586,13 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> bArg("b","inputb","Input create XML file B (former)",true,"","string");
     TCLAP::ValueArg<std::string> cArg("c","outputc","Output create XML file C",false,"./combined-create.xml","string");
     TCLAP::ValueArg<std::string> dArg("d","diff","Output diff SQL script",false,"./diff.sql","string");
+    TCLAP::ValueArg<std::string> oArg("o","outputype","Output type: (h)uman readble or (m)achine readble",false,"m","string");
 
     cmd.add(aArg);
     cmd.add(bArg);
     cmd.add(cArg);
     cmd.add(dArg);
+    cmd.add(oArg);
 
 
     //Parsing the command lines
@@ -394,6 +603,7 @@ int main(int argc, char *argv[])
     QString inputB = QString::fromUtf8(bArg.getValue().c_str());
     QString outputC = QString::fromUtf8(cArg.getValue().c_str());
     QString outputD = QString::fromUtf8(dArg.getValue().c_str());
+    outputType = QString::fromUtf8(oArg.getValue().c_str());
 
     fatalError = false;
     idx = 1;
@@ -439,14 +649,36 @@ int main(int argc, char *argv[])
             if ((rootA.tagName() == "XMLSchemaStructure") && (rootB.tagName() == "XMLSchemaStructure"))
             {
                 //Comparing lookup tables
-                if ((!rootA.firstChild().firstChild().isNull()) && (!rootB.firstChild().firstChild().isNull()))
-                    qDebug() << "Comparing lookup tables";
                 compareLKPTables(rootA.firstChild().firstChild(),docB);
-
                 //Comparing tables
-                if ((!rootA.firstChild().nextSibling().firstChild().isNull()) && (!rootB.firstChild().nextSibling().firstChild().isNull()))
-                    qDebug() << "Comparing tables";
                 compareTables(rootA.firstChild().nextSibling().firstChild(),docB);
+
+                if (outputType == "m")
+                {
+                    QDomDocument XMLResult;
+                    XMLResult = QDomDocument("XMLResult");
+                    QDomElement XMLRoot;
+                    XMLRoot = XMLResult.createElement("XMLResult");
+                    XMLResult.appendChild(XMLRoot);
+                    QDomDocument eErrors;
+                    eErrors = QDomDocument("errors");
+                    XMLRoot.appendChild(eErrors);
+                    if (errorList.count() > 0)
+                        fatalError = true;
+                    for (int pos = 0; pos <= errorList.count()-1; pos++)
+                    {
+                        QDomElement anError;
+                        anError = XMLResult.createElement("error");
+                        anError.setAttribute("table",errorList[pos].table);
+                        anError.setAttribute("field",errorList[pos].field);
+                        anError.setAttribute("code",errorList[pos].code);
+                        anError.setAttribute("desc",errorList[pos].desc);
+                        anError.setAttribute("from",errorList[pos].from);
+                        anError.setAttribute("to",errorList[pos].to);
+                        eErrors.appendChild(anError);
+                    }
+                    log(XMLResult.toString());
+                }
 
                 //Create the output file. If exist it get overwriten
                 if (QFile::exists(outputC))
@@ -460,7 +692,10 @@ int main(int argc, char *argv[])
                     file.close();
                 }
                 else
+                {
                     log("Error: Cannot create XML combined file");
+                    return 1;
+                }
 
                 if (QFile::exists(outputD))
                     QFile::remove(outputD);
@@ -476,9 +711,10 @@ int main(int argc, char *argv[])
                     file.close();
                 }
                 else
+                {
                     log("Error: Cannot create Diff file");
-
-
+                    return 1;
+                }
             }
             else
             {
