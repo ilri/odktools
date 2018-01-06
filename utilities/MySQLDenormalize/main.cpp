@@ -31,7 +31,8 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> tableArg("t","maintable","Main table to denormalize from",true,"","string");
     TCLAP::ValueArg<std::string> mapArg("m","mapdirectory","Directory containing the map XML files",true,"","string");
     TCLAP::ValueArg<std::string> outArg("o","output","Output directory to store the JSON result files",false,"CSV","string");
-    TCLAP::SwitchArg remoteSwitch("T","protected","Include protected", cmd, false);
+    TCLAP::ValueArg<std::string> tmpArg("T","tempdir","Temporary directory (./tmp by default)",false,"./tmp","string");
+    TCLAP::SwitchArg remoteSwitch("i","includeprotected","Include protected", cmd, false);
 
 
     cmd.add(hostArg);
@@ -42,6 +43,7 @@ int main(int argc, char *argv[])
     cmd.add(tableArg);
     cmd.add(mapArg);
     cmd.add(outArg);
+    cmd.add(tmpArg);
     //Parsing the command lines
     cmd.parse( argc, argv );
 
@@ -57,9 +59,10 @@ int main(int argc, char *argv[])
     QString table = QString::fromUtf8(tableArg.getValue().c_str());
     QString mapDir = QString::fromUtf8(mapArg.getValue().c_str());
     QString output = QString::fromUtf8(outArg.getValue().c_str());
+    QString tmpDir = QString::fromUtf8(tmpArg.getValue().c_str());
 
     mainClass *task = new mainClass(&app);
-    task->setParameters(host,port,user,pass,schema,table,mapDir,output,includeProtected);
+    task->setParameters(host,port,user,pass,schema,table,mapDir,output,includeProtected,tmpDir);
     QObject::connect(task, SIGNAL(finished()), &app, SLOT(quit()));
     QTimer::singleShot(0, task, SLOT(run()));
     app.exec();

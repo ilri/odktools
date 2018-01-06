@@ -1,5 +1,7 @@
 #include "mainclass.h"
 #include <QUuid>
+#include <QFileInfo>
+#include <QDomText>
 
 mainClass::mainClass(QObject *parent) : QObject(parent)
 {
@@ -85,7 +87,6 @@ void mainClass::run()
             QFile file(input);
             if (file.open(QIODevice::ReadOnly | QIODevice::Text))
             {
-
                 QTextStream in(&file);
                 while (!in.atEnd())
                 {
@@ -130,29 +131,41 @@ void mainClass::run()
             }
 
             //Loggin file
-            logFile.setFileName(output);
-            if (!QFile::exists(output) || overwrite)
+            if (outputType == "h")
             {
-                if (!logFile.open(QIODevice::WriteOnly | QIODevice::Text))
+                logFile.setFileName(output);
+                if (!QFile::exists(output) || overwrite)
                 {
-                    log("Cannot create log file");
-                    returnCode = 1;
-                    db.close();
-                    emit finished();
+                    if (!logFile.open(QIODevice::WriteOnly | QIODevice::Text))
+                    {
+                        log("Cannot create log file");
+                        returnCode = 1;
+                        db.close();
+                        emit finished();
+                    }
+                    logStream.setDevice(&logFile);
+                    logStream << "FileUUID\tTable\tRowInJSON\tJSONVariable\tError\tNotes\tSQLExecuted\n";
                 }
-                logStream.setDevice(&logFile);
-                logStream << "FileUUID\tTable\tRowInJSON\tJSONVariable\tError\tNotes\tSQLExecuted\n";
+                else
+                {
+                    if (!logFile.open(QIODevice::Append | QIODevice::Text))
+                    {
+                        log("Cannot create log file");
+                        returnCode = 1;
+                        db.close();
+                        emit finished();
+                    }
+                    logStream.setDevice(&logFile);
+                }
             }
             else
             {
-                if (!logFile.open(QIODevice::Append | QIODevice::Text))
-                {
-                    log("Cannot create log file");
-                    returnCode = 1;
-                    db.close();
-                    emit finished();
-                }
-                logStream.setDevice(&logFile);
+                xmlLog = QDomDocument("XMLErrorLog");
+                QDomElement XMLRoot;
+                XMLRoot = xmlLog.createElement("XMLErrorLog");
+                xmlLog.appendChild(XMLRoot);
+                eErrors = xmlLog.createElement("errors");
+                XMLRoot.appendChild(eErrors);
             }
 
             if (!db.transaction())
@@ -184,17 +197,48 @@ void mainClass::run()
 
             SQLError = false;
             SQLErrorNumber = "";
-            if (processFile(db,json,manifest,procList))
+            int processError;
+            processError = processFile(db,json,manifest,procList);
+            if (processError == 1)
             {
                 //This will happen if the file is already processes or an error ocurred
                 db.close();
                 returnCode = 1;
                 emit finished();
             }
-            if (SQLError)
+            if ((SQLError) || (processError == 1))
             {
                 returnCode = 2;
-                log(SQLErrorNumber);
+                if (outputType == "h")
+                {
+                    logFile.close();
+                    QFileInfo fiLog(output);
+                    if (fiLog.size() == 62)
+                    {
+                        logFile.remove();
+                    }
+                }
+                else
+                {
+                    if (!eErrors.firstChild().isNull())
+                    {
+                        QFile XMLLogFile(output);
+                        if (XMLLogFile.open(QIODevice::WriteOnly | QIODevice::Text))
+                        {
+                            QTextStream strXMLLog(&XMLLogFile);
+                            strXMLLog.setCodec("UTF-8");
+                            xmlLog.save(strXMLLog,1,QDomNode::EncodingFromTextStream);
+                            XMLLogFile.close();
+                        }
+                        else
+                        {
+                            db.close();
+                            returnCode = 1;
+                            emit finished();
+                        }
+                    }
+                }
+
                 if (!db.rollback())
                 {
                     db.close();
@@ -204,10 +248,18 @@ void mainClass::run()
             }
             else
             {
-                //If no errors were found then write the id to the processing file
                 QFileInfo fi(json);
                 out << fi.baseName() + "\n";
                 file.close();
+                if (outputType == "h")
+                {
+                    logFile.close();
+                    QFileInfo fiLog(output);
+                    if (fiLog.size() == 62)
+                    {
+                        logFile.remove();
+                    }
+                }
                 //Commit the transaction
                 if (!db.commit())
                 {
@@ -246,7 +298,7 @@ void mainClass::run()
     emit finished();
 }
 
-void mainClass::setParameters(bool voverwrite, QString vjson, QString vmanifest, QString vhost, QString vport, QString vuser, QString vpassword, QString vschema, QString voutput, QString vinput, QString vjavaScript, bool voputSQLSwitch, QString mapDirectory)
+void mainClass::setParameters(bool voverwrite, QString vjson, QString vmanifest, QString vhost, QString vport, QString vuser, QString vpassword, QString vschema, QString voutput, QString vinput, QString vjavaScript, bool voputSQLSwitch, QString mapDirectory, QString outputType)
 {
     overwrite = voverwrite;
     json = vjson;
@@ -261,6 +313,7 @@ void mainClass::setParameters(bool voverwrite, QString vjson, QString vmanifest,
     javaScript = vjavaScript;
     outSQL = voputSQLSwitch;
     mapOutputDir = mapDirectory;
+    this->outputType = outputType;
 }
 
 
@@ -338,15 +391,65 @@ void mainClass::logError(QSqlDatabase db,QString errorMessage, QString table, in
             {
                 errorMessage = query.value(0).toString();
                 field = query.value(2).toString();
-                if (getXMLCodeFromField(fields,field) != "Unknown")
-                    logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t" + getXMLCodeFromField(fields,field) + "\t" + errorMessage + "\tValue not found = " + jsonData[getXMLCodeFromField(fields,field)].toString() + "\t" + execSQL + "\n";
+                if (outputType == "h")
+                {
+                    if (getXMLCodeFromField(fields,field) != "Unknown")
+                        logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t" + getXMLCodeFromField(fields,field) + "\t" + errorMessage + "\tValue not found = " + jsonData[getXMLCodeFromField(fields,field)].toString() + "\t" + execSQL + "\n";
+                    else
+                        logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
+                }
                 else
-                    logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
+                {
+                    QDomElement eError;
+                    eError = xmlLog.createElement("error");
+                    if (getXMLCodeFromField(fields,field) != "Unknown")
+                    {
+                        eError.setAttribute("FileUUID",fileID);
+                        eError.setAttribute("Table",table);
+                        eError.setAttribute("RowInJSON",QString::number(rowNumber));
+                        eError.setAttribute("JSONVariable",getXMLCodeFromField(fields,field));
+                        eError.setAttribute("Error",errorMessage);
+                        eError.setAttribute("Notes","Value not found = " + jsonData[getXMLCodeFromField(fields,field)].toString());
+                        QDomText sqlExecuted;
+                        sqlExecuted = xmlLog.createTextNode(execSQL);
+                        eError.appendChild(sqlExecuted);
+                        eErrors.appendChild(eError);
+                    }
+                    else
+                    {
+                        eError.setAttribute("FileUUID",fileID);
+                        eError.setAttribute("Table",table);
+                        eError.setAttribute("RowInJSON",QString::number(rowNumber));
+                        eError.setAttribute("JSONVariable","");
+                        eError.setAttribute("Error",errorMessage);
+                        eError.setAttribute("Notes","");
+                        QDomText sqlExecuted;
+                        sqlExecuted = xmlLog.createTextNode(execSQL);
+                        eError.appendChild(sqlExecuted);
+                        eErrors.appendChild(eError);
+                    }
+                }
                 return;
             }
         }
     }
-    logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
+    if (outputType == "h")
+        logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
+    else
+    {
+        QDomElement eError;
+        eError = xmlLog.createElement("error");
+        eError.setAttribute("FileUUID",fileID);
+        eError.setAttribute("Table",table);
+        eError.setAttribute("RowInJSON",QString::number(rowNumber));
+        eError.setAttribute("JSONVariable","");
+        eError.setAttribute("Error",errorMessage);
+        eError.setAttribute("Notes","");
+        QDomText sqlExecuted;
+        sqlExecuted = xmlLog.createTextNode(execSQL);
+        eError.appendChild(sqlExecuted);
+        eErrors.appendChild(eError);
+    }
 }
 
 void mainClass::logErrorMSel(QSqlDatabase db,QString errorMessage, QString table, int rowNumber,QString value, QString execSQL)
@@ -372,12 +475,42 @@ void mainClass::logErrorMSel(QSqlDatabase db,QString errorMessage, QString table
             {
                 errorMessage = query.value(0).toString();
                 field = query.value(2).toString();
-                logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t" + field + "\t" + errorMessage + "\tValue not found = " + value + "\t" + execSQL + "\n";
+                if (outputType == "h")
+                    logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t" + field + "\t" + errorMessage + "\tValue not found = " + value + "\t" + execSQL + "\n";
+                else
+                {
+                    QDomElement eError;
+                    eError = xmlLog.createElement("error");
+                    eError.setAttribute("FileUUID",fileID);
+                    eError.setAttribute("Table",table);
+                    eError.setAttribute("RowInJSON",QString::number(rowNumber));
+                    eError.setAttribute("JSONVariable",field);
+                    eError.setAttribute("Error",errorMessage);
+                    eError.setAttribute("Notes","Value not found = " + value);
+                    QDomText sqlExecuted;
+                    sqlExecuted = xmlLog.createTextNode(execSQL);
+                    eError.appendChild(sqlExecuted);
+                    eErrors.appendChild(eError);
+                }
                 return;
             }
         }
     }
-    logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
+    if (outputType == "h")
+        logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
+    else
+    {
+        QDomElement eError;
+        eError = xmlLog.createElement("error");
+        eError.setAttribute("FileUUID",fileID);
+        eError.setAttribute("Table",table);
+        eError.setAttribute("RowInJSON",QString::number(rowNumber));
+        eError.setAttribute("JSONVariable","");
+        eError.setAttribute("Error",errorMessage);
+        eError.setAttribute("Notes","");
+        eError.setNodeValue(execSQL);
+        eErrors.appendChild(eError);
+    }
 }
 
 QString mainClass::fixString(QString source)
@@ -409,14 +542,20 @@ void mainClass::storeRecord(QString parentUUID, QString recordUUID)
     split = parentUUID.split("~");
     QList<QDomElement> foundUUIDs;
     findElementsWithAttribute(recordMapRoot, "uuid", split[1], foundUUIDs);
-    QDomElement parentRecord;
-    parentRecord = foundUUIDs[0];
-    split = recordUUID.split("~");
-    QDomElement aRecord;
-    aRecord = recordMap.createElement("record");
-    aRecord.setAttribute("table",split[0]);
-    aRecord.setAttribute("uuid",split[1]);
-    parentRecord.appendChild(aRecord);
+    // If the parent is not found means that his insert
+    // did not entered the database thus the map will not be
+    // produded.
+    if (foundUUIDs.count() > 0)
+    {
+        QDomElement parentRecord;
+        parentRecord = foundUUIDs[0];
+        split = recordUUID.split("~");
+        QDomElement aRecord;
+        aRecord = recordMap.createElement("record");
+        aRecord.setAttribute("table",split[0]);
+        aRecord.setAttribute("uuid",split[1]);
+        parentRecord.appendChild(aRecord);
+    }
 }
 
 //This function stores data in the record map
@@ -438,14 +577,20 @@ void mainClass::storeRecord(QStringList parentUUIDS, QString recordUUID)
         split = parentUUIDS[parentUUIDS.count()-1].split("~");
         QList<QDomElement> foundUUIDs;
         findElementsWithAttribute(recordMapRoot, "uuid", split[1], foundUUIDs);
-        QDomElement parentRecord;
-        parentRecord = foundUUIDs[0];
-        split = recordUUID.split("~");
-        QDomElement aRecord;
-        aRecord = recordMap.createElement("record");
-        aRecord.setAttribute("table",split[0]);
-        aRecord.setAttribute("uuid",split[1]);
-        parentRecord.appendChild(aRecord);
+        // If the parent is not found means that his insert
+        // did not entered the database thus the map will not be
+        // produded.
+        if (foundUUIDs.count() > 0)
+        {
+            QDomElement parentRecord;
+            parentRecord = foundUUIDs[0];
+            split = recordUUID.split("~");
+            QDomElement aRecord;
+            aRecord = recordMap.createElement("record");
+            aRecord.setAttribute("table",split[0]);
+            aRecord.setAttribute("uuid",split[1]);
+            parentRecord.appendChild(aRecord);
+        }
     }
 }
 
