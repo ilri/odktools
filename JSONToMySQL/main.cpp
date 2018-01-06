@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
     TCLAP::SwitchArg overwriteSwitch("w","overwrite","Overwrite the log file", cmd, false);
     TCLAP::SwitchArg oputSQLSwitch("S","outputSQL","Output each insert SQL to ./inputfile.json.sql", cmd, false);
     TCLAP::ValueArg<std::string> mapDirArg("M","mapoutputdir","Map output directory",false,"./recordMaps","string");
+    TCLAP::ValueArg<std::string> outTypeArg("O","outputtype","OutputType: (h)uman readable or (m)achine readble",false,"m","string");
 
     //These two parameters should be removed once the external script code works
 
@@ -71,6 +72,7 @@ int main(int argc, char *argv[])
     cmd.add(outputArg);
     cmd.add(inputArg);
     cmd.add(mapDirArg);
+    cmd.add(outTypeArg);
     cmd.add(JSArg);
 
     //Parsing the command lines
@@ -90,10 +92,11 @@ int main(int argc, char *argv[])
     QString input = QString::fromUtf8(inputArg.getValue().c_str());
     QString javaScript = QString::fromUtf8(JSArg.getValue().c_str());
     QString mapDirectory = QString::fromUtf8(mapDirArg.getValue().c_str());
+    QString outputType = QString::fromUtf8(outTypeArg.getValue().c_str());
 
     mainClass *task = new mainClass(&app);
 
-    task->setParameters(overwrite,json,manifest,host,port,user,password,schema,output,input,javaScript,oputSQLSwitch.getValue(),mapDirectory);
+    task->setParameters(overwrite,json,manifest,host,port,user,password,schema,output,input,javaScript,oputSQLSwitch.getValue(),mapDirectory,outputType);
 
     QObject::connect(task, SIGNAL(finished()), &app, SLOT(quit()));
 

@@ -60,7 +60,7 @@ signals:
     void finishedWithError(int error);
 public slots:
     void run();
-    void setParameters(bool voverwrite, QString vjson, QString vmanifest, QString vhost, QString vport, QString vuser, QString vpassword, QString vschema, QString voutput, QString vinput, QString vjavaScript, bool voputSQLSwitch, QString mapDirectory);
+    void setParameters(bool voverwrite, QString vjson, QString vmanifest, QString vhost, QString vport, QString vuser, QString vpassword, QString vschema, QString voutput, QString vinput, QString vjavaScript, bool voputSQLSwitch, QString mapDirectory, QString outputType);
 private:
 
     int getLastIndex(QString table);
@@ -87,8 +87,12 @@ private:
     QString fileID;
     QString mainTable;
 
+    //Huma logging
     QFile logFile;
     QTextStream logStream;
+    //Machine loggin
+    QDomDocument xmlLog;
+    QDomElement eErrors;
 
     bool outSQL;
     QFile sqlFile;
@@ -111,6 +115,7 @@ private:
     QString input;
     QString javaScript;
     QString mapOutputDir;
+    QString outputType;
 };
 
 #endif // MAINCLASS_H
