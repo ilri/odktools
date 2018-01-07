@@ -291,7 +291,6 @@ You also need to build and install:
 
  - [Mongo C Driver](https://github.com/mongodb/mongo-c-driver/releases/download/1.6.1/mongo-c-driver-1.6.1.tar.gz)
  - [JSONCpp](https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz)
- - [json2csv-cpp](https://github.com/once-ler/json2csv-cpp/archive/master.zip)
 
 To build ODK Tools do:
 
@@ -327,5 +326,6 @@ This repository contains the code of:
 - [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter) which is licensed under the [MIT license](https://raw.githubusercontent.com/twbs/bootstrap/master/LICENSE).
 - [QJSON](https://github.com/flavio/qjson) which is licensed under the [GNU Lesser General Public License version 2.1](http://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html)
 - [MongoDB C++ Driver](https://mongodb.github.io/mongo-cxx-driver/) which is licensed under the [Apache License, version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+- [JSON2CSV-CPP](https://github.com/once-ler/json2csv-cpp) which does not have a license. We assume MIT or BSD.
 
 Otherwise, ODKToMySQL is licensed under [LGPL V3](http://www.gnu.org/licenses/lgpl-3.0.html).
