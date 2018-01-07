@@ -282,22 +282,30 @@ JSON to CSV creates a CSV file based a JSON file by flattening the JSON structur
 
 
 ## Building and testing
-To build ODKTools on Linux do:
+To build ODKTools on Ubuntu Server 16.04.3 LTS do:
 
     $ sudo apt-get update
-    $ sudo apt-get install qt5-default qtbase5-private-dev qtdeclarative5-dev cmake mongodb jq
+    $ sudo apt-get install build-essential qt5-default qtbase5-private-dev qtdeclarative5-dev cmake mongodb jq libboost-all-dev unzip
 
 You also need to build and install:
 
- - [Mongo CXX Driver](https://mongodb.github.io/mongo-cxx-driver/) 
- - [json2csv-cpp](https://github.com/once-ler/json2csv-cpp)
+ - [Mongo C Driver](https://github.com/mongodb/mongo-c-driver/releases/download/1.6.1/mongo-c-driver-1.6.1.tar.gz)
+ - [JSONCpp](https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz)
+ - [json2csv-cpp](https://github.com/once-ler/json2csv-cpp/archive/master.zip)
 
 To build ODK Tools do:
-   
 
         $ git clone https://github.com/ilri/odktools.git
         $ cd odktools
         $ git submodule update --init --recursive
+        $ cd dependencies/mongo-cxx-driver-r3.1.1/build
+        $ cmake -DCMAKE_C_FLAGS:STRING="-O2 -fPIC" -DCMAKE_CXX_FLAGS:STRING="-O2 -fPIC" -DBSONCXX_POLY_USE_BOOST=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
+        $ sudo make install
+        $ cd ../../..
+        $ cd dependencies/json2csv-cpp
+        $ make
+        $ sudo cp json2csv /usr/bin
+        $ cd ../../..
         $ cd 3rdparty/qjson
         $ mkdir build
         $ cd build
@@ -318,5 +326,6 @@ This repository contains the code of:
 - [TClap](http://tclap.sourceforge.net/) which is licensed under the [MIT license](https://raw.githubusercontent.com/twbs/bootstrap/master/LICENSE).
 - [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter) which is licensed under the [MIT license](https://raw.githubusercontent.com/twbs/bootstrap/master/LICENSE).
 - [QJSON](https://github.com/flavio/qjson) which is licensed under the [GNU Lesser General Public License version 2.1](http://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html)
+- [MongoDB C++ Driver](https://mongodb.github.io/mongo-cxx-driver/) which is licensed under the [Apache License, version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
 Otherwise, ODKToMySQL is licensed under [LGPL V3](http://www.gnu.org/licenses/lgpl-3.0.html).
