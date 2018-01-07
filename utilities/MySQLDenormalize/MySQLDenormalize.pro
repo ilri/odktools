@@ -16,9 +16,10 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-unix:INCLUDEPATH += ../../3rdparty /usr/include/mongocxx/v_noabi /usr/include/bsoncxx/v_noabi
+unix:INCLUDEPATH += ../../3rdparty /usr/include/mongocxx/v_noabi /usr/include/bsoncxx/v_noabi \
+/usr/local/include/mongocxx/v_noabi usr/local/include/bsoncxx/v_noabi
 
-unix:LIBS += -L/lib64 -L/usr/lib64 -lmongocxx -lbsoncxx
+unix:LIBS += -L/lib64 -L/usr/lib64 -L/usr/local/lib -lmongocxx -lbsoncxx
 
 SOURCES += main.cpp \
     mainclass.cpp
