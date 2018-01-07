@@ -285,11 +285,12 @@ JSON to CSV creates a CSV file based a JSON file by flattening the JSON structur
 To build ODKTools on Ubuntu Server 16.04.3 LTS do:
 
     $ sudo apt-get update
-    $ sudo apt-get install build-essential qt5-default qtbase5-private-dev qtdeclarative5-dev cmake mongodb jq libboost-all-dev
+    $ sudo apt-get install build-essential qt5-default qtbase5-private-dev qtdeclarative5-dev cmake mongodb jq libboost-all-dev unzip
 
 You also need to build and install:
 
  - [Mongo C Driver](https://github.com/mongodb/mongo-c-driver/releases/download/1.6.1/mongo-c-driver-1.6.1.tar.gz)
+ - [JSONCpp](https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz)
  - [json2csv-cpp](https://github.com/once-ler/json2csv-cpp/archive/master.zip)
 
 To build ODK Tools do:
@@ -297,9 +298,13 @@ To build ODK Tools do:
         $ git clone https://github.com/ilri/odktools.git
         $ cd odktools
         $ git submodule update --init --recursive
-        $ cd mongocxx/mongo-cxx-driver-r3.1.1/build
+        $ cd dependencies/mongo-cxx-driver-r3.1.1/build
         $ cmake -DCMAKE_C_FLAGS:STRING="-O2 -fPIC" -DCMAKE_CXX_FLAGS:STRING="-O2 -fPIC" -DBSONCXX_POLY_USE_BOOST=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
         $ sudo make install
+        $ cd ../../..
+        $ cd dependencies/json2csv-cpp
+        $ make
+        $ sudo cp json2csv /usr/bin
         $ cd ../../..
         $ cd 3rdparty/qjson
         $ mkdir build
