@@ -6,9 +6,7 @@
 #include <QFileInfoList>
 #include <QVariant>
 #include <QProcess>
-#include <QXmlQuery>
 #include <QSqlRecord>
-#include <QXmlSerializer>
 #include <QList>
 #include <QTime>
 #include <QDomNodeList>
