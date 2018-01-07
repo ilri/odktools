@@ -1,5 +1,5 @@
 QT -= gui
-QT += core sql xml xmlpatterns
+QT += core sql xml
 
 TARGET = mysqldenormalize
 CONFIG += c++11 console
