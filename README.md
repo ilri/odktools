@@ -302,6 +302,7 @@ To build ODK Tools do:
         $ sudo make install
         $ cd ../../..
         $ cd dependencies/json2csv-cpp
+        $ qmake
         $ make
         $ sudo cp json2csv /usr/bin
         $ cd ../../..
