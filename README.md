@@ -329,4 +329,4 @@ This repository contains the code of:
 - [MongoDB C++ Driver](https://mongodb.github.io/mongo-cxx-driver/) which is licensed under the [Apache License, version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 - [JSON2CSV-CPP](https://github.com/once-ler/json2csv-cpp) which does not have a license. We assume MIT or BSD.
 
-Otherwise, ODKToMySQL is licensed under [LGPL V3](http://www.gnu.org/licenses/lgpl-3.0.html).
+Otherwise, ODKTools is licensed under [LGPL V3](http://www.gnu.org/licenses/lgpl-3.0.html).
