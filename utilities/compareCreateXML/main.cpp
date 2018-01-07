@@ -22,6 +22,7 @@ License along with ODKTools.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.
 #include <QtCore>
 #include <QDomElement>
 #include <QList>
+#include <QUuid>
 
 bool fatalError;
 QStringList diff;
@@ -50,6 +51,7 @@ typedef rfieldDef TrfieldDef;
 
 struct rtableDef
 {
+  QString parentTable;
   QString name;
   QList<TrfieldDef> rfields;
 };
@@ -65,17 +67,17 @@ void addAlterFieldToDiff(QString table, QDomElement eField, int newSize, int new
     fieldName = eField.attribute("name","");
     if (eField.attribute("type","") == "varchar")
     {
-        sql = "ALTER TABLE " + table + " MODIFY " + fieldName + "varchar(" + QString::number(newSize) + ");";
+        sql = "ALTER TABLE " + table + " MODIFY " + fieldName + " varchar(" + QString::number(newSize) + ");\n";
         diff.append(sql);
     }
     if (eField.attribute("type","") == "int")
     {
-        sql = "ALTER TABLE " + table + " MODIFY " + fieldName + "int(" + QString::number(newSize) + ");";
+        sql = "ALTER TABLE " + table + " MODIFY " + fieldName + " int(" + QString::number(newSize) + ");\n";
         diff.append(sql);
     }
     if (eField.attribute("type","") == "decimal")
     {
-        sql = "ALTER TABLE " + table + " MODIFY " + fieldName + "decimal(" + QString::number(newSize) + "," + QString::number(newDec) + ");";
+        sql = "ALTER TABLE " + table + " MODIFY " + fieldName + " decimal(" + QString::number(newSize) + "," + QString::number(newDec) + ");\n";
         diff.append(sql);
     }
 }
@@ -86,35 +88,38 @@ void addFieldToDiff(QString table, QDomElement eField)
     QString sql;
     sql = "ALTER TABLE " + table + " ADD COLUMN " + eField.attribute("name","");
     if (eField.attribute("type","") == "decimal")
-        sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + "," + eField.attribute("decsize","0") + ");";
+        sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + "," + eField.attribute("decsize","0") + ");\n";
     else
     {
         if (eField.attribute("type","") != "text")
-            sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + ");";
+            sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + ");\n";
         else
-            sql = sql + " " + eField.attribute("type","") + ";";
+            sql = sql + " " + eField.attribute("type","") + ";\n";
     }
     diff.append(sql);
     if (eField.attribute("rtable","") != "")
     {
-        sql = "ALTER TABLE " + table + " ADD INDEX DIDX" + QString::number(idx)  + " (" + eField.attribute("name","") + ");";
+        QUuid recordUUID=QUuid::createUuid();
+        QString strRecordUUID=recordUUID.toString().replace("{","").replace("}","").right(12);
+
+        sql = "ALTER TABLE " + table + " ADD INDEX DIDX" + strRecordUUID  + " (" + eField.attribute("name","") + ");\n";
         diff.append(sql);
-        sql = "ALTER TABLE " + table + " ADD CONSTRAINT DFK" + QString::number(idx) + " FOREIGN KEY (";
+        sql = "ALTER TABLE " + table + " ADD CONSTRAINT DFK" + strRecordUUID + " FOREIGN KEY (";
         sql = sql + eField.attribute("name","") + ") REFERENCES " + eField.attribute("rtable","") + "(";
-        sql = sql + eField.attribute("rfield","") + ") ON DELETE RESTRICT ON UPDATE NO ACTION;" ;
+        sql = sql + eField.attribute("rfield","") + ") ON DELETE RESTRICT ON UPDATE NO ACTION;\n" ;
         diff.append(sql);
         idx++;
     }
 }
 
-void addFieldToRTables(QString rTable, QString field, QString rField)
+void addFieldToRTables(QString parentTable, QString rTable, QString field, QString rField)
 {
     int tidx;
     tidx = -1;
     int pos;
     for (pos = 0; pos < rtables.count(); pos++)
     {
-        if (rtables[pos].name == rTable)
+        if ((rtables[pos].parentTable == parentTable) && (rtables[pos].name == rTable))
             tidx = pos;
     }
     if (tidx != -1)
@@ -127,6 +132,7 @@ void addFieldToRTables(QString rTable, QString field, QString rField)
     else
     {
         TrtableDef table;
+        table.parentTable = parentTable;
         table.name = rTable;
         TrfieldDef aField;
         aField.name = field;
@@ -137,40 +143,52 @@ void addFieldToRTables(QString rTable, QString field, QString rField)
 }
 
 //This adds a table to the diff list
-void addTableToSDiff(QDomNode table)
+void addTableToSDiff(QDomNode table, bool lookUp)
 {
+    QUuid recordUUID=QUuid::createUuid();
+    QString strRecordUUID=recordUUID.toString().replace("{","").replace("}","").right(12);
+
     QDomElement eTable = table.toElement();
     QString sql;
     sql = "CREATE TABLE IF NOT EXISTS " + eTable.attribute("name","") + "(\n";
     QDomNode node = table.firstChild();
     QStringList keys;
+    QList<QDomNode> childTables;
     while (!node.isNull())
     {
         QDomElement field = node.toElement();
-        sql = sql + field.attribute("name","");
+        if (field.tagName() == "field")
+        {
+            sql = sql + field.attribute("name","");
 
-        if (field.attribute("type","") == "decimal")
-            sql = sql + " " + field.attribute("type","") + " (" + field.attribute("size","0") + "," + field.attribute("decsize","0") + ")";
-        else
-        {
-            if (field.attribute("type","") != "text")
-                sql = sql + " " + field.attribute("type","") + " (" + field.attribute("size","0") + ")";
+            if (field.attribute("type","") == "decimal")
+                sql = sql + " " + field.attribute("type","") + " (" + field.attribute("size","0") + "," + field.attribute("decsize","0") + ")";
             else
-                sql = sql + " " + field.attribute("type","");
-        }
-        if (field.attribute("key","") == "true")
-        {
-            sql = sql + "NOT NULL ,\n";
-            keys.append(field.attribute("name",""));
+            {
+                if (field.attribute("type","") != "text")
+                    sql = sql + " " + field.attribute("type","") + " (" + field.attribute("size","0") + ")";
+                else
+                    sql = sql + " " + field.attribute("type","");
+            }
+            if (field.attribute("key","") == "true")
+            {
+                sql = sql + "NOT NULL COMMENT \"" + field.attribute("desc","Without description") + "\",\n";
+                keys.append(field.attribute("name",""));
+            }
+            else
+                sql = sql + " COMMENT \"" + field.attribute("desc","Without description") + "\",\n";
+            if (field.attribute("rtable","") != "")
+            {
+                addFieldToRTables(eTable.attribute("name",""),field.attribute("rtable",""),field.attribute("name",""),field.attribute("rfield",""));
+            }
         }
         else
-            sql = sql + " ,\n";
-        if (field.attribute("rtable","") != "")
         {
-            addFieldToRTables(field.attribute("rtable",""),field.attribute("name",""),field.attribute("rfield",""));
+            childTables.append(node);
         }
         node = node.nextSibling();
     }
+    //sql = sql + "rowuuid varchar(80) COMMENT \"Unique Row Identifier (UUID)\",\n";
     int pos;
     int pos2;
     //Add the keys
@@ -179,38 +197,72 @@ void addTableToSDiff(QDomNode table)
     {
         sql = sql + keys[pos] + ",";
     }
-    sql = sql.left(sql.length()-1) + "),\n";
+    bool hasRelatedTables;
+    hasRelatedTables = false;
+    for (pos = 0; pos < rtables.count();pos++)
+    {
+        if (rtables[pos].parentTable == eTable.attribute("name",""))
+        {
+            hasRelatedTables = true;
+            break;
+        }
+    }
+    if (hasRelatedTables)
+        sql = sql.left(sql.length()-1) + "),\n";
+    else
+        sql = sql.left(sql.length()-1) + ")";
     //Add the indexes
     for (pos = 0; pos < rtables.count();pos++)
     {
-        sql = sql + "INDEX DIDX"  + QString::number(idx) + "(";
-        for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
+        if (rtables[pos].parentTable == eTable.attribute("name",""))
         {
-            sql = sql + rtables[pos].rfields[pos2].name + ",";
+            QUuid idxUUID=QUuid::createUuid();
+            QString strIdxUUID=idxUUID.toString().replace("{","").replace("}","").right(12);
+
+            sql = sql + "INDEX DIDX"  + strIdxUUID + "(";
+            for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
+            {
+                sql = sql + rtables[pos].rfields[pos2].name + ",";
+            }
+            sql = sql.left(sql.length()-1) + "),\n";
+            idx++;
         }
-        sql = sql.left(sql.length()-1) + "),\n";
-        idx++;
     }
     //Add foreign keys
     for (pos = 0; pos < rtables.count();pos++)
     {
-        sql = sql + "CONSTRAINT DFK"  + QString::number(idx) + "\n";
-        sql = sql + "FOREIGN KEY (";
-        for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
+        if (rtables[pos].parentTable == eTable.attribute("name",""))
         {
-            sql = sql + rtables[pos].rfields[pos2].name + ",";
+            QUuid cntUUID=QUuid::createUuid();
+            QString strCntUUID=cntUUID.toString().replace("{","").replace("}","").right(12);
+
+            sql = sql + "CONSTRAINT DFK"  + strCntUUID + "\n";
+            sql = sql + "FOREIGN KEY (";
+            for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
+            {
+                sql = sql + rtables[pos].rfields[pos2].name + ",";
+            }
+            sql = sql.left(sql.length()-1) + ")\n";
+            sql = sql + "REFERENCES " + rtables[pos].name + "(";
+            for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
+            {
+                sql = sql + rtables[pos].rfields[pos2].rname + ",";
+            }
+            sql = sql.left(sql.length()-1) + ")\nON DELETE RESTRICT\nON UPDATE NO ACTION,\n";
+            idx++;
         }
-        sql = sql.left(sql.length()-1) + ")\n";
-        sql = sql + "REFERENCES " + rtables[pos].name + "(";
-        for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
-        {
-            sql = sql + rtables[pos].rfields[pos2].rname + ",";
-        }
-        sql = sql.left(sql.length()-1) + ")\nON DELETE RESTRICT\nON UPDATE NO ACTION,\n";
-        idx++;
     }
-    sql = sql.left(sql.length()-1) + ")\n ENGINE = InnoDB CHARSET=utf8;\n";
+    if (hasRelatedTables)
+        sql = sql.left(sql.length()-2);
+    sql = sql + ")\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + eTable.attribute("desc","") + "\";\n";
+    sql = sql + "CREATE UNIQUE INDEX DXROWUUID" + strRecordUUID + " ON " + eTable.attribute("name","") + "(rowuuid);\n";
+    if (lookUp)
+        sql = sql + "CREATE TRIGGER uudi_" + eTable.attribute("name","") + " BEFORE INSERT ON " + eTable.attribute("name","") + " FOR EACH ROW SET new.rowuuid = uuid();\n\n";
+    else
+        sql = sql + "\n";
     diff.append(sql);
+    for (int pos = 0; pos <= childTables.count()-1;pos++)
+        addTableToSDiff(childTables[pos],lookUp);
 }
 
 //This logs messages to the terminal. We use printf because qDebug does not log in relase
@@ -254,24 +306,33 @@ QDomNode findTable(QDomDocument docB,QString tableName)
     return null;
 }
 
-bool compareFields(QDomElement a, QDomElement b, bool &increased, int &newSize, int &newDec)
+bool compareFields(QDomElement a, QDomElement b, bool &increased, int &newSize, int &newDec, bool &critical)
 {
     bool same;
     increased = false;
     newSize = a.attribute("size","0").toInt();
     newDec = a.attribute("decsize","0").toInt();
     same = true;
+    critical = true;
     bool isKey;
     isKey = false;
     if (a.attribute("key","false") == "true")
         isKey = true;
 
     if (a.attribute("key","") != b.attribute("key",""))
-        same = false;
+        return false;
+
+    if (a.attribute("rtable","") != b.attribute("rtable",""))
+        return false;
+    if (a.attribute("rfield","") != b.attribute("rfield",""))
+        return false;
+
     if (a.attribute("type","") != b.attribute("type",""))
-        same = false;
+        return false;
+
     if (a.attribute("size","") != b.attribute("size",""))
     {
+        critical = false;
         if (a.attribute("size","0").toInt() >= b.attribute("size","0").toInt())
         {
             if (a.attribute("type","") == "decimal")
@@ -314,6 +375,7 @@ bool compareFields(QDomElement a, QDomElement b, bool &increased, int &newSize, 
     }
     if (a.attribute("decsize","") != b.attribute("decsize",""))
     {
+        critical = false;
         if (a.attribute("decsize","0").toInt() >= b.attribute("decsize","0").toInt())
         {
             if ((a.attribute("size","0").toInt() - a.attribute("decsize","0").toInt()) >= (b.attribute("size","0").toInt() - b.attribute("decsize","0").toInt()))
@@ -332,10 +394,6 @@ bool compareFields(QDomElement a, QDomElement b, bool &increased, int &newSize, 
         else
             same = false;
     }
-    if (a.attribute("rtable","") != b.attribute("rtable",""))
-        same = false;
-    if (a.attribute("rfield","") != b.attribute("rfield",""))
-        same = false;
 
     return same;
 }
@@ -347,8 +405,8 @@ QString getFieldDefinition(QDomElement field)
     result = result + "Type=" + field.attribute("type","") + ",";
     result = result + "Size=" + field.attribute("size","0") + ",";
     result = result + "DecimalSize=" + field.attribute("decsize","0") + ",";
-    result = result + "RelatedTable=" + field.attribute("rtable","NULL") + ",";
-    result = result + "RelatedField=" + field.attribute("rfield","NULL") + "]";
+    result = result + "RelatedTable=" + field.attribute("rtable","None") + ",";
+    result = result + "RelatedField=" + field.attribute("rfield","None") + "]";
     return result;
 }
 
@@ -372,20 +430,27 @@ void compareLKPTables(QDomNode table,QDomDocument &docB)
                    bool increased;
                    int newSize;
                    int newDec;
-                   if (compareFields(eField,fieldFound.toElement(),increased,newSize,newDec) == false)
+                   bool critical;
+                   if (compareFields(eField,fieldFound.toElement(),increased,newSize,newDec,critical) == false)
                    {
                        if (outputType == "h")
-                           fatal("FNS:Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " from A is not the same in B. You need to fix it in the XLSX file");
-                       else
                        {
-                           TcompError error;
-                           error.code = "FNS";
-                           error.table = node.toElement().attribute("name","");
-                           error.field = eField.attribute("name","");
-                           error.desc = "Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " from A is not the same in B";
-                           error.from = getFieldDefinition(fieldFound.toElement());
-                           error.to = getFieldDefinition(eField);
-                           errorList.append(error);
+                           if (critical)
+                               fatal("FNS:Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " from A is not the same in B. You need to fix it in the XLSX file");
+                       }
+                           else
+                       {
+                           if (critical)
+                           {
+                               TcompError error;
+                               error.code = "FNS";
+                               error.table = node.toElement().attribute("name","");
+                               error.field = eField.attribute("name","");
+                               error.desc = "Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " from A is not the same in B";
+                               error.from = getFieldDefinition(fieldFound.toElement());
+                               error.to = getFieldDefinition(eField);
+                               errorList.append(error);
+                           }
                        }
                    }
                    else
@@ -416,7 +481,7 @@ void compareLKPTables(QDomNode table,QDomDocument &docB)
        {
            if (outputType == "h")
                log("TNF:Lookup table " + node.toElement().attribute("name","") + " from A not found in B");
-           addTableToSDiff(node);
+           addTableToSDiff(node,true);
            //Now adds the lookup table
            docB.documentElement().firstChild().appendChild(node.cloneNode(true));
        }
@@ -428,6 +493,7 @@ void compareTables(QDomNode table,QDomDocument &docB)
 {
     QDomElement eTable = table.toElement();
     QDomNode tablefound;
+    //log(eTable.toElement().attribute("name",""));
     tablefound = findTable(docB,eTable.toElement().attribute("name",""));
     if (!tablefound.isNull())
     {        
@@ -448,20 +514,27 @@ void compareTables(QDomNode table,QDomDocument &docB)
                         bool increased;
                         int newSize;
                         int newDec;
-                        if (compareFields(eField,fieldFound.toElement(),increased,newSize,newDec) == false)
+                        bool critical;
+                        if (compareFields(eField,fieldFound.toElement(),increased,newSize,newDec,critical) == false)
                         {
                             if (outputType == "h")
-                                fatal("FNS:Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " from A is not the same in B. You need to fix it in the XLSX file");
+                            {
+                                if (critical)
+                                    fatal("FNS:Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " from A is not the same in B. You need to fix it in the XLSX file");
+                            }
                             else
                             {
-                                TcompError error;
-                                error.code = "FNS";
-                                error.table = eTable.toElement().attribute("name","");
-                                error.field = eField.attribute("name","");
-                                error.desc = "Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " from A is not the same in B";
-                                error.from = getFieldDefinition(fieldFound.toElement());
-                                error.to = getFieldDefinition(eField);
-                                errorList.append(error);
+                                if (critical)
+                                {
+                                    TcompError error;
+                                    error.code = "FNS";
+                                    error.table = eTable.toElement().attribute("name","");
+                                    error.field = eField.attribute("name","");
+                                    error.desc = "Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " from A is not the same in B";
+                                    error.from = getFieldDefinition(fieldFound.toElement());
+                                    error.to = getFieldDefinition(eField);
+                                    errorList.append(error);
+                                }
                             }
                         }
                         else
@@ -518,7 +591,7 @@ void compareTables(QDomNode table,QDomDocument &docB)
         {
             if (outputType == "h")
                 log("TNF:Table " + eTable.toElement().attribute("name","") + " from A not found in B");
-            addTableToSDiff(eTable);
+            addTableToSDiff(eTable,false);
             parentfound.appendChild(table.cloneNode(true));
         }
         else
@@ -680,41 +753,47 @@ int main(int argc, char *argv[])
                     log(XMLResult.toString());
                 }
 
-                //Create the output file. If exist it get overwriten
-                if (QFile::exists(outputC))
-                    QFile::remove(outputC);
-                QFile file(outputC);
-                if (file.open(QIODevice::WriteOnly | QIODevice::Text))
+                //Do not create C and the Diff SQL if the merge cannot be done
+                if (fatalError == false)
                 {
-                    QTextStream out(&file);
-                    out.setCodec("UTF-8");
-                    docB.save(out,1,QDomNode::EncodingFromTextStream);
-                    file.close();
-                }
-                else
-                {
-                    log("Error: Cannot create XML combined file");
-                    return 1;
-                }
-
-                if (QFile::exists(outputD))
-                    QFile::remove(outputD);
-                QFile dfile(outputD);
-                if (dfile.open(QIODevice::WriteOnly | QIODevice::Text))
-                {
-                    QTextStream outD(&dfile);
-                    outD.setCodec("UTF-8");
-                    for (int dpos = 0; dpos < diff.count();dpos++)
+                    //Create the output file. If exist it get overwriten
+                    if (QFile::exists(outputC))
+                        QFile::remove(outputC);
+                    QFile file(outputC);
+                    if (file.open(QIODevice::WriteOnly | QIODevice::Text))
                     {
-                        outD << diff[dpos] + "\n";
+                        QTextStream out(&file);
+                        out.setCodec("UTF-8");
+                        docB.save(out,1,QDomNode::EncodingFromTextStream);
+                        file.close();
                     }
-                    file.close();
+                    else
+                    {
+                        log("Error: Cannot create XML combined file");
+                        return 1;
+                    }
+
+                    if (QFile::exists(outputD))
+                        QFile::remove(outputD);
+                    QFile dfile(outputD);
+                    if (dfile.open(QIODevice::WriteOnly | QIODevice::Text))
+                    {
+                        QTextStream outD(&dfile);
+                        outD.setCodec("UTF-8");
+                        for (int dpos = 0; dpos < diff.count();dpos++)
+                        {
+                            outD << diff[dpos];
+                        }
+                        file.close();
+                    }
+                    else
+                    {
+                        log("Error: Cannot create Diff file");
+                        return 1;
+                    }
                 }
                 else
-                {
-                    log("Error: Cannot create Diff file");
                     return 1;
-                }
             }
             else
             {
