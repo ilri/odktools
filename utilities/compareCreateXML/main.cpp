@@ -733,8 +733,8 @@ int main(int argc, char *argv[])
                     QDomElement XMLRoot;
                     XMLRoot = XMLResult.createElement("XMLResult");
                     XMLResult.appendChild(XMLRoot);
-                    QDomDocument eErrors;
-                    eErrors = QDomDocument("errors");
+                    QDomElement eErrors;
+                    eErrors = XMLResult.createElement("errors");
                     XMLRoot.appendChild(eErrors);
                     if (errorList.count() > 0)
                         fatalError = true;
