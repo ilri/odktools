@@ -1,3 +1,23 @@
+/*
+XMLToJSON
+
+Copyright (C) 2018 QLands Technology Consultants.
+Author: Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
+
+XMLToJSON is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as
+published by the Free Software Foundation, either version 3 of
+the License, or (at your option) any later version.
+
+XMLToJSON is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with XMLToJSON.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
+*/
+
 #include <QCoreApplication>
 #include <tclap/CmdLine.h>
 #include <QDomNode>
@@ -125,16 +145,13 @@ int main(int argc, char *argv[])
 {
     QString title;
     title = title + "********************************************************************* \n";
-    title = title + " * XMLToJSON                                                         * \n";
+    title = title + " * XML To JSON                                                       * \n";
     title = title + " * This tool converts an ODK XML data file into JSON.                * \n";
     title = title + " * JSON files are usually generated from 'formhubtojson' however     * \n";
     title = title + " * sometimes it is convenient to convert raw XML files. For example, * \n";
     title = title + " * in case that the data in Formshare get lost and only the XML      * \n";
-    title = title + " * files from devices exists. It is also useful if you want to       * \n";
-    title = title + " * create your own FormShare ;-)                                     * \n";
-    title = title + " *                                                                   * \n";
-    title = title + " * This tool is part of ODK Tools (c) Bioversity Costa Rica, 2017    * \n";
-    title = title + " * Author: Carlos Quiros (c.f.quiros@cgiar.org / cquiros@qlands.com) * \n";
+    title = title + " * files from devices exists. It is also useful if you dont want     * \n";
+    title = title + " * to use software like FormShare or FormHub.                        * \n";
     title = title + " ********************************************************************* \n";
 
     TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");

@@ -1,21 +1,21 @@
 /*
-This file is part of ODKTools.
+CompareCreateXML
 
-Copyright (C) 2015 International Livestock Research Institute.
+Copyright (C) 2015-2017 International Livestock Research Institute.
 Author: Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
 
-ODKTools is free software: you can redistribute it and/or modify
+CompareCreateXML is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
 published by the Free Software Foundation, either version 3 of
 the License, or (at your option) any later version.
 
-ODKTools is distributed in the hope that it will be useful,
+CompareCreateXML is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
-License along with ODKTools.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
+License along with CompareCreateXML.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
 */
 
 #include <tclap/CmdLine.h>
@@ -617,7 +617,7 @@ int main(int argc, char *argv[])
 {
     QString title;
     title = title + "********************************************************************* \n";
-    title = title + " * Compare Create XML 1.0                                            * \n";
+    title = title + " * Compare Create XML                                            * \n";
     title = title + " * This tool compares two create XML files (A and B) for incremental * \n";
     title = title + " * changes. A is consider an incremental version of B .              * \n";
     title = title + " *                                                                   * \n";
@@ -648,9 +648,6 @@ int main(int argc, char *argv[])
     title = title + " *                                                                   * \n";
     title = title + " * Decrimental changes are not taken into account because this means * \n";
     title = title + " * losing data between versions.                                     * \n";
-    title = title + " *                                                                   * \n";
-    title = title + " * This tool is part of ODK Tools (c) ILRI-RMG, 2016                 * \n";
-    title = title + " * Author: Carlos Quiros (c.f.quiros@cgiar.org / cquiros@qlands.com) * \n";
     title = title + " ********************************************************************* \n";
 
     TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");

@@ -1,3 +1,23 @@
+/*
+MySQLDenormalize
+
+Copyright (C) 2018 QLands Technology Consultants.
+Author: Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
+
+MySQLDenormalize is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as
+published by the Free Software Foundation, either version 3 of
+the License, or (at your option) any later version.
+
+MySQLDenormalize is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with MySQLDenormalize.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
+*/
+
 #include <QCoreApplication>
 #include "mainclass.h"
 #include <tclap/CmdLine.h>
@@ -8,7 +28,7 @@ int main(int argc, char *argv[])
     QCoreApplication app(argc, argv);
     QString title;
     title = title + " *********************************************************************** \n";
-    title = title + " * MySQLDenormalize 1.0                                                * \n";
+    title = title + " * MySQLDenormalize                                                    * \n";
     title = title + " * This tool denormalize data from a MySQL Database into JSON          * \n";
     title = title + " * files starting from the main table. It relies on the Map XML files  * \n";
     title = title + " * created by JSONToMySQL. It is useful when you need                  * \n";
@@ -17,11 +37,9 @@ int main(int argc, char *argv[])
     title = title + " * are the columns of many different tables in the database thus       * \n";
     title = title + " * the output is only one CSV file with many columns and not           * \n";
     title = title + " * many CSVs as tables in the database.                                * \n";
-    title = title + " * This tool has be developed by QLands Technology Consultants to      * \n";
-    title = title + " * contribute to CSPro Tools (c) ILRI, 2017                            * \n";
     title = title + " *********************************************************************** \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().data(), ' ', "1.0 (Beta 1)");
+    TCLAP::CmdLine cmd(title.toUtf8().data(), ' ', "1.0");
     //Required arguments
     TCLAP::ValueArg<std::string> hostArg("H","host","MySQL host. Default localhost",false,"localhost","string");
     TCLAP::ValueArg<std::string> portArg("P","port","MySQL port. Default 3306.",false,"3306","string");
