@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core xml
+QT       += core xml sql
 
 QT       -= gui
 
@@ -14,7 +14,9 @@ CONFIG   -= app_bundle
 
 TEMPLATE = app
 
-unix:INCLUDEPATH += ../3rdparty
+unix:INCLUDEPATH += ../3rdparty /usr/local/include /usr/include
+unix:LIBS += -L/lib64 -L/usr/lib64 -L/usr/local/lib -lquazip5 -lcsv
+
 
 include(../3rdparty/QtXlsxWriter/src/xlsx/qtxlsx.pri)
 

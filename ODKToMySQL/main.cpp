@@ -1,26 +1,27 @@
 /*
-This file is part of ODKTools.
+ODKToMySQL
 
-Copyright (C) 2015 International Livestock Research Institute.
+Copyright (C) 2015-2017 International Livestock Research Institute.
 Author: Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
 
-ODKTools is free software: you can redistribute it and/or modify
+ODKToMySQL is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
 published by the Free Software Foundation, either version 3 of
 the License, or (at your option) any later version.
 
-ODKTools is distributed in the hope that it will be useful,
+ODKToMySQL is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
-License along with ODKTools.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
+License along with ODKToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
 */
 
 #include <tclap/CmdLine.h>
 #include <QtXml>
 #include <QFile>
+#include <QDir>
 #include "xlsxdocument.h"
 #include "xlsxworkbook.h"
 #include "xlsxworksheet.h"
@@ -29,9 +30,19 @@ License along with ODKTools.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.
 #include "xlsxcell.h"
 #include <QDebug>
 #include <QDomComment>
+#include <QDirIterator>
+#include <quazip5/quazip.h>
+#include <quazip5/quazipfile.h>
+#include <QDomDocument>
+#include <csv.h>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QSet>
 
 bool debug;
 QString command;
+QString outputType;
 
 //This logs messages to the terminal. We use printf because qDebug does not log in relase
 void log(QString message)
@@ -41,12 +52,137 @@ void log(QString message)
     printf(temp.toUtf8().data());
 }
 
+int CSVRowNumber;
+QStringList CSVvalues;
+QStringList CSVSQLs;
+
+void cb1 (void *s, size_t, void *)
+{
+    char* charData;
+    charData = (char*)s;
+    CSVvalues.append(QString::fromUtf8(charData));
+}
+
+void cb2 (int , void *)
+{
+    QString sql;
+    if (CSVRowNumber == 1)
+    {
+        sql = "CREATE TABLE data (";
+        for (int pos = 0; pos <= CSVvalues.count()-1;pos++)
+        {
+            sql = sql + CSVvalues[pos] + " TEXT,";
+        }
+        sql = sql.left(sql.length()-1) + ");";
+        CSVSQLs.append(sql);
+    }
+    else
+    {
+        sql = "INSERT INTO data VALUES (";
+        for (int pos = 0; pos <= CSVvalues.count()-1;pos++)
+        {
+            sql = sql + "\"" + CSVvalues[pos].replace("\"","") + "\",";
+        }
+        sql = sql.left(sql.length()-1) + ");";
+        CSVSQLs.append(sql);
+    }
+    CSVvalues.clear();
+    CSVRowNumber++;
+}
+
+int convertCSVToSQLite(QString fileName, QDir tempDirectory, QSqlDatabase database)
+{
+    FILE *fp;
+    struct csv_parser p;
+    char buf[4096];
+    size_t bytes_read;
+    size_t retval;
+    unsigned char options = 0;
+
+    if (csv_init(&p, CSV_STRICT) != 0)
+    {
+        log("Failed to initialize csv parser");
+        return 1;
+    }
+    fp = fopen(fileName.toUtf8().constData(), "rb");
+    if (!fp)
+    {
+        log("Failed to open CSV file " + fileName);
+        return 0;
+    }
+    options = CSV_APPEND_NULL;
+    csv_set_opts(&p, options);
+
+    CSVRowNumber = 1;
+    CSVvalues.clear();
+    CSVSQLs.clear();
+    while ((bytes_read=fread(buf, 1, 4096, fp)) > 0)
+    {
+        if ((retval = csv_parse(&p, buf, bytes_read, cb1, cb2, NULL)) != bytes_read)
+        {
+            if (csv_error(&p) == CSV_EPARSE)
+            {
+                log("Malformed data at byte " + QString::number((unsigned long)retval + 1) + " in file " + fileName);
+                return 1;
+            }
+            else
+            {
+                log("Error \"" + QString::fromUtf8(csv_strerror(csv_error(&p))) + "\" in file " + fileName);
+                return 1;
+            }
+        }
+    }
+    fclose(fp);
+    csv_fini(&p, cb1, cb2, NULL);
+    csv_free(&p);
+
+    QFileInfo fi(fileName);
+    QString sqlLiteFile;
+    sqlLiteFile = fi.baseName();
+    sqlLiteFile = tempDirectory.absolutePath() + tempDirectory.separator() + sqlLiteFile + ".sqlite";
+    if (QFile::exists(sqlLiteFile))
+        if (!tempDirectory.remove(sqlLiteFile))
+        {
+            log("Cannot remove previous temporary file " + sqlLiteFile);
+            return 1;
+        }
+    if (outputType == "h")
+    {
+        log("Converting " + fileName + " into SQLite");
+    }
+
+    database.setDatabaseName(sqlLiteFile);
+    if (database.open())
+    {
+        QSqlQuery query(database);
+        query.exec("BEGIN TRANSACTION");
+        for (int pos = 0; pos <= CSVSQLs.count()-1;pos++)
+        {
+            if (!query.exec(CSVSQLs[pos]))
+            {
+                log("Cannot insert data for row: " + QString::number(pos+2) + " reason: " + query.lastError().databaseText());
+                query.exec("ROLLBACK TRANSACTION");
+                return 1;
+            }
+        }
+        query.exec("COMMIT TRANSACTION");
+        database.close();
+    }
+    else
+    {
+        log("Cannot create SQLite database " + sqlLiteFile);
+        return 1;
+    }
+    return 0;
+}
+
 QString strYes; //Yes string for comparing Yes/No lookup tables
 QString strNo; //No string for comparing Yes/No lookup tables
 QStringList variableStack; //This is a stack of groups or repeats for a variable. Used to get /xxx/xxx/xxx structures
 QStringList repeatStack; //This is a stack of repeats. So we know in which repeat we are
 QString prefix; //Table prefix
 int tableIndex; //Global index of a table. Used later on to sort them
+QStringList supportFiles;
 
 //Structure that holds the description of each lkpvalue separated by language
 struct lngDesc
@@ -87,6 +223,8 @@ struct fieldDef
   QString xmlCode; //The field XML code /xx/xx/xx/xx
   bool isMultiSelect; //Whether the field if multiselect
   QString multiSelectTable; //Multiselect table
+  QString selectSource; //The source of the select. Internal, External or Search
+  QString selectListName; //The list name of the select
 };
 typedef fieldDef TfieldDef;
 
@@ -217,7 +355,7 @@ TtableDef getDuplicatedLkpTable(QList<TlkpValue> thisValues)
     QString thisDesc;
     QString currenDesc;
 
-    //Move the new list of values to a new list and sort it by code
+    //Move the new list of values to a new list and sort it by code    
     qSort(thisValues.begin(),thisValues.end(),lkpComp);
 
     QString defLangCode;
@@ -233,7 +371,7 @@ TtableDef getDuplicatedLkpTable(QList<TlkpValue> thisValues)
             qSort(currentValues.begin(),currentValues.end(),lkpComp);
 
             if (currentValues.count() == thisValues.count()) //Same number of values
-            {
+            {                
                 same = true;
                 for (pos2 = 0; pos2 <= tables[pos].lkpValues.count()-1;pos2++)
                 {
@@ -243,7 +381,7 @@ TtableDef getDuplicatedLkpTable(QList<TlkpValue> thisValues)
 
                     if ((currentValues[pos2].code.simplified().toLower() != thisValues[pos2].code.simplified().toLower()) ||
                             (currenDesc.simplified().toLower() != thisDesc.simplified().toLower()))
-                    {
+                    {                        
                         same = false;
                         break;
                     }
@@ -342,7 +480,7 @@ QString fixString(QString source)
         begin = source.left(start);
         end = source.right(source.length()-finish-1);
         middle = source.mid(start+1,finish-start-1);
-        res = begin + "â" + fixString(middle) + "â" + end; //Recursive
+        res = begin + "“" + fixString(middle) + "”" + end; //Recursive
         res = res.replace('\n'," "); //Replace carry return for a space
         return res;
     }
@@ -358,7 +496,7 @@ QString fixString(QString source)
         {
             if (start >= 0) //There is only one " character
             {
-                res = source.replace('\"',"â");
+                res = source.replace('\"',"“");
                 res = res.replace('\n'," "); //Replace carry return for a space
                 return res;
             }
@@ -689,7 +827,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                         if (tables[pos].fields[clm].rTable != "")
                         {
                             createFieldNode.setAttribute("rtable",prefix + tables[pos].fields[clm].rTable);
-                            createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);
+                            createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);                            
                             if (isRelatedTableLookUp(tables[pos].fields[clm].rTable))
                             {
                                 createFieldNode.setAttribute("rlookup","true");
@@ -737,7 +875,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                 if (tables[pos].fields[clm].rTable != "")
                 {
                     createFieldNode.setAttribute("rtable",prefix + tables[pos].fields[clm].rTable);
-                    createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);
+                    createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);                    
                 }
                 tables[pos].tableCreteElement.appendChild(createFieldNode);
             }
@@ -947,7 +1085,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
     if (file.open(QIODevice::WriteOnly | QIODevice::Text))
     {
         QTextStream out(&file);
-        out.setCodec("UTF-8");
+        out.setCodec("UTF-8");        
         outputdoc.save(out,1,QDomNode::EncodingFromTextStream);
         file.close();
     }
@@ -1040,7 +1178,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     {
         result.type = "int";
         result.size = 9;
-    }
+    }        
     if (ODKFieldType == "date")
     {
         result.type = "date";
@@ -1189,7 +1327,7 @@ void appendUUIDs()
     for (pos = 0; pos <= tables.count()-1;pos++)
     {
         TfieldDef UUIDField;
-        UUIDField.name = "rowuuid";
+        UUIDField.name = "rowuuid";        
 
         for (lang = 0; lang <= languages.count()-1;lang++)
         {
@@ -1206,6 +1344,8 @@ void appendUUIDs()
         UUIDField.rField = "";
         UUIDField.xmlCode = "NONE";
         UUIDField.isMultiSelect = false;
+        UUIDField.selectSource = "NONE";
+        UUIDField.selectListName = "NONE";
         tables[pos].fields.append(UUIDField);
     }
 }
@@ -1328,6 +1468,147 @@ bool selectHasOrOther(QString variableType)
         return false;
 }
 
+//This return the values of a select from an external CSV.
+QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QXlsx::Worksheet *choicesSheet,QString listName,int listNameIdx,int nameIdx, bool hasOrOther, int &result, QDir dir, QSqlDatabase database)
+{
+    QList<TlkpValue> res;
+    QXlsx::CellReference ref;
+    QXlsx::Cell *cell;
+    QXlsx::Cell *cell2;
+
+    // First we get column for code and the different columns for descriptions
+    // like for select_one household_region   search('regions', 'matches', 'cnty_cod', ${hh_country}) :
+    // list_name            name        label::English      label::Spanish
+    // household_region     reg_cod     reg_name_en         reg_name_es
+
+    // codeColum is "reg_cod" and the descColumns are "reg_name_en" and "reg_name_es"
+    QString codeColumn;
+    codeColumn = "";
+    QList<TlngLkpDesc> descColumns;
+    for (int nrow = 2; nrow <= choicesSheet->dimension().lastRow(); nrow++)
+    {
+        ref.setRow(nrow);
+        ref.setColumn(listNameIdx);
+        cell = choicesSheet->cellAt(ref);
+        if (cell != 0)
+        {
+            if (cell->value().toString().toLower().trimmed() == listName.toLower().trimmed())
+            {
+                ref.setColumn(nameIdx);
+                codeColumn = choicesSheet->cellAt(ref)->value().toString().trimmed();
+                for (int lng = 0; lng < languages.count(); lng++)
+                {
+                    TlngLkpDesc desc;
+                    desc.langCode = languages[lng].code;
+                    ref.setColumn(languages[lng].idxInChoices);
+                    cell2 = choicesSheet->cellAt(ref);
+                    if (cell2 != 0)
+                        desc.desc = cell2->value().toString().trimmed();
+                    else
+                        desc.desc = "NONE";
+                    descColumns.append(desc);
+                }
+
+            }
+        }
+    }
+    if ((codeColumn != "") && (descColumns.count() > 0))
+    {
+        int pos;
+        //Extract the file from the expression
+        pos = searchExpresion.indexOf("'");
+        QString file = searchExpresion.right(searchExpresion.length()-(pos+1));
+        pos = file.indexOf("'");
+        file = file.left(pos);
+        QString sqliteFile;
+        //There should be an sqlite version of such file in the temporary directory
+        sqliteFile = dir.absolutePath() + dir.separator() + file + ".sqlite";
+        if (QFile::exists(sqliteFile))
+        {
+            database.setDatabaseName(sqliteFile);
+            if (database.open())
+            {
+                //Contruct a query from using "codeColumn" and the list "descColumns"
+                QSqlQuery query(database);
+                QString sql;
+                sql = "SELECT " + codeColumn + ",";
+                for (int pos = 0; pos <= descColumns.count()-1; pos++)
+                {
+                    if (descColumns[pos].desc != "NONE")
+                        sql = sql + descColumns[pos].desc + ",";
+                }
+                sql = sql.left(sql.length()-1) + " FROM data";
+                if (query.exec(sql))
+                {
+                    //Appends each value as a select value
+                    while (query.next())
+                    {
+                        TlkpValue value;
+                        value.code = query.value(codeColumn).toString();
+                        for (int pos = 0; pos <= descColumns.count()-1; pos++)
+                        {
+                            if (descColumns[pos].desc != "NONE")
+                            {
+                                TlngLkpDesc desc;
+                                desc.langCode = descColumns[pos].langCode;
+                                desc.desc = query.value(descColumns[pos].desc).toString();
+                                value.desc.append(desc);
+                            }
+                        }
+                        res.append(value);
+                    }
+                    if (hasOrOther)
+                    {
+                        TlkpValue value;
+                        value.code = "other";
+                        for (int lng = 0; lng < languages.count(); lng++)
+                        {
+                            TlngLkpDesc desc;
+                            desc.langCode = languages[lng].code;
+                            ref.setColumn(languages[lng].idxInChoices);
+                            desc.desc = "Other";
+                            value.desc.append(desc);
+                        }
+                        res.append(value);
+                    }
+                    result = 0;
+                    return res;
+                }
+                else
+                {
+                    log("Unable to retreive data for search \"" + file + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
+                    result = 12;
+                    return res;
+                }
+            }
+            else
+            {
+                log("Cannot create SQLite database " + sqliteFile);
+                result = 1;
+                return res;
+            }
+        }
+        else
+        {
+            log("There is no SQLite file for search \"" + file + "\". Did you add it as CSV when you ran ODKToMySQL?");            
+            result = 11;
+            return res;
+        }
+    }
+    else
+    {
+        if (codeColumn != "")
+            log("Cannot locate the code column for the search select \"" + listName + "\"");
+        if (descColumns.count() == 0)
+            log("Cannot locate a description column for the search select \"" + listName + "\"");
+        result = 10;
+        return res;
+    }
+
+    result = 0;
+    return res;
+}
+
 //This return the values of a select in different languages. If the select is a reference then it return empty
 QList<TlkpValue> getSelectValues(QXlsx::Worksheet *choicesSheet,QString listName,int listNameIdx,int nameIdx, bool hasOrOther)
 {
@@ -1423,14 +1704,68 @@ bool variableIsControl(QString variableType)
     return false;
 }
 
-int processXLSX(QString inputFile, QString mainTable, QString mainField)
+void getReferenceForSelectAt(QString calculateExpresion,QString &fieldType, int &fieldSize, int &fieldDecSize, QString &fieldRTable, QString &fieldRField)
+{
+    int pos;
+    //Extract the file from the expression
+    pos = calculateExpresion.indexOf("{");
+    QString variable = calculateExpresion.right(calculateExpresion.length()-(pos+1));
+    pos = variable.indexOf("}");
+    variable = variable.left(pos);
+    variable = fixField(variable);
+
+    QString multiSelectTable;
+    multiSelectTable = "";
+    bool found;
+    found = false;
+    for (int pos = 0; pos <= tables.count()-1; pos++)
+    {
+        for (int pos2 = 0; pos2 <= tables[pos].fields.count()-1; pos2++)
+        {
+            if (tables[pos].fields[pos2].name == variable)
+            {
+                multiSelectTable = tables[pos].fields[pos2].multiSelectTable;
+                found = true;
+                break;
+            }
+        }
+        if (found)
+            break;
+    }
+    if (multiSelectTable != "")
+    {
+        for (int pos = 0; pos <= tables.count()-1; pos++)
+        {
+            if (tables[pos].name == multiSelectTable)
+            {
+                for (int pos2 = 0; pos2 <= tables[pos].fields.count()-1; pos2++)
+                {
+                    if (tables[pos].fields[pos2].name == variable)
+                    {
+                        fieldType = tables[pos].fields[pos2].type;
+                        fieldSize = tables[pos].fields[pos2].size;
+                        fieldDecSize = tables[pos].fields[pos2].decSize;
+                        fieldRTable = tables[pos].fields[pos2].rTable;
+                        fieldRField = tables[pos].fields[pos2].rField;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
+
+//This is the main process. It parses the XLSX file and store all information in the array "tables"
+int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir dir, QSqlDatabase database)
 {
     bool hasSurveySheet;
     bool hasChoicesSheet;
+    bool hasExternalChoicesSheet;
     bool hasSettingsSheet;
     hasSurveySheet = false;
     hasChoicesSheet = false;
     hasSettingsSheet = false;
+    hasExternalChoicesSheet = false;
     QXlsx::Document xlsx(inputFile);
     QStringList sheets = xlsx.sheetNames();
     for (int nsheet = 0; nsheet <= sheets.count()-1;nsheet++)
@@ -1441,6 +1776,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
             hasChoicesSheet = true;
         if (sheets[nsheet].toLower() == "settings")
             hasSettingsSheet = true;
+        if (sheets[nsheet].toLower() == "external_choices")
+            hasExternalChoicesSheet = true;
     }
     if (!hasSurveySheet || !hasChoicesSheet || !hasSettingsSheet)
     {
@@ -1473,7 +1810,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
 
         excelSheet = (QXlsx::Worksheet*)xlsx.sheet("survey");
         for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
-        {
+        {            
             ref.setRow(1);
             ref.setColumn(ncols);
             cell = excelSheet->cellAt(ref);
@@ -1499,16 +1836,67 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
 
         if ((ODKLanguages.count() > 1) && (languages.count() == 1))
         {
-            log("This ODK has multiple languages but not other languages where specified with the -l parameter.");
-            return 1;
+            if (outputType == "h")
+                log("This ODK has multiple languages but not other languages where specified with the -l parameter.");
+            else
+            {
+                QDomDocument XMLResult;
+                XMLResult = QDomDocument("XMLResult");
+                QDomElement XMLRoot;
+                XMLRoot = XMLResult.createElement("XMLResult");
+                XMLResult.appendChild(XMLRoot);
+                QDomElement eLanguages;
+                eLanguages = XMLResult.createElement("languages");
+                for (int pos = 0; pos <= ODKLanguages.count()-1;pos++)
+                {
+                    QDomElement eLanguage;
+                    eLanguage = XMLResult.createElement("language");
+                    QDomText vSepFile;
+                    vSepFile = XMLResult.createTextNode(ODKLanguages[pos]);
+                    eLanguage.appendChild(vSepFile);
+                    eLanguages.appendChild(eLanguage);
+                }
+                XMLRoot.appendChild(eLanguages);
+                log(XMLResult.toString());
+            }
+            return 3;
         }
 
+        bool languageNotFound;
+        languageNotFound = false;
+        QDomDocument XMLResult;
+        XMLResult = QDomDocument("XMLResult");
+        QDomElement XMLRoot;
+        XMLRoot = XMLResult.createElement("XMLResult");
+        XMLResult.appendChild(XMLRoot);
+        QDomElement eLanguages;
+        eLanguages = XMLResult.createElement("languages");
         for (int lng = 0; lng < ODKLanguages.count();lng++)
             if (genLangIndexByName(ODKLanguages[lng]) == -1)
             {
-                log("ODK language " + ODKLanguages[lng] + " was not found. Please indicate it as default language (-d) or as other lannguage (-l)");
-                return 1;
+                if (outputType == "h")
+                {
+                    languageNotFound = true;
+                    log("Language " + ODKLanguages[lng] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
+                }
+                else
+                {
+                    languageNotFound = true;
+                    QDomElement eLanguage;
+                    eLanguage = XMLResult.createElement("language");
+                    QDomText vSepFile;
+                    vSepFile = XMLResult.createTextNode(ODKLanguages[lng]);
+                    eLanguage.appendChild(vSepFile);
+                    eLanguages.appendChild(eLanguage);
+                }
             }
+        XMLRoot.appendChild(eLanguages);
+        if (languageNotFound)
+        {
+            if (outputType == "m")
+                log(XMLResult.toString());
+            return 4;
+        }
 
         //Allocating survey labels column indexes to languages
         for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
@@ -1573,7 +1961,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
             if ((languages[ncols].idxInChoices == -1) || (languages[ncols].idxInSurvey == -1))
             {
                 log("Language " + languages[ncols].desc + " is not present in the labels of the sheets choices or Survey");
-                return 1;
+                return 5;
             }
         }
         //Processing survey structure
@@ -1583,6 +1971,11 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
         columnType = -1;
         int columnName;
         columnName = -1;
+        int columnAppearance;
+        columnAppearance = -1;
+        int columnCalculation;
+        columnCalculation = -1;
+
         for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
         {
             ref.setRow(1);
@@ -1597,6 +1990,14 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                 if (cell->value().toString().toLower().indexOf("name") >= 0)
                 {
                     columnName = ncols;
+                }
+                if (cell->value().toString().toLower().indexOf("appearance") >= 0)
+                {
+                    columnAppearance = ncols;
+                }
+                if (cell->value().toString().toLower().indexOf("calculation") >= 0)
+                {
+                    columnCalculation = ncols;
                 }
             }
         }
@@ -1632,6 +2033,39 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
             log("Cannot find list_name or name in choices in the ODK. Is this an ODK file?");
             return 1;
         }
+        //Look for external choices
+        int externalColumnListName;
+        externalColumnListName = -1;
+        int externalColumnChoiceName;
+        externalColumnChoiceName = -1;
+        QXlsx::Worksheet *externalChoicesSheet = (QXlsx::Worksheet*)xlsx.sheet("external_choices");
+        if (hasExternalChoicesSheet)
+        {
+            for (ncols = 1; ncols <= externalChoicesSheet->dimension().lastColumn(); ncols++)
+            {
+                ref.setRow(1);
+                ref.setColumn(ncols);
+                cell =  externalChoicesSheet->cellAt(ref);
+                if (cell != 0)
+                {
+                    if (cell->value().toString().toLower().indexOf("list_name") >= 0)
+                    {
+                        externalColumnListName = ncols;
+                    }
+                    if (cell->value().toString().toLower().indexOf("name") >= 0)
+                    {
+                        externalColumnChoiceName = ncols;
+                    }
+                }
+            }
+            if ((externalColumnListName == -1) || (externalColumnChoiceName == -1))
+            {
+                log("Cannot find list_name or name in external choices in the ODK. Is this an ODK file?");
+                return 1;
+            }
+        }
+
+
         int lang;
         //Creating the main table
         tableIndex = tableIndex + 1;
@@ -1664,12 +2098,14 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
         }
         fsurveyID.type = "varchar";
         fsurveyID.size = 80;
-        fsurveyID.decSize = 0;
+        fsurveyID.decSize = 0;        
         fsurveyID.rField = "";
         fsurveyID.rTable = "";
         fsurveyID.key = false;
         fsurveyID.isMultiSelect = false;
         fsurveyID.xmlCode = "NONE";
+        fsurveyID.selectSource = "NONE";
+        fsurveyID.selectListName = "NONE";
         maintable.fields.append(fsurveyID);
 
         //Append the origin ID to the main table
@@ -1685,11 +2121,13 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
         }
         foriginID.type = "varchar";
         foriginID.size = 15;
-        foriginID.decSize = 0;
+        foriginID.decSize = 0;        
         foriginID.rField = "";
         foriginID.rTable = "";
         foriginID.key = false;
         foriginID.xmlCode = "NONE";
+        foriginID.selectSource = "NONE";
+        foriginID.selectListName = "NONE";
         foriginID.isMultiSelect = false;
         maintable.fields.append(foriginID);
 
@@ -1699,6 +2137,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
         //Processing variables
         QString variableType;
         QString variableName;
+        QString variableApperance;
+        QString variableCalculation;
         QString tableName;
         int tblIndex;
         int nrow;
@@ -1727,10 +2167,24 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                 variableType = "note";
             ref.setColumn(columnName);
             cell = excelSheet->cellAt(ref);
-            if (cell != 0)
+            if (cell != 0)            
                 variableName = cell->value().toString().trimmed();
             else
                 variableName = "";
+            //Read the apperance value
+            ref.setColumn(columnAppearance);
+            cell = excelSheet->cellAt(ref);
+            if (cell != 0)
+                variableApperance = cell->value().toString().trimmed().toLower();
+            else
+                variableApperance = "";
+            //Read the calculation value
+            ref.setColumn(columnCalculation);
+            cell = excelSheet->cellAt(ref);
+            if (cell != 0)
+                variableCalculation = cell->value().toString().trimmed().toLower();
+            else
+                variableCalculation = "";
 
             //if (variableName == "secd_d4_exotic_breed")
             //{
@@ -1790,6 +2244,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                             relField.rTable = parentTable.name;
                             relField.rField = parentTable.fields[field].name;
                             relField.xmlCode = "NONE";
+                            relField.selectSource = "NONE";
+                            relField.selectListName = "NONE";
                             relField.isMultiSelect = false;
                             relField.multiSelectTable = "";
                             aTable.fields.append(relField);
@@ -1812,6 +2268,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                     keyField.rTable = "";
                     keyField.rField = "";
                     keyField.xmlCode = "NONE";
+                    keyField.selectSource = "NONE";
+                    keyField.selectListName = "NONE";
                     keyField.isMultiSelect = false;
                     keyField.multiSelectTable = "";
                     aTable.fields.append(keyField);
@@ -1857,12 +2315,14 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                 tblIndex = getTableIndex(tableName);
                 if (variableType.trimmed() != "") //Not process empty cells
                 {
-                    if ((variableType.indexOf("select_one") == -1) && (variableType.indexOf("select_multiple") == -1) && (variableType.indexOf("note") == -1))
+                    if ((variableType.indexOf("select_one") == -1) && (variableType.indexOf("select_multiple") == -1) && (variableType.indexOf("note") == -1) && (variableType.indexOf("select_one_external") == -1))
                     {
 
                         TfieldDef aField;
                         aField.name = fixField(variableName.toLower());
                         TfieldMap vartype = mapODKFieldTypeToMySQL(variableType);
+                        aField.selectSource = "NONE";
+                        aField.selectListName = "NONE";
                         aField.odktype = variableType;
                         aField.type = vartype.type;
                         aField.size = vartype.size;
@@ -1883,12 +2343,28 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                         }
                         else
                             aField.key = false;
-                        aField.rTable = "";
-                        aField.rField = "";
+                        if (variableType != "calculate")
+                        {
+                            aField.rTable = "";
+                            aField.rField = "";
+                        }
+                        else
+                        {
+                            if (variableCalculation.indexOf("selected-at(") >=0 )
+                            {
+                                getReferenceForSelectAt(variableCalculation,aField.type,aField.size,aField.decSize,aField.rTable,aField.rField);
+                            }
+                            else
+                            {
+                                aField.rTable = "";
+                                aField.rField = "";
+                            }
+
+                        }
                         if (getVariableStack() != "")
                             aField.xmlCode = getVariableStack() + "/" + variableName;
                         else
-                            aField.xmlCode = variableName;
+                            aField.xmlCode = variableName;                        
                         aField.isMultiSelect = false;
                         aField.multiSelectTable = "";
                         for (int lng = 0; lng < languages.count();lng++)
@@ -1908,8 +2384,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                     }
                     else
                     {
-                        //Processing selects
-                        if (variableType.indexOf("select_one") >= 0)
+                        //Processing selects                        
+                        if ((variableType.indexOf("select_one") >= 0) || ((variableType.indexOf("select_one_external") >= 0) && (hasExternalChoicesSheet)))
                         {
                             QList<TlkpValue> values;
                             QString listName;
@@ -1919,13 +2395,37 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                             if (variableType.indexOf(" ") >= 0)
                                 listName = variableType.split(" ",QString::SkipEmptyParts)[1].trimmed();
                             if (listName != "")
-                                values.append(getSelectValues(choicesSheet,
-                                                          listName,
-                                          columnListName,columnChoiceName,selectHasOrOther(variableType)));
+                            {
+                                if (variableType.indexOf("select_one_external") >= 0)
+                                    values.append(getSelectValues(externalChoicesSheet,listName,externalColumnListName,externalColumnChoiceName,selectHasOrOther(variableType)));
+                                else
+                                {
+                                    if (variableApperance.indexOf("search(") == -1)
+                                        values.append(getSelectValues(choicesSheet,listName,columnListName,columnChoiceName,selectHasOrOther(variableType)));
+                                    else
+                                    {
+                                        int result;
+                                        values.append(getSelectValuesFromCSV(variableApperance,choicesSheet,listName,columnListName,columnChoiceName,selectHasOrOther(variableType),result,dir,database));
+                                        if (result != 0)
+                                            return result;
+                                    }
+                                }
+                            }
                             //Processing field
                             TfieldDef aField;
+                            if (variableType.indexOf("select_one_external") >= 0)
+                                aField.selectSource = "EXTERNAL";
+                            else
+                            {
+                                if (variableApperance.indexOf("search(") == -1)
+                                    aField.selectSource = "INTERNAL";
+                                else
+                                    aField.selectSource = "SEARCH";
+                            }
+
                             aField.name = fixField(variableName.toLower());
                             aField.odktype = variableType;
+                            aField.selectListName = listName;
                             if (!selectHasOrOther(variableType))
                             {
                                 if (areValuesStrings(values))
@@ -1991,6 +2491,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                         //Creates the field for code in the lookup
                                         TfieldDef lkpCode;
                                         lkpCode.name = fixField(variableName.toLower()) + "_cod";
+                                        lkpCode.selectSource = "NONE";
+                                        lkpCode.selectListName = "NONE";
                                         for (lang = 0; lang <= languages.count()-1;lang++)
                                         {
                                             TlngLkpDesc langDesc;
@@ -2006,6 +2508,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                         //Creates the field for description in the lookup
                                         TfieldDef lkpDesc;
                                         lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                                        lkpDesc.selectSource = "NONE";
+                                        lkpDesc.selectListName = "NONE";
                                         for (lang = 0; lang <= languages.count()-1;lang++)
                                         {
                                             TlngLkpDesc langDesc;
@@ -2024,7 +2528,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                     }
                                     else
                                     {
-                                        //log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
+                                        if (outputType == "h")
+                                            log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
                                         aField.rTable = lkpTable.name;
                                         aField.rField = getKeyField(lkpTable.name);
                                     }
@@ -2042,6 +2547,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                             {
                                 TfieldDef oField;
                                 oField.name = aField.name + "_other";
+                                oField.selectSource = "NONE";
+                                oField.selectListName = "NONE";
                                 oField.xmlCode = aField.xmlCode + "_other";
                                 oField.decSize = 0;
                                 for (int lng = 0; lng < languages.count();lng++)
@@ -2060,9 +2567,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                 oField.type = "varchar";
                                 tables[tblIndex].fields.append(oField);
                             }
-
-
-                        }
+                        }                        
+                        //Select multiple
                         if (variableType.indexOf("select_multiple") >= 0)
                         {
                             if (fixField(variableName.toLower()) == fixField(mainField.toLower()))
@@ -2070,22 +2576,41 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                 log("Error: Primary ID : " + mainField + " cannot be a multi-select variable");
                                 return 1;
                             }
-
                             //Processing multiselects
+                            QString listName;
+                            listName = "";
+                            if (variableType.indexOf(" ") >= 0)
+                                listName = variableType.split(" ",QString::SkipEmptyParts)[1].trimmed();
+                            if (variableType.indexOf(" ") >= 0)
+                                listName = variableType.split(" ",QString::SkipEmptyParts)[1].trimmed();
                             QList<TlkpValue> values;
-                            values.append(getSelectValues(choicesSheet,
-                                                          variableType.split(" ",QString::SkipEmptyParts)[1].trimmed(),
-                                          columnListName,columnChoiceName,selectHasOrOther(variableType)));
+                            if (listName != "")
+                            {
+                                if (variableApperance.indexOf("search(") == -1)
+                                    values.append(getSelectValues(choicesSheet,listName,columnListName,columnChoiceName,selectHasOrOther(variableType)));
+                                else
+                                {
+                                    int result;
+                                    values.append(getSelectValuesFromCSV(variableApperance,choicesSheet,listName,columnListName,columnChoiceName,selectHasOrOther(variableType),result,dir,database));
+                                    if (result != 0)
+                                        return result;
+                                }
+                            }
 
                             //Processing  the field
                             TfieldDef aField;
                             aField.name = fixField(variableName.toLower());
+                            if (variableApperance.indexOf("search(") == -1)
+                                aField.selectSource = "INTERNAL";
+                            else
+                                aField.selectSource = "SEARCH";
+                            aField.selectListName = listName;
                             aField.type = "varchar";
                             aField.size = getMaxMSelValueLength(values);
                             aField.decSize = 0;
                             aField.key = false;
                             aField.isMultiSelect = true;
-                            aField.multiSelectTable = fixField(tables[tblIndex].name) + + "_msel_" + fixField(variableName.toLower());
+                            aField.multiSelectTable = fixField(tables[tblIndex].name) + "_msel_" + fixField(variableName.toLower());
                             if (getVariableStack() != "")
                                 aField.xmlCode = getVariableStack() + "/" + variableName;
                             else
@@ -2113,6 +2638,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                     if (tables[tblIndex].fields[field].key == true)
                                     {
                                         TfieldDef relField;
+                                        relField.selectSource = "NONE";
+                                        relField.selectListName = "NONE";
                                         relField.name = tables[tblIndex].fields[field].name;
                                         relField.desc.append(tables[tblIndex].fields[field].desc);
                                         relField.type = tables[tblIndex].fields[field].type;
@@ -2145,6 +2672,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                 //Creating the extra field to the multiselect table that will be linked to the lookuptable
                                 TfieldDef mselKeyField;
                                 mselKeyField.name = aField.name;
+                                mselKeyField.selectSource = "NONE";
+                                mselKeyField.selectListName = "NONE";
                                 mselKeyField.desc.append(aField.desc);
                                 mselKeyField.key = true;
 
@@ -2180,6 +2709,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                     //Creates the field for code in the lookup
                                     TfieldDef lkpCode;
                                     lkpCode.name = fixField(variableName.toLower()) + "_cod";
+                                    lkpCode.selectSource = "NONE";
+                                    lkpCode.selectListName = "NONE";
                                     int lang;
                                     for (lang = 0; lang <= languages.count()-1;lang++)
                                     {
@@ -2196,6 +2727,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                     //Creates the field for description in the lookup
                                     TfieldDef lkpDesc;
                                     lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                                    lkpDesc.selectSource = "NONE";
+                                    lkpDesc.selectListName = "NONE";
                                     for (lang = 0; lang <= languages.count()-1;lang++)
                                     {
                                         TlngLkpDesc langDesc;
@@ -2216,7 +2749,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                                 }
                                 else
                                 {
-                                    //log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
+                                    if (outputType == "h")
+                                        log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
                                     //Linkin the multiselect table to the existing lookup table
                                     mselKeyField.rTable = lkpTable.name;
                                     mselKeyField.rField = getKeyField(lkpTable.name);
@@ -2238,6 +2772,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField)
                             {
                                 TfieldDef oField;
                                 oField.name = aField.name + "_other";
+                                oField.selectSource = "NONE";
+                                oField.selectListName = "NONE";
                                 oField.xmlCode = aField.xmlCode + "_other";
                                 oField.decSize = 0;
                                 for (int lng = 0; lng < languages.count();lng++)
@@ -2373,6 +2909,8 @@ int separateTable(TtableDef &table, QDomNode groups)
         {
             TfieldDef keyfield;
             keyfield.name = table.fields[pos2].name;
+            keyfield.selectSource = "NONE";
+            keyfield.selectListName = "NONE";
             keyfield.desc.append(table.fields[pos2].desc);
             keyfield.key =true;
             keyfield.type = table.fields[pos2].type;
@@ -2411,6 +2949,8 @@ int separateTable(TtableDef &table, QDomNode groups)
                 TfieldDef keyfield;
                 keyfield = keys[pos2];
                 //A secondary group will be linked to the main
+                keyfield.selectSource = "NONE";
+                keyfield.selectListName = "NONE";
                 keyfield.rTable = table.name;
                 keyfield.rField = keys[pos2].name;
                 ntable.fields.append(keyfield);
@@ -2459,7 +2999,7 @@ int separateTable(TtableDef &table, QDomNode groups)
 
 //Checks which table has more than 60 references or more than 100 fields. Those with more than 60 or 100 fields gets separated
 int separeteTables(QString sepFile)
-{
+{    
     QDomDocument doc("mydocument");
     QFile xmlfile(sepFile);
     if (!xmlfile.open(QIODevice::ReadOnly))
@@ -2490,7 +3030,7 @@ int separeteTables(QString sepFile)
             if (separateTable(tables[tblIndex],groups) == 1)
             {
                 return 1;
-            }
+            }            
         }
         table = table.nextSibling();
     }
@@ -2532,9 +3072,109 @@ QDomElement getTableXML(QDomDocument doc, TtableDef table)
     return tnode;
 }
 
+//This function return the list names referencing a lookup table
+QStringList getReferencingLists(QString table)
+{
+    QStringList res;
+    for (int pos = 0; pos <= tables.count()-1; pos++)
+    {
+        for (int pos2 = 0; pos2 <= tables[pos].fields.count()-1; pos2++)
+        {
+            if (tables[pos].fields[pos2].rTable == table)
+                res.append(tables[pos].fields[pos2].xmlCode + "~~" + tables[pos].fields[pos2].selectListName);
+        }
+    }
+    return res;
+}
+
+//This function checks the lookup tables to see if a value appears more than once
+int checkLookupTables()
+{
+    QDomDocument XMLResult;
+    XMLResult = QDomDocument("XMLResult");
+    QDomElement XMLRoot;
+    XMLRoot = XMLResult.createElement("XMLResult");
+    XMLResult.appendChild(XMLRoot);
+
+    bool repeatedValues;
+    repeatedValues = false;
+    for (int pos = 0; pos <= tables.count()-1; pos++)
+    {
+        QDomElement eList;
+        eList = XMLResult.createElement("list");
+        eList.setAttribute("name",tables[pos].name);
+
+        QDomElement eValues;
+        eValues = XMLResult.createElement("values");
+        eList.appendChild(eValues);
+        QDomElement eReferences;
+        eReferences = XMLResult.createElement("references");
+        eList.appendChild(eReferences);
+
+        if (tables[pos].islookup)
+        {                        
+            QSet<QString> valueSet;
+            QStringList repeated;
+            for (int pos2 = 0; pos2 <= tables[pos].lkpValues.count()-1;pos2++)
+            {
+                if (valueSet.contains(tables[pos].lkpValues[pos2].code))
+                {
+                    if (repeated.indexOf(tables[pos].lkpValues[pos2].code) == -1)
+                        repeated.append(tables[pos].lkpValues[pos2].code);
+                }
+                else
+                    valueSet << tables[pos].lkpValues[pos2].code;
+            }
+            if (repeated.count() > 0)
+            {
+                if (outputType == "h")
+                    log("Error: Duplicated options. Variables:");
+                repeatedValues = true;
+                QStringList references;
+                references = getReferencingLists(tables[pos].name);
+                for (int pos2 = 0; pos2 <= references.count()-1; pos2++)
+                {
+                    QDomElement eReference;
+                    eReference = XMLResult.createElement("reference");
+                    QStringList refCode;
+                    refCode = references[pos2].split("~~");
+                    eReference.setAttribute("variable",refCode[0]);
+                    eReference.setAttribute("option",refCode[1]);
+                    eReferences.appendChild(eReference);
+                    if (outputType == "h")
+                        log(refCode[0] + " with option " + refCode[1]);
+                }
+                if (outputType == "h")
+                    log("Have duplicated values: ");
+                for (int pos2 = 0; pos2 <= repeated.count()-1; pos2++)
+                {
+                    QDomElement eValue;
+                    eValue = XMLResult.createElement("value");
+                    QDomText vValue;
+                    vValue = XMLResult.createTextNode(repeated[pos2]);
+                    eValue.appendChild(vValue);
+                    eValues.appendChild(eValue);
+                    if (outputType == "h")
+                        log(repeated[pos2]);
+                }
+                if (outputType == "h")
+                    log("----------------------------");
+                XMLRoot.appendChild(eList);
+            }
+        }
+    }
+    if (repeatedValues)
+    {
+        if (outputType == "m")
+            log(XMLResult.toString());
+        return 9;
+    }
+    return 0;
+}
+
 // This function check the tables. If the table has more than 60 relationships creates a separation file using UUID as file name
 // The separation file then can be used as an input parameter to separate the tables into sections
-int checkTables()
+int checkTables(QString sepOutFile)
 {
     int pos;
     int pos2;
@@ -2564,10 +3204,6 @@ int checkTables()
         }
         if ((rfcount > 60) || (fcount >= 100))
         {
-//            if (rfcount > 60)
-//                log(tables[pos].name + " has more than 60 relationships");
-//            if (fcount > 100)
-//                log(tables[pos].name + " has more than 100 fields.");
             root.appendChild(getTableXML(outputdoc,tables[pos]));
             count++;
             error = true;
@@ -2582,7 +3218,11 @@ int checkTables()
         fname = fname.replace("{","");
         fname = fname.replace("}","");
         fname = fname.right(12);
-        QFile file(fname + ".xml");
+        QFile file;
+        if (sepOutFile == "")
+            file.setFileName(fname + ".xml");
+        else
+            file.setFileName(sepOutFile);
         if (file.open(QIODevice::WriteOnly | QIODevice::Text))
         {
             QTextStream out(&file);
@@ -2590,19 +3230,41 @@ int checkTables()
             outputdoc.save(out,1,QDomNode::EncodingFromTextStream);
             file.close();
         }
-        QDir dir(".");
+        else
+        {
+            log("Cannot create separation file");
+            return 1;
+        }
+
         QString sepFileName;
-        sepFileName = dir.absolutePath() + dir.separator() + fname + ".xml";
-        log("Separation file:" + sepFileName);
-//        QString msg;
-//        msg = QString::number(count) + " tables have more than 60 relationships or 100 fields. A separation file (";
-//        msg = msg + fname + ".xml) was created. Edit this file and separate the fields in logical groups of data that share something in common.";
-//        msg = msg + "For example if such table contains variables about crops, livestock, household members, health,etc create a group for each set of variables";
-//        msg = msg + "in the separation file";
-//        log(msg);
-//        msg = "Once you are done run the same command with -s '/where/my/separation/file/is/separationFile.xml' to separate the table(s) in sections.";
-//        log(msg);
-        return 1;
+        if (sepOutFile == "")
+        {
+            QDir dir(".");
+            sepFileName = dir.absolutePath() + dir.separator() + fname + ".xml";
+        }
+        else
+        {
+            QDir dir;
+            sepFileName = dir.absoluteFilePath(sepOutFile);
+        }
+        if (outputType == "h")
+            log("The separation file: " + sepFileName + " has been created use. Edit it and use it as an input.");
+        else
+        {
+            QDomDocument XMLResult;
+            XMLResult = QDomDocument("XMLResult");
+            QDomElement XMLRoot;
+            XMLRoot = XMLResult.createElement("XMLResult");
+            XMLResult.appendChild(XMLRoot);
+            QDomElement eSepFile;
+            eSepFile = XMLResult.createElement("sepfile");
+            QDomText vSepFile;
+            vSepFile = XMLResult.createTextNode(sepFileName);
+            eSepFile.appendChild(vSepFile);
+            XMLRoot.appendChild(eSepFile);
+            log(XMLResult.toString());
+        }
+        return 2;
     }
     else
         return 0;
@@ -2610,7 +3272,7 @@ int checkTables()
 
 //Returns the index of a language by its code
 int genLangIndex(QString langCode)
-{
+{    
     for (int pos=0; pos < languages.count();pos++)
     {
         if (languages[pos].code == langCode)
@@ -2647,15 +3309,13 @@ int main(int argc, char *argv[])
 {
     QString title;
     title = title + "********************************************************************* \n";
-    title = title + " * ODKToMySQL 1.0                                                    * \n";
+    title = title + " * ODK To MySQL                                                      * \n";
     title = title + " * This tool generates a MySQL schema from a ODK XLSX survey file    * \n";
     title = title + " * Though ODK Aggregate can store data in MySQL such repository      * \n";
     title = title + " * is for storage only. The resulting schema from Aggregate is not   * \n";
     title = title + " * relational or easy for analysis.                                  * \n";
     title = title + " * ODKtoMySQL generates a full relational MySQL database from a      * \n";
     title = title + " * ODK XLSX file.                                                    * \n";
-    title = title + " * This tool is part of ODK Tools (c) ILRI-RMG, 2014-15              * \n";
-    title = title + " * Author: Carlos Quiros (c.f.quiros@cgiar.org / cquiros@qlands.com) * \n";
     title = title + " ********************************************************************* \n";
 
     TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
@@ -2672,10 +3332,15 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> impxmlArg("f","outputxml","Output xml manifest file. Default ./manifest.xml",false,"./manifest.xml","string");
     TCLAP::ValueArg<std::string> prefixArg("p","prefix","Prefix for each table. _ is added to the prefix. Default no prefix",false,"","string");
     TCLAP::ValueArg<std::string> sepArg("s","separationfile","Separation file to use",false,"","string");
-    TCLAP::ValueArg<std::string> langArg("l","otherlanguages","Other languages. For example: (en)English,(es)EspaÃ±ol. Required if ODK form has multiple languages",false,"","string");
+    TCLAP::ValueArg<std::string> sepOutputArg("S","separationoutputfile","Separation file to writen if required. By default a auto generated file will be created",false,"","string");
+    TCLAP::ValueArg<std::string> langArg("l","otherlanguages","Other languages. For example: (en)English,(es)Español. Required if ODK form has multiple languages",false,"","string");
     TCLAP::ValueArg<std::string> defLangArg("d","deflanguage","Default language. For example: (en)English. If not indicated then English will be asumed",false,"(en)English","string");
     TCLAP::ValueArg<std::string> transFileArg("T","translationfile","Output translation file",false,"./iso639.sql","string");
     TCLAP::ValueArg<std::string> yesNoStringArg("y","yesnostring","Yes and No strings in the default language in the format \"String|String\". This will allow the tool to identify Yes/No lookup tables and exclude them. This is not case sensitive. For example, if the default language is Spanish this value should be indicated as \"Si|No\". If empty English \"Yes|No\" will be assumed",false,"Yes|No","string");
+    TCLAP::ValueArg<std::string> tempDirArg("e","tempdirectory","Temporary directory. ./tmp by default",false,"./tmp","string");
+    TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");
+
+    TCLAP::UnlabeledMultiArg<std::string> suppFiles("supportFile", "support files", false, "string");
 
     debug = false;
 
@@ -2700,9 +3365,27 @@ int main(int argc, char *argv[])
     cmd.add(defLangArg);
     cmd.add(transFileArg);
     cmd.add(yesNoStringArg);
+    cmd.add(tempDirArg);
+    cmd.add(outputTypeArg);
+    cmd.add(sepOutputArg);
+    cmd.add(suppFiles);
 
     //Parsing the command lines
     cmd.parse( argc, argv );
+
+    //Get the support files
+    std::vector<std::string> v = suppFiles.getValue();
+    for (int i = 0; static_cast<unsigned int>(i) < v.size(); i++)
+    {
+        QString file = QString::fromStdString(v[i]);
+        if (QFile::exists(file))
+            supportFiles.append(file);
+        else
+        {
+            log("Support file \"" + file + "\" does not exist.");
+            return 1;
+        }
+    }
 
     //Getting the variables from the command
     QString input = QString::fromUtf8(inputArg.getValue().c_str());
@@ -2716,10 +3399,122 @@ int main(int argc, char *argv[])
     QString mTable = QString::fromUtf8(tableArg.getValue().c_str());
     QString mainVar = QString::fromUtf8(mainVarArg.getValue().c_str());
     QString sepFile = QString::fromUtf8(sepArg.getValue().c_str());
+    QString sepOutFile = QString::fromUtf8(sepOutputArg.getValue().c_str());
     QString lang = QString::fromUtf8(langArg.getValue().c_str());
     QString defLang = QString::fromUtf8(defLangArg.getValue().c_str());
     QString transFile = QString::fromUtf8(transFileArg.getValue().c_str());
     QString yesNoString = QString::fromUtf8(yesNoStringArg.getValue().c_str());
+    QString tempDirectory = QString::fromUtf8(tempDirArg.getValue().c_str());
+    outputType = QString::fromUtf8(outputTypeArg.getValue().c_str());
+
+    QDir currdir(".");
+    QDir dir;
+    if (!dir.exists(tempDirectory))
+    {
+        if (!dir.mkdir(tempDirectory))
+        {
+            log("Cannot create temporary directory");
+            return 1;
+        }
+    }
+    else
+    {
+        dir.setPath(tempDirectory);
+        if (currdir.absolutePath() == dir.absolutePath())
+        {
+            log("Temporary directory cannot be the same as this path");
+            return 1;
+        }
+        if (!dir.removeRecursively())
+        {
+            log("Cannot remove existing temporary directory");
+            return 1;
+        }
+        QDir dir2;
+        if (!dir2.mkdir(tempDirectory))
+        {
+            log("Cannot create temporary directory");
+            return 1;
+        }
+    }
+    dir.setPath(tempDirectory);
+
+    //Unzip any zip files in the temporary directory
+    QStringList zipFiles;
+    for (int pos = 0; pos <= supportFiles.count()-1; pos++)
+    {        
+        QFile file(supportFiles[pos]);
+        if (file.open(QIODevice::ReadOnly))
+        {
+            QDataStream in(&file);
+            quint32 header;
+            in >> header;
+            file.close();
+            if (header == 0x504b0304)
+            {
+                QuaZip zip(supportFiles[pos]);
+                if (!zip.open(QuaZip::mdUnzip))
+                {
+                    log("Cannot open zip file:" + supportFiles[pos]);
+                    return 1;
+                }
+                QuaZipFile file(&zip);
+                QString zipFileName;
+                QFile file2;
+                for(bool more=zip.goToFirstFile(); more; more=zip.goToNextFile()) {
+
+                    zipFileName = zip.getCurrentFileName();
+                    if (zipFileName.right(1) == "/")
+                    {
+                        dir.mkpath(zipFileName.left(zipFileName.length()-1));
+                    }
+                    else
+                    {
+                        file.open(QIODevice::ReadOnly);
+                        file2.setFileName(dir.absolutePath() + dir.separator() + zipFileName);
+                        file2.open(QIODevice::WriteOnly);
+                        QByteArray fileData;
+                        fileData = file.readAll();
+                        file2.write(fileData);
+                        file.close(); // do not forget to close!
+                        file2.close();
+                    }
+                }
+                //gbtLog(QObject::tr("Closing file"));
+                zip.close();
+                zipFiles.append(supportFiles[pos]);
+            }
+        }
+    }
+    //Remove any zip files from the list of support files
+    for (int pos =0; pos <= zipFiles.count()-1; pos++)
+    {
+        int idx;
+        idx = supportFiles.indexOf(zipFiles[pos]);
+        if (idx >= 0)
+        {
+            supportFiles.removeAt(idx);
+        }
+    }
+    //Add all files in the temporary directory as support files
+    QDirIterator it(dir.absolutePath(), QStringList() << "*.*", QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext())
+        supportFiles.append(it.next());
+
+    QSqlDatabase dblite = QSqlDatabase::addDatabase("QSQLITE","DBLite");
+    int CSVError;
+    CSVError = 0;
+    for (int pos = 0; pos <= supportFiles.count()-1;pos++)
+    {
+        if (supportFiles[pos].right(3).toLower() == "csv")
+        {
+            CSVError = convertCSVToSQLite(supportFiles[pos],dir,dblite);
+            if (CSVError == 1)
+                return 1;
+        }
+    }
+
+
     prefix = QString::fromUtf8(prefixArg.getValue().c_str());
     prefix = prefix + "_";
 
@@ -2733,29 +3528,29 @@ int main(int argc, char *argv[])
 
     if (addLanguage(defLang,true) != 0)
         return 1;
-
+    
     QStringList othLanguages;
     othLanguages = lang.split(",",QString::SkipEmptyParts);
     for (int lng = 0; lng < othLanguages.count(); lng++)
         if (addLanguage(othLanguages[lng],false) != 0)
-            return 1;
-
+            return 6;
+    
     if (isDefaultLanguage("English") == false)
     {
         if (yesNoString == "")
         {
             log("English is not the default language. You need to specify Yes and No values with the -y parameter in " + getDefLanguage());
-            return 1;
+            return 7;
         }
         if (yesNoString.indexOf("|") == -1)
         {
             log("Malformed yes|no language string1");
-            return 1;
+            return 8;
         }
         if (yesNoString.length() == 1)
         {
             log("Malformed yes|no language string2");
-            return 1;
+            return 8;
         }
         strYes = yesNoString.split("|",QString::SkipEmptyParts)[0];
         strNo = yesNoString.split("|",QString::SkipEmptyParts)[1];
@@ -2766,7 +3561,9 @@ int main(int argc, char *argv[])
         strNo = yesNoString.split("|",QString::SkipEmptyParts)[1];
     }
 
-    if (processXLSX(input,mTable.trimmed(),mainVar.trimmed()) == 0)
+    int returnValue;
+    returnValue = processXLSX(input,mTable.trimmed(),mainVar.trimmed(),dir,dblite);
+    if (returnValue == 0)
     {
         //dumpTablesForDebug();
         if (sepFile != "") //If we have a separation file
@@ -2781,15 +3578,18 @@ int main(int argc, char *argv[])
         }
         appendUUIDs();
         //log("Checking tables");
-        if (checkTables() == 1) //Check the tables to see if they have less than 60 related fields. If so a separation file is created
+        if (checkTables(sepOutFile) != 0) //Check the tables to see if they have less than 60 related fields. If so a separation file is created
         {
-            return 1; //If a table has more than 60 related field then exit
+            return 2; //If a table has more than 60 related field then exit
         }
+        if (checkLookupTables() != 0)
+            return 9;
         //log("Generating SQL scripts");
         genSQL(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
     }
     else
-        return 1;
-    //log("Done");
+        return returnValue;
+    if (outputType == "h")
+        log("Done without errors");
     return 0;
 }

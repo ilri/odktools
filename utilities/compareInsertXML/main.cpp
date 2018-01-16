@@ -1,21 +1,21 @@
 /*
-This file is part of ODKTools.
+CompareInsertXML
 
-Copyright (C) 2015 International Livestock Research Institute.
+Copyright (C) 2015-2017 International Livestock Research Institute.
 Author: Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
 
-ODKTools is free software: you can redistribute it and/or modify
+CompareInsertXML is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
 published by the Free Software Foundation, either version 3 of
 the License, or (at your option) any later version.
 
-ODKTools is distributed in the hope that it will be useful,
+CompareInsertXML is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
-License along with ODKTools.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
+License along with CompareInsertXML.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
 */
 
 #include <tclap/CmdLine.h>
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
 {
     QString title;
     title = title + "********************************************************************* \n";
-    title = title + " * Compare Insert XML 1.0                                            * \n";
+    title = title + " * Compare Insert XML                                                * \n";
     title = title + " * This tool compares two insert XML files (A and B) for incremental * \n";
     title = title + " * changes.                                                          * \n";
     title = title + " *                                                                   * \n";
@@ -219,9 +219,6 @@ int main(int argc, char *argv[])
     title = title + " *                                                                   * \n";
     title = title + " * This tool is usefull when dealing with multiple versions of an    * \n";
     title = title + " * ODK survey that must be combined in one common database.          * \n";
-    title = title + " *                                                                   * \n";
-    title = title + " * This tool is part of ODK Tools (c) ILRI-RMG, 2015                 * \n";
-    title = title + " * Author: Carlos Quiros (c.f.quiros@cgiar.org / cquiros@qlands.com) * \n";
     title = title + " ********************************************************************* \n";
 
     TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
@@ -299,8 +296,8 @@ int main(int argc, char *argv[])
                     QDomElement XMLRoot;
                     XMLRoot = XMLResult.createElement("XMLResult");
                     XMLResult.appendChild(XMLRoot);
-                    QDomDocument eErrors;
-                    eErrors = QDomDocument("errors");
+                    QDomElement eErrors;
+                    eErrors = XMLResult.createElement("errors");
                     XMLRoot.appendChild(eErrors);
                     if (errorList.count() > 0)
                         fatalError = true;
