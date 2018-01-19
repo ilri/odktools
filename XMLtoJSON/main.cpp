@@ -158,11 +158,11 @@ int main(int argc, char *argv[])
 
     TCLAP::ValueArg<std::string> xmlArg("i","xml","Input XML File",true,"","string");
     TCLAP::ValueArg<std::string> jsonArg("o","json","Input JSON File",false,"","string");
-    TCLAP::ValueArg<std::string> manifestArg("m","manifest","XML manifest file",true,"","string");
+    TCLAP::ValueArg<std::string> formArg("x","xform","Input XML Form File",true,"","string");
 
     cmd.add(xmlArg);
     cmd.add(jsonArg);
-    cmd.add(manifestArg);
+    cmd.add(formArg);
     cmd.parse( argc, argv );
 
     bool withStdIn;
@@ -189,11 +189,11 @@ int main(int argc, char *argv[])
     //Getting the variables from the command
 
     QString xmlFile = QString::fromUtf8(xmlArg.getValue().c_str());
-    QString manifestFile = QString::fromUtf8(manifestArg.getValue().c_str());
+    QString formFile = QString::fromUtf8(formArg.getValue().c_str());
     QString jsonFile = QString::fromUtf8(jsonArg.getValue().c_str());
 
     QDomDocument xForm("xform");
-    QFile xFormFile(manifestFile);
+    QFile xFormFile(formFile);
     if (!xFormFile.open(QIODevice::ReadOnly))
     {
         log("Couldn't open XML form file");
@@ -210,16 +210,15 @@ int main(int argc, char *argv[])
     //Extract all repeats from manifest file
     QStringList repeatArray;
     QDomNodeList repeats;
-    repeats = xForm.elementsByTagName("table");
+    repeats = xForm.elementsByTagName("repeat");
     for (int pos = 0; pos <= repeats.count()-1;pos++)
     {
         QString nodeset;
         QStringList nodeArray;
-        nodeset = repeats.item(pos).toElement().attribute("xmlcode");
+        nodeset = repeats.item(pos).toElement().attribute("nodeset");
         nodeArray = nodeset.split("/",QString::SkipEmptyParts);
         if (nodeArray.length() > 0)
-            if (repeatArray.indexOf(nodeArray[nodeArray.length()-1]) == 0)
-                repeatArray.append(nodeArray[nodeArray.length()-1]);
+            repeatArray.append(nodeArray[nodeArray.length()-1]);
     }
 
     QDomDocument inputXML("xml");
