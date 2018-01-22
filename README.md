@@ -54,8 +54,8 @@ ODK to MySQL converts an ODK Excel File (XLSX survey file) into a relational MyS
   - I - Output lookup tables and values in XML format. "insert.xml" by default.
   - C - Output schema as in XML format. "create.xml" by default
   - o - Output type: (h)uman readable or (m)achine readable. Machine by default.
-  - e - Temporary directory. If no directory is specified then ./tmp will be created
-  *support files* separated with space. You can indicate multiple support files like CSVs or ZIPs. The tool will use CSVs to collect options from external sources.
+  - e - Temporary directory. If no directory is specified then ./tmp will be created.
+  - *support files* separated with space. You can indicate multiple support files like CSVs or ZIPs. The tool will use CSVs to collect options from external sources.
 
 
 #### *Example for a single language ODK*
@@ -289,14 +289,14 @@ JSON to CSV creates a CSV file based a JSON file by flattening the JSON structur
 To build ODKTools on Ubuntu Server 16.04.3 LTS do:
 
     $ sudo apt-get update
-    $ sudo apt-get install build-essential qt5-default qtbase5-private-dev qtdeclarative5-dev cmake mongodb jq libboost-all-dev unzip zlib1g-dev
+    $ sudo apt-get install build-essential qt5-default qtbase5-private-dev qtdeclarative5-dev cmake mongodb jq libboost-all-dev unzip zlib1g-dev automake
 
 You also need to build and install:
 
  - [Mongo C Driver](https://github.com/mongodb/mongo-c-driver/releases/download/1.6.1/mongo-c-driver-1.6.1.tar.gz)
  - [JSONCpp](https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz)
- - [QuaZip](http://quazip.sourceforge.net/)
- - [LibCSV](https://github.com/rgamble/libcsv)
+ - [QuaZip](http://quazip.sourceforge.net/) using -DCMAKE_C_FLAGS:STRING="-fPIC" -DCMAKE_CXX_FLAGS:STRING="-fPIC"
+ - [LibCSV](https://github.com/rgamble/libcsv) . It uses automake 1.14 so create a symbolic link of aclocal and automake from your version to 1.14
 
 To build ODK Tools do:
 
@@ -311,7 +311,7 @@ To build ODK Tools do:
         $ qmake
         $ make
         $ sudo cp json2csv /usr/bin
-        $ cd ../../..
+        $ cd ../..
         $ cd 3rdparty/qjson
         $ mkdir build
         $ cd build
