@@ -54,8 +54,8 @@ ODK to MySQL converts an ODK Excel File (XLSX survey file) into a relational MyS
   - I - Output lookup tables and values in XML format. "insert.xml" by default.
   - C - Output schema as in XML format. "create.xml" by default
   - o - Output type: (h)uman readable or (m)achine readable. Machine by default.
-  - e - Temporary directory. If no directory is specified then ./tmp will be created
-  *support files* separated with space. You can indicate multiple support files like CSVs or ZIPs. The tool will use CSVs to collect options from external sources.
+  - e - Temporary directory. If no directory is specified then ./tmp will be created.
+  - *support files* separated with space. You can indicate multiple support files like CSVs or ZIPs. The tool will use CSVs to collect options from external sources.
 
 
 #### *Example for a single language ODK*
