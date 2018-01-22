@@ -1364,13 +1364,13 @@ bool isDefaultLanguage(QString language)
 
 //Get an language index by its name
 int genLangIndexByName(QString language)
-{
+{    
     for (int pos=0; pos < languages.count();pos++)
-    {
+    {                
         if (languages[pos].desc.toLower().trimmed() == language.toLower().trimmed())
             return pos;
     }
-    return -1;
+    return -1;    
 }
 
 //Adds a group or repeat to the stack
@@ -2801,12 +2801,12 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         if (!mainFieldFound)
         {
             log("ERROR!: The main variable \"" + mainField + "\" was not found in the ODK. Please indicate a correct main variable");
-            return 1;
+            return 10;
         }
         if (!mainFieldinMainTable)
         {
             log("ERROR!: The main variable \"" + mainField + "\" is not in the main table \"" + mainTable + "\". Please indicate a correct main variable.");
-            return 1;
+            return 11;
         }
     }
     return 0;
@@ -3294,6 +3294,7 @@ int addLanguage(QString langCode, bool defLang)
     if (genLangIndex(code) == -1)
     {
         QString name = reEngLetterOnly.cap(2);
+        name = name;
         TlangDef language;
         language.code = code;
         language.desc = name;
@@ -3526,13 +3527,13 @@ int main(int argc, char *argv[])
 
     tableIndex = 0;
 
-    if (addLanguage(defLang,true) != 0)
+    if (addLanguage(defLang.replace("'",""),true) != 0)
         return 1;
     
     QStringList othLanguages;
     othLanguages = lang.split(",",QString::SkipEmptyParts);
     for (int lng = 0; lng < othLanguages.count(); lng++)
-        if (addLanguage(othLanguages[lng],false) != 0)
+        if (addLanguage(othLanguages[lng].replace("'",""),false) != 0)
             return 6;
     
     if (isDefaultLanguage("English") == false)
