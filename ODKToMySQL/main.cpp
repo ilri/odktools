@@ -3048,23 +3048,25 @@ QDomElement getTableXML(QDomDocument doc, TtableDef table)
     gnode = doc.createElement("group");
     gnode.setAttribute("name","main");
     gnode.setAttribute("description",fixString(getDescForLanguage(table.desc,getLanguageCode(getDefLanguage()))));
-    bool notdisplay;
+    bool notmove;
     for (int pos = 0; pos <= table.fields.count()-1;pos++)
     {
-        notdisplay = false;
+        notmove = false;
         if (table.fields[pos].key == false)
         {
             if ((table.fields[pos].name == "surveyid") || (table.fields[pos].name == "originid") || (table.fields[pos].name == "rowuuid"))
-                notdisplay = true;
+                notmove = true;
+            if (table.fields[pos].key == true)
+                notmove = true;
             QDomElement fnode;
             fnode = doc.createElement("field");
             fnode.setAttribute("name",table.fields[pos].name);
             fnode.setAttribute("xmlcode",table.fields[pos].xmlCode);
             fnode.setAttribute("description",fixString(getDescForLanguage(table.fields[pos].desc,getLanguageCode(getDefLanguage()))));
-            if (notdisplay)
-                fnode.setAttribute("notdisplay","true");
+            if (notmove)
+                fnode.setAttribute("notmove","true");
             else
-                fnode.setAttribute("notdisplay","false");
+                fnode.setAttribute("notmove","false");
             gnode.appendChild(fnode);
         }
     }
