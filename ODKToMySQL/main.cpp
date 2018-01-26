@@ -1591,7 +1591,7 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QXlsx::Workshee
         else
         {
             log("There is no SQLite file for search \"" + file + "\". Did you add it as CSV when you ran ODKToMySQL?");            
-            result = 11;
+            result = 13;
             return res;
         }
     }
