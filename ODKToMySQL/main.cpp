@@ -53,6 +53,7 @@ void log(QString message)
 }
 
 int CSVRowNumber;
+bool CSVColumError;
 QStringList CSVvalues;
 QStringList CSVSQLs;
 
@@ -63,6 +64,28 @@ void cb1 (void *s, size_t, void *)
     CSVvalues.append(QString::fromUtf8(charData));
 }
 
+QString fixColumnName(QString column)
+{
+    QString res;
+    res = column;
+    res = res.replace(":","_");
+    res = res.replace("-","_");
+    return res;
+}
+
+bool isColumnValid(QString column)
+{
+    QRegExp re("^[a-zA-Z0-9_]*$");
+    if (re.exactMatch(column))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 void cb2 (int , void *)
 {
     QString sql;
@@ -71,7 +94,11 @@ void cb2 (int , void *)
         sql = "CREATE TABLE data (";
         for (int pos = 0; pos <= CSVvalues.count()-1;pos++)
         {
-            sql = sql + CSVvalues[pos] + " TEXT,";
+            QString columnName;
+            columnName = fixColumnName(CSVvalues[pos]);
+            if (isColumnValid(columnName) == false)
+                CSVColumError = true;
+            sql = sql + columnName + " TEXT,";
         }
         sql = sql.left(sql.length()-1) + ");";
         CSVSQLs.append(sql);
@@ -112,7 +139,7 @@ int convertCSVToSQLite(QString fileName, QDir tempDirectory, QSqlDatabase databa
     }
     options = CSV_APPEND_NULL;
     csv_set_opts(&p, options);
-
+    CSVColumError = false;
     CSVRowNumber = 1;
     CSVvalues.clear();
     CSVSQLs.clear();
@@ -135,6 +162,12 @@ int convertCSVToSQLite(QString fileName, QDir tempDirectory, QSqlDatabase databa
     fclose(fp);
     csv_fini(&p, cb1, cb2, NULL);
     csv_free(&p);
+
+    if (CSVColumError)
+    {
+        log("The CSV \"" + fileName + "\" has invalid characters. Only : and _ are allowed");
+        return 14;
+    }
 
     QFileInfo fi(fileName);
     QString sqlLiteFile;
@@ -1503,7 +1536,17 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QXlsx::Workshee
                     ref.setColumn(languages[lng].idxInChoices);
                     cell2 = choicesSheet->cellAt(ref);
                     if (cell2 != 0)
-                        desc.desc = cell2->value().toString().trimmed();
+                    {
+                        QString columDesc;
+                        columDesc = cell2->value().toString().trimmed();
+                        columDesc = fixColumnName(columDesc);
+                        if (isColumnValid(columDesc) == false)
+                        {
+                            log("The XLSX file has an CSV option with an invalid label: \"" + columDesc + "\". Only : and _ are allowed.");
+                            exit(15);
+                        }
+                        desc.desc = columDesc;
+                    }
                     else
                         desc.desc = "NONE";
                     descColumns.append(desc);
@@ -1531,27 +1574,27 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QXlsx::Workshee
                 //Contruct a query from using "codeColumn" and the list "descColumns"
                 QSqlQuery query(database);
                 QString sql;
-                sql = "SELECT " + codeColumn + ",";
+                sql = "SELECT " + fixColumnName(codeColumn) + ",";
                 for (int pos = 0; pos <= descColumns.count()-1; pos++)
                 {
                     if (descColumns[pos].desc != "NONE")
-                        sql = sql + descColumns[pos].desc + ",";
+                        sql = sql + fixColumnName(descColumns[pos].desc) + ",";
                 }
-                sql = sql.left(sql.length()-1) + " FROM data";
+                sql = sql.left(sql.length()-1) + " FROM data";                
                 if (query.exec(sql))
                 {
                     //Appends each value as a select value
                     while (query.next())
                     {
                         TlkpValue value;
-                        value.code = query.value(codeColumn).toString();
+                        value.code = query.value(fixColumnName(codeColumn)).toString();
                         for (int pos = 0; pos <= descColumns.count()-1; pos++)
                         {
                             if (descColumns[pos].desc != "NONE")
                             {
                                 TlngLkpDesc desc;
                                 desc.langCode = descColumns[pos].langCode;
-                                desc.desc = query.value(descColumns[pos].desc).toString();
+                                desc.desc = query.value(fixColumnName(descColumns[pos].desc)).toString();
                                 value.desc.append(desc);
                             }
                         }
@@ -3512,8 +3555,8 @@ int main(int argc, char *argv[])
         if (supportFiles[pos].right(3).toLower() == "csv")
         {
             CSVError = convertCSVToSQLite(supportFiles[pos],dir,dblite);
-            if (CSVError == 1)
-                return 1;
+            if (CSVError != 0)
+                return CSVError;
         }
     }
 
