@@ -724,12 +724,12 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                 {
                     if (fields[pos].name == "originid")
                     {
-                        //sqlValues = sqlValues + "'FORMHUB-JSON',";
-                        fieldValue = "FORMHUB-JSON";
+                        //sqlValues = sqlValues + "'ODKTOOLS',";
+                        fieldValue = "ODKTOOLS";
                     }
                     else
                     {
-                        fieldValue = fixString(jsonData[fields[pos].xmlCode].toString());
+                        fieldValue = fixString(jsonData[fields[pos].xmlCode].toString());                        
                         if (fieldValue.isEmpty())
                         {
                             // This happens when the cover information is stored in a repeat of one
@@ -755,6 +755,16 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                 }
 
                 //sqlValues = sqlValues + "'" + fixString(fieldValue) + "',";
+            }            
+            if ((fields[pos].ODKType == "start") || (fields[pos].ODKType == "end"))
+            {
+                if (fieldValue.indexOf(".") >= 0)
+                {
+                    QStringList parts;
+                    parts = fieldValue.split(".");
+                    fieldValue = parts[0];
+                    fieldValue.replace("T"," ");
+                }
             }
             insValue.value = fieldValue;
             insertObject.insertValue(insValue);
@@ -986,6 +996,10 @@ int mainClass::procTable(QSqlDatabase db,QVariantMap jsonData, QDomNode table, Q
                 TfieldDef field;
                 field.name = child.toElement().attribute("mysqlcode");
                 field.xmlCode = child.toElement().attribute("xmlcode");
+                field.type = child.toElement().attribute("xmlcode","varchar");
+                field.ODKType = child.toElement().attribute("odktype","text");
+                field.size = child.toElement().attribute("size","0").toInt();
+                field.decSize = child.toElement().attribute("decsize","0").toInt();
 
                 if (child.toElement().attribute("key").toStdString() == "true")
                     field.key = true;
