@@ -721,6 +721,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                 tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
                 tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
                 tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));
+                tables[pos].tableCreteElement.setAttribute("sensitive","false");
             }
             else
             {
@@ -728,6 +729,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                 tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
                 tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
                 tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));
+                tables[pos].tableCreteElement.setAttribute("sensitive","false");
             }
         }
         else
@@ -735,6 +737,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
             tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
             tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
             tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));
+            tables[pos].tableCreteElement.setAttribute("sensitive","false");
 
             //Append the values to the XML insert
             QDomElement lkptable = insertValuesXML.createElement("table");
@@ -795,6 +798,10 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                         fieldNode = outputdoc.createElement("field");
                         fieldNode.setAttribute("mysqlcode",tables[pos].fields[clm].name.toLower());
                         fieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
+                        fieldNode.setAttribute("type",tables[pos].fields[clm].type);
+                        fieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                        fieldNode.setAttribute("size",tables[pos].fields[clm].size);
+                        fieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
                         if (tables[pos].fields[clm].isMultiSelect == true)
                         {
                             fieldNode.setAttribute("isMultiSelect","true");
@@ -824,6 +831,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                         createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
                         createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
                         createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
+                        createFieldNode.setAttribute("sensitive","false");
 
                         if (tables[pos].fields[clm].isMultiSelect == true)
                         {
@@ -855,6 +863,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                         createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
                         createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
                         createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
+                        createFieldNode.setAttribute("sensitive","false");
                         if (tables[pos].fields[clm].key)
                             createFieldNode.setAttribute("key","true");
                         if (tables[pos].fields[clm].rTable != "")
@@ -879,6 +888,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                     createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
                     createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
                     createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
+                    createFieldNode.setAttribute("sensitive","false");
                     if (tables[pos].fields[clm].key)
                         createFieldNode.setAttribute("key","true");
                     if (tables[pos].fields[clm].rTable != "")
@@ -903,6 +913,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                 createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
                 createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
                 createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
+                createFieldNode.setAttribute("sensitive","false");
                 if (tables[pos].fields[clm].key)
                     createFieldNode.setAttribute("key","true");
                 if (tables[pos].fields[clm].rTable != "")
@@ -2366,7 +2377,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                         TfieldMap vartype = mapODKFieldTypeToMySQL(variableType);
                         aField.selectSource = "NONE";
                         aField.selectListName = "NONE";
-                        aField.odktype = variableType;
+                        aField.odktype = variableType; //variableType
                         aField.type = vartype.type;
                         aField.size = vartype.size;
                         aField.decSize = vartype.decSize;
