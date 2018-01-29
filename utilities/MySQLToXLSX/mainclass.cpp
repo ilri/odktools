@@ -33,7 +33,7 @@ void mainClass::setParameters(QString host, QString port, QString user, QString 
     this->pass = pass;
     this->schema = schema;
     this->outputFile = outputFile;
-    this->includeProtected = includeProtected;
+    this->includeSensitive = includeProtected;
     this->tempDir = tempDir;
     this->createXML = createXML;
 }
@@ -226,7 +226,7 @@ int mainClass::generateXLSX()
         {
             QDomElement eTable;
             eTable = lkpTable.toElement();
-            if (eTable.attribute("sensitive","false") == "false")
+            if ((eTable.attribute("sensitive","false") == "false") || (includeSensitive))
             {
                 TtableDef aTable;
                 aTable.islookup = true;
@@ -238,7 +238,7 @@ int mainClass::generateXLSX()
                 {
                     QDomElement eField;
                     eField = field.toElement();
-                    if (eField.attribute("sensitive","false") == "false")
+                    if ((eField.attribute("sensitive","false") == "false") || (includeSensitive))
                     {
                         TfieldDef aField;
                         aField.name = eField.attribute("name","");
@@ -261,7 +261,7 @@ int mainClass::generateXLSX()
         {
             QDomElement eTable;
             eTable = table.toElement();
-            if (eTable.attribute("sensitive","false") == "false")
+            if ((eTable.attribute("sensitive","false") == "false") || (includeSensitive))
             {
                 TtableDef aTable;
                 aTable.islookup = false;
@@ -273,7 +273,7 @@ int mainClass::generateXLSX()
                 {
                     QDomElement eField;
                     eField = field.toElement();
-                    if (eField.attribute("sensitive","false") == "false")
+                    if ((eField.attribute("sensitive","false") == "false") || (includeSensitive))
                     {
                         TfieldDef aField;
                         aField.name = eField.attribute("name","");

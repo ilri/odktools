@@ -46,7 +46,7 @@ private:
     QString outputFile;
     QString tempDir;
     QString createXML;
-    bool includeProtected;
+    bool includeSensitive;
     QList<TtableDef> tables;
 };
 
