@@ -9,6 +9,7 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/foreach.hpp>
+#include <xlsxwriter.h>
 
 namespace pt = boost::property_tree;
 
@@ -37,54 +38,162 @@ void mainClass::setParameters(QString host, QString port, QString user, QString 
     this->createXML = createXML;
 }
 
+void mainClass::getFieldData(QString table, QString field, QString &desc, QString &valueType, int &size, int &decsize)
+{
+    for (int pos = 0; pos <= tables.count()-1;pos++)
+    {
+        if (tables[pos].name == table)
+        {
+            for (int pos2 = 0; pos2 <= tables[pos].fields.count()-1; pos2++)
+            {
+                if (tables[pos].fields[pos2].name == field)
+                {
+                    desc = tables[pos].fields[pos2].desc;
+                    valueType = tables[pos].fields[pos2].type;
+                    size = tables[pos].fields[pos2].size;
+                    decsize = tables[pos].fields[pos2].decSize;
+                    return;
+                }
+            }
+        }
+    }
+    desc = "NONE";
+}
+
 int mainClass::parseDataToXLSX()
 {
     QDir currDir(tempDir);
+
+    lxw_workbook  *workbook  = workbook_new(outputFile.toUtf8().constData());
+
+    //Parse all tables to the Excel file
     for (int pos = 0; pos <= tables.count()-1; pos++)
     {
-        QString sourceFile;
-        sourceFile = currDir.absolutePath() + currDir.separator() + tables[pos].name + ".xml";
-
-        pt::ptree tree;
-        pt::read_xml(sourceFile.toUtf8().constData(), tree);
-        BOOST_FOREACH(boost::property_tree::ptree::value_type const&db, tree.get_child("mysqldump") )
+        if (tables[pos].islookup == false)
         {
-            const boost::property_tree::ptree & aDatabase = db.second; // value (or a subnode)
-            BOOST_FOREACH(boost::property_tree::ptree::value_type const&ctable, aDatabase.get_child("") )
+            QString sourceFile;
+            sourceFile = currDir.absolutePath() + currDir.separator() + tables[pos].name + ".xml";
+
+            pt::ptree tree;
+            pt::read_xml(sourceFile.toUtf8().constData(), tree);
+            BOOST_FOREACH(boost::property_tree::ptree::value_type const&db, tree.get_child("mysqldump") )
             {
-                const std::string & key = ctable.first.data();
-                if (key == "table_data")
+                const boost::property_tree::ptree & aDatabase = db.second; // value (or a subnode)
+                BOOST_FOREACH(boost::property_tree::ptree::value_type const&ctable, aDatabase.get_child("") )
                 {
-                    const boost::property_tree::ptree & aTable = ctable.second;
-
-                    //Here we need to create the sheet
-
-                    BOOST_FOREACH(boost::property_tree::ptree::value_type const&row, aTable.get_child("") )
+                    const std::string & key = ctable.first.data();
+                    if (key == "table_data")
                     {
-                        const boost::property_tree::ptree & aRow = row.second;
+                        const boost::property_tree::ptree & aTable = ctable.second;
 
-                        //Here we need to append a row
-
-                        BOOST_FOREACH(boost::property_tree::ptree::value_type const&field, aRow.get_child("") )
+                        //Here we need to create the sheet
+                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,tables[pos].desc.left(30).toUtf8().constData());
+                        int rowNo = 1;
+                        bool inserted = false;
+                        BOOST_FOREACH(boost::property_tree::ptree::value_type const&row, aTable.get_child("") )
                         {
-                            const std::string & fkey = field.first.data();
-                            if (fkey == "field")
+                            const boost::property_tree::ptree & aRow = row.second;
+
+                            //Here we need to append a row
+                            int colNo = 0;
+                            BOOST_FOREACH(boost::property_tree::ptree::value_type const&field, aRow.get_child("") )
                             {
-                                const boost::property_tree::ptree & aField = field.second;
-                                std::string fname = aField.get<std::string>("<xmlattr>.name");
-                                std::string fvalue = aField.data();
-
-                                //Here we need to append the column
-
+                                const std::string & fkey = field.first.data();
+                                if (fkey == "field")
+                                {
+                                    const boost::property_tree::ptree & aField = field.second;
+                                    std::string fname = aField.get<std::string>("<xmlattr>.name");
+                                    std::string fvalue = aField.data();
+                                    QString desc;
+                                    QString valueType;
+                                    int size;
+                                    int decSize;
+                                    QString fieldName = QString::fromStdString(fname);
+                                    QString fieldValue = QString::fromStdString(fvalue);
+                                    getFieldData(tables[pos].name,fieldName,desc,valueType,size,decSize);
+                                    if (desc != "NONE")
+                                    {
+                                        inserted = true;
+                                        if (rowNo == 1)
+                                            worksheet_write_string(worksheet,0, colNo, fieldName.toUtf8().constData(), NULL);
+                                        worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
+                                        colNo++;
+                                    }
+                                }
                             }
-                            //QJsonDocument doc(JSONRow);
-                            //QString JSONString(doc.toJson(QJsonDocument::Compact));
+                            if (inserted)
+                                rowNo++;
                         }
                     }
                 }
             }
         }
     }
+    //Parse all lookup tables to the Excel file
+    for (int pos = 0; pos <= tables.count()-1; pos++)
+    {
+        if (tables[pos].islookup == true)
+        {
+            QString sourceFile;
+            sourceFile = currDir.absolutePath() + currDir.separator() + tables[pos].name + ".xml";
+
+            pt::ptree tree;
+            pt::read_xml(sourceFile.toUtf8().constData(), tree);
+            BOOST_FOREACH(boost::property_tree::ptree::value_type const&db, tree.get_child("mysqldump") )
+            {
+                const boost::property_tree::ptree & aDatabase = db.second; // value (or a subnode)
+                BOOST_FOREACH(boost::property_tree::ptree::value_type const&ctable, aDatabase.get_child("") )
+                {
+                    const std::string & key = ctable.first.data();
+                    if (key == "table_data")
+                    {
+                        const boost::property_tree::ptree & aTable = ctable.second;
+
+                        //Here we need to create the sheet
+                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,tables[pos].desc.left(30).toUtf8().constData());
+                        int rowNo = 1;
+                        bool inserted = false;
+                        BOOST_FOREACH(boost::property_tree::ptree::value_type const&row, aTable.get_child("") )
+                        {
+                            const boost::property_tree::ptree & aRow = row.second;
+
+                            //Here we need to append a row
+                            int colNo = 0;
+                            BOOST_FOREACH(boost::property_tree::ptree::value_type const&field, aRow.get_child("") )
+                            {
+                                const std::string & fkey = field.first.data();
+                                if (fkey == "field")
+                                {
+                                    const boost::property_tree::ptree & aField = field.second;
+                                    std::string fname = aField.get<std::string>("<xmlattr>.name");
+                                    std::string fvalue = aField.data();
+                                    QString desc;
+                                    QString valueType;
+                                    int size;
+                                    int decSize;
+                                    QString fieldName = QString::fromStdString(fname);
+                                    QString fieldValue = QString::fromStdString(fvalue);
+                                    getFieldData(tables[pos].name,fieldName,desc,valueType,size,decSize);
+                                    if (desc != "NONE")
+                                    {
+                                        inserted = true;
+                                        if (rowNo == 1)
+                                            worksheet_write_string(worksheet,0, colNo, fieldName.toUtf8().constData(), NULL);
+                                        worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
+                                        colNo++;
+                                    }
+                                }
+                            }
+                            if (inserted)
+                                rowNo++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    workbook_close(workbook);
     return 0;
 }
 
@@ -110,10 +219,10 @@ int mainClass::generateXLSX()
     QDomElement rootA = docA.documentElement();
     if (rootA.tagName() == "XMLSchemaStructure")
     {
-        QDomNode lkpTable = docA.documentElement().firstChild();
+        QDomNode lkpTable = rootA.firstChild().firstChild();
 
         //Getting the fields to export from Lookup tables
-        while (!lkpTable.nextSibling().isNull())
+        while (!lkpTable.isNull())
         {
             QDomElement eTable;
             eTable = lkpTable.toElement();
@@ -125,22 +234,19 @@ int mainClass::generateXLSX()
                 aTable.desc = eTable.attribute("desc","");
 
                 QDomNode field = lkpTable.firstChild();
-                while (!field.nextSibling().isNull())
+                while (!field.isNull())
                 {
                     QDomElement eField;
                     eField = field.toElement();
                     if (eField.attribute("sensitive","false") == "false")
                     {
-                        if (eField.attribute("name","") != "rowuuid")
-                        {
-                            TfieldDef aField;
-                            aField.name = eField.attribute("name","");
-                            aField.desc = eField.attribute("desc","");
-                            aField.type = eField.attribute("type","");
-                            aField.size = eField.attribute("size","").toInt();
-                            aField.decSize = eField.attribute("decsize","").toInt();
-                            aTable.fields.append(aField);
-                        }
+                        TfieldDef aField;
+                        aField.name = eField.attribute("name","");
+                        aField.desc = eField.attribute("desc","");
+                        aField.type = eField.attribute("type","");
+                        aField.size = eField.attribute("size","").toInt();
+                        aField.decSize = eField.attribute("decsize","").toInt();
+                        aTable.fields.append(aField);
                     }
                     field = field.nextSibling();
                 }
@@ -150,54 +256,50 @@ int mainClass::generateXLSX()
         }
 
         //Getting the fields to export from tables
-        QDomNode table = docA.documentElement().firstChild().nextSibling();
-        while (!table.nextSibling().isNull())
+        QDomNode table = rootA.firstChild().nextSibling().firstChild();
+        while (!table.isNull())
         {
             QDomElement eTable;
             eTable = table.toElement();
             if (eTable.attribute("sensitive","false") == "false")
             {
                 TtableDef aTable;
-                aTable.islookup = true;
+                aTable.islookup = false;
                 aTable.name = eTable.attribute("name","");
                 aTable.desc = eTable.attribute("desc","");
 
-                QDomNode field = lkpTable.firstChild();
-                while (!field.nextSibling().isNull())
+                QDomNode field = table.firstChild();
+                while (!field.isNull())
                 {
                     QDomElement eField;
                     eField = field.toElement();
                     if (eField.attribute("sensitive","false") == "false")
                     {
-                        if (eField.attribute("name","") != "rowuuid")
-                        {
-                            TfieldDef aField;
-                            aField.name = eField.attribute("name","");
-                            aField.desc = eField.attribute("desc","");
-                            aField.type = eField.attribute("type","");
-                            aField.size = eField.attribute("size","").toInt();
-                            aField.decSize = eField.attribute("decsize","").toInt();
-                            aTable.fields.append(aField);
-                        }
+                        TfieldDef aField;
+                        aField.name = eField.attribute("name","");
+                        aField.desc = eField.attribute("desc","");
+                        aField.type = eField.attribute("type","");
+                        aField.size = eField.attribute("size","").toInt();
+                        aField.decSize = eField.attribute("decsize","").toInt();
+                        aTable.fields.append(aField);
                     }
                     field = field.nextSibling();
                 }
                 tables.append(aTable);
             }
             table = table.nextSibling();
-        }
+        }        
         //Export the tables as XML to the temp directory
         //Call MySQLDump to export each table as XML
         //We use MySQLDump because it very very fast
         QDir currDir(tempDir);
         QString program = "mysqldump";
         QStringList arguments;
-        QProcess *mySQLDumpProcess = new QProcess();
-        log("Exporting data to XML");
+        QProcess *mySQLDumpProcess = new QProcess();        
         QTime procTime;
         procTime.start();
         for (int pos = 0; pos <= tables.count()-1; pos++)
-        {
+        {            
             arguments.clear();
             arguments << "--single-transaction";
             arguments << "-h" << host;
@@ -229,6 +331,20 @@ int mainClass::generateXLSX()
         }
         delete mySQLDumpProcess;
         returnCode = parseDataToXLSX();
+
+        int Hours;
+        int Minutes;
+        int Seconds;
+        int Milliseconds;
+
+        if (returnCode == 0)
+        {
+            Milliseconds = procTime.elapsed();
+            Hours = Milliseconds / (1000*60*60);
+            Minutes = (Milliseconds % (1000*60*60)) / (1000*60);
+            Seconds = ((Milliseconds % (1000*60*60)) % (1000*60)) / 1000;
+            log("Finished in " + QString::number(Hours) + " Hours," + QString::number(Minutes) + " Minutes and " + QString::number(Seconds) + " Seconds.");
+        }
         return returnCode;
     }
     else

@@ -37,6 +37,7 @@ private:
     void log(QString message);
     int generateXLSX();
     int parseDataToXLSX();
+    void getFieldData(QString table, QString field, QString &desc, QString &valueType, int &size, int &decsize);
     QString host;
     QString port;
     QString user;

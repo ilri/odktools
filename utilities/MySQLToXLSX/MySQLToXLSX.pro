@@ -18,6 +18,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 unix:INCLUDEPATH += ../../3rdparty
 
+unix:LIBS += -L/lib64 -L/usr/lib64 -L/usr/local/lib -lxlsxwriter -lz
+
 SOURCES += main.cpp \
     mainclass.cpp
 
