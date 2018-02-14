@@ -7,4 +7,5 @@ SUBDIRS = compareCreateXML \
     createFromXML \
     insertFromXML \
     MySQLDenormalize \
-    JSONToCSV
+    JSONToCSV \
+    MySQLToXLSX

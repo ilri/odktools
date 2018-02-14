@@ -59,6 +59,10 @@ struct fieldDef
   bool multiSelect;
   QString multiSelectTable;
   QString uuid;
+  QString type;
+  QString size;
+  QString decSize;
+  QString ODKType;
 };
 typedef fieldDef TfieldDef;
 
