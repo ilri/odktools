@@ -1860,6 +1860,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         QXlsx::CellReference langRef;
         QXlsx::Cell *cell;
         QXlsx::Worksheet *excelSheet = (QXlsx::Worksheet*)xlsx.sheet("settings");
+        bool hasDefaultLanguage = false;
         for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
         {
             ref.setRow(1);
@@ -1872,6 +1873,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                     ref.setRow(2);
                     ref.setColumn(ncols);
                     ODKLanguages.append(excelSheet->cellAt(ref)->value().toString());
+                    hasDefaultLanguage = true;
                 }
         }
 
@@ -1894,6 +1896,14 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                         language = label.right(label.length()-langIdx-1);
                         if (ODKLanguages.indexOf(language) < 0)
                             ODKLanguages.append(language);
+                    }
+                    else
+                    {
+                        if (!hasDefaultLanguage)
+                        {
+                            if (ODKLanguages.indexOf("English") < 0)
+                                ODKLanguages.append("English");
+                        }
                     }
                 }
             }
