@@ -756,7 +756,7 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
 
                 //sqlValues = sqlValues + "'" + fixString(fieldValue) + "',";
             }            
-            if ((fields[pos].ODKType == "start") || (fields[pos].ODKType == "end"))
+            if ((fields[pos].ODKType == "start") || (fields[pos].ODKType == "end") || (fields[pos].ODKType == "time") || (fields[pos].ODKType == "datetime"))
             {
                 if (fieldValue.indexOf(".") >= 0)
                 {
@@ -765,7 +765,7 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                     fieldValue = parts[0];
                     fieldValue.replace("T"," ");
                 }
-            }
+            }            
             insValue.value = fieldValue;
             insertObject.insertValue(insValue);
         }
