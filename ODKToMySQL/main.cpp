@@ -1244,6 +1244,10 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     {
         result.type = "time";
     }
+    if (ODKFieldType == "datetime")
+    {
+        result.type = "datetime";
+    }
     if (ODKFieldType == "geopoint")
     {
         result.type = "varchar";
@@ -2170,7 +2174,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         {
             TlngLkpDesc langDesc;
             langDesc.langCode = languages[lang].code;
-            langDesc.desc = "Survey ID (UUID)";
+            langDesc.desc = "Submission ID";
             fsurveyID.desc.append(langDesc);
         }
         fsurveyID.type = "varchar";
@@ -2193,7 +2197,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         {
             TlngLkpDesc langDesc;
             langDesc.langCode = languages[lang].code;
-            langDesc.desc = "Origin ID: formhub or aggregate";
+            langDesc.desc = "Origin";
             foriginID.desc.append(langDesc);
         }
         foriginID.type = "varchar";
