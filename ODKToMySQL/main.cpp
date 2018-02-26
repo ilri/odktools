@@ -1100,7 +1100,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
         else
             sql = sql + "\n";
 
-        sqlCreateStrm << sql; //Add the final SQL to the DDL file
+        sqlCreateStrm << sql; //Add the triggers to the SQL DDL file
 
         //Create the inserts of the lookup tables values into the insert SQL
         if (tables[pos].lkpValues.count() > 0)
@@ -1132,8 +1132,8 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                 }
             }
         }
-
     }
+
     sqlInsertStrm << "COMMIT;\n";
     //Create the manifext file. If exist it get overwriten
     if (QFile::exists(xmlFile))
@@ -1623,6 +1623,13 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QXlsx::Workshee
                                 TlngLkpDesc desc;
                                 desc.langCode = descColumns[pos].langCode;
                                 desc.desc = query.value(fixColumnName(descColumns[pos].desc)).toString();
+                                value.desc.append(desc);
+                            }
+                            else
+                            {
+                                TlngLkpDesc desc;
+                                desc.langCode = descColumns[pos].langCode;
+                                desc.desc = "";
                                 value.desc.append(desc);
                             }
                         }
