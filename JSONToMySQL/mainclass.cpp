@@ -663,6 +663,16 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
             key.multiSelectTable = fields[pos].multiSelectTable;
             key.value = jsonData[fields[pos].xmlCode].toString();
             key.value = key.value.simplified();
+            if ((fields[pos].ODKType == "start") || (fields[pos].ODKType == "end") || (fields[pos].ODKType == "time") || (fields[pos].ODKType == "datetime"))
+            {
+                if (key.value.indexOf(".") >= 0)
+                {
+                    QStringList parts;
+                    parts = key.value.split(".");
+                    key.value = parts[0];
+                    key.value = key.value.replace("T"," ");
+                }
+            }
             key.uuid = table + "~" + strRecordUUID;
 
             // If its empty. The try to find it in jsonData2
