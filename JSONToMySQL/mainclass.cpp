@@ -763,7 +763,7 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                     QStringList parts;
                     parts = fieldValue.split(".");
                     fieldValue = parts[0];
-                    fieldValue.replace("T"," ");
+                    fieldValue = fieldValue.replace("T"," ");
                 }
             }            
             insValue.value = fieldValue;
