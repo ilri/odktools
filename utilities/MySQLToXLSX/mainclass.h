@@ -38,6 +38,7 @@ private:
     int generateXLSX();
     int parseDataToXLSX();
     void getFieldData(QString table, QString field, QString &desc, QString &valueType, int &size, int &decsize);
+    const char *getSheetDescription(QString name);
     QString host;
     QString port;
     QString user;
@@ -48,6 +49,8 @@ private:
     QString createXML;
     bool includeSensitive;
     QList<TtableDef> tables;
+    QStringList tableNames;
+    int letterIndex;
 };
 
 #endif // MAINCLASS_H

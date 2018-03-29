@@ -5,6 +5,7 @@
 #include <QDomElement>
 #include <QDomNode>
 #include <QProcess>
+#include <QChar>
 #include <QTime>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -16,6 +17,7 @@ namespace pt = boost::property_tree;
 mainClass::mainClass(QObject *parent) : QObject(parent)
 {
     returnCode = 0;
+    letterIndex = 65;
 }
 
 void mainClass::log(QString message)
@@ -60,6 +62,32 @@ void mainClass::getFieldData(QString table, QString field, QString &desc, QStrin
     desc = "NONE";
 }
 
+const char *mainClass::getSheetDescription(QString name)
+{
+    QString truncated;
+    truncated = name.left(28);
+    truncated = truncated.replace("[","");
+    truncated = truncated.replace("]","");
+    truncated = truncated.replace(":","");
+    truncated = truncated.replace("*","");
+    truncated = truncated.replace("?","");
+    truncated = truncated.replace("/","");
+    truncated = truncated.replace("\\","");
+    if (tableNames.indexOf(truncated) == -1)
+    {
+        tableNames.append(truncated);
+        return truncated.toUtf8().constData();
+    }
+    else
+    {
+        truncated = truncated + "_" + QString::number(letterIndex);
+        letterIndex++;
+        tableNames.append(truncated);
+        return truncated.toUtf8().constData();
+    }
+}
+
+
 int mainClass::parseDataToXLSX()
 {
     QDir currDir(tempDir);
@@ -87,7 +115,7 @@ int mainClass::parseDataToXLSX()
                         const boost::property_tree::ptree & aTable = ctable.second;
 
                         //Here we need to create the sheet
-                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,tables[pos].desc.left(30).toUtf8().constData());
+                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,getSheetDescription(tables[pos].desc));
                         int rowNo = 1;
                         bool inserted = false;
                         BOOST_FOREACH(boost::property_tree::ptree::value_type const&row, aTable.get_child("") )
@@ -150,7 +178,7 @@ int mainClass::parseDataToXLSX()
                         const boost::property_tree::ptree & aTable = ctable.second;
 
                         //Here we need to create the sheet
-                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,tables[pos].desc.left(30).toUtf8().constData());
+                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,getSheetDescription(tables[pos].desc));
                         int rowNo = 1;
                         bool inserted = false;
                         BOOST_FOREACH(boost::property_tree::ptree::value_type const&row, aTable.get_child("") )
