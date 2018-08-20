@@ -5,6 +5,7 @@
 #include <QDomElement>
 #include <QDomNode>
 #include <QProcess>
+#include <QChar>
 #include <QTime>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -16,6 +17,7 @@ namespace pt = boost::property_tree;
 mainClass::mainClass(QObject *parent) : QObject(parent)
 {
     returnCode = 0;
+    letterIndex = 65;
 }
 
 void mainClass::log(QString message)
@@ -60,6 +62,32 @@ void mainClass::getFieldData(QString table, QString field, QString &desc, QStrin
     desc = "NONE";
 }
 
+const char *mainClass::getSheetDescription(QString name)
+{
+    QString truncated;
+    truncated = name.left(28);
+    truncated = truncated.replace("[","");
+    truncated = truncated.replace("]","");
+    truncated = truncated.replace(":","");
+    truncated = truncated.replace("*","");
+    truncated = truncated.replace("?","");
+    truncated = truncated.replace("/","");
+    truncated = truncated.replace("\\","");
+    if (tableNames.indexOf(truncated) == -1)
+    {
+        tableNames.append(truncated);
+        return truncated.toUtf8().constData();
+    }
+    else
+    {
+        truncated = truncated + "_" + QString::number(letterIndex);
+        letterIndex++;
+        tableNames.append(truncated);
+        return truncated.toUtf8().constData();
+    }
+}
+
+
 int mainClass::parseDataToXLSX()
 {
     QDir currDir(tempDir);
@@ -87,7 +115,11 @@ int mainClass::parseDataToXLSX()
                         const boost::property_tree::ptree & aTable = ctable.second;
 
                         //Here we need to create the sheet
-                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,tables[pos].desc.left(30).toUtf8().constData());
+                        QString tableDesc;
+                        tableDesc = tables[pos].desc;
+                        if (tableDesc == "")
+                            tableDesc = tables[pos].name;
+                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,getSheetDescription(tableDesc));
                         int rowNo = 1;
                         bool inserted = false;
                         BOOST_FOREACH(boost::property_tree::ptree::value_type const&row, aTable.get_child("") )
@@ -150,7 +182,11 @@ int mainClass::parseDataToXLSX()
                         const boost::property_tree::ptree & aTable = ctable.second;
 
                         //Here we need to create the sheet
-                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,tables[pos].desc.left(30).toUtf8().constData());
+                        QString tableDesc;
+                        tableDesc = tables[pos].desc;
+                        if (tableDesc == "")
+                            tableDesc = tables[pos].name;
+                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,getSheetDescription(tableDesc));
                         int rowNo = 1;
                         bool inserted = false;
                         BOOST_FOREACH(boost::property_tree::ptree::value_type const&row, aTable.get_child("") )
@@ -195,6 +231,45 @@ int mainClass::parseDataToXLSX()
 
     workbook_close(workbook);
     return 0;
+}
+
+void mainClass::loadTable(QDomNode table)
+{
+    QDomElement eTable;
+    eTable = table.toElement();
+    if ((eTable.attribute("sensitive","false") == "false") || (includeSensitive))
+    {
+        TtableDef aTable;
+        aTable.islookup = false;
+        aTable.name = eTable.attribute("name","");
+        aTable.desc = eTable.attribute("desc","");
+
+        QDomNode field = table.firstChild();
+        while (!field.isNull())
+        {
+            QDomElement eField;
+            eField = field.toElement();
+            if (eField.tagName() == "field")
+            {
+                if ((eField.attribute("sensitive","false") == "false") || (includeSensitive))
+                {
+                    TfieldDef aField;
+                    aField.name = eField.attribute("name","");
+                    aField.desc = eField.attribute("desc","");
+                    aField.type = eField.attribute("type","");
+                    aField.size = eField.attribute("size","").toInt();
+                    aField.decSize = eField.attribute("decsize","").toInt();
+                    aTable.fields.append(aField);
+                }
+            }
+            else
+            {
+                loadTable(field);
+            }
+            field = field.nextSibling();
+        }
+        mainTables.append(aTable);
+    }
 }
 
 int mainClass::generateXLSX()
@@ -257,38 +332,10 @@ int mainClass::generateXLSX()
 
         //Getting the fields to export from tables
         QDomNode table = rootA.firstChild().nextSibling().firstChild();
-        while (!table.isNull())
-        {
-            QDomElement eTable;
-            eTable = table.toElement();
-            if ((eTable.attribute("sensitive","false") == "false") || (includeSensitive))
-            {
-                TtableDef aTable;
-                aTable.islookup = false;
-                aTable.name = eTable.attribute("name","");
-                aTable.desc = eTable.attribute("desc","");
+        loadTable(table);
+        for (int nt =mainTables.count()-1; nt >= 0;nt--)
+            tables.append(mainTables[nt]);
 
-                QDomNode field = table.firstChild();
-                while (!field.isNull())
-                {
-                    QDomElement eField;
-                    eField = field.toElement();
-                    if ((eField.attribute("sensitive","false") == "false") || (includeSensitive))
-                    {
-                        TfieldDef aField;
-                        aField.name = eField.attribute("name","");
-                        aField.desc = eField.attribute("desc","");
-                        aField.type = eField.attribute("type","");
-                        aField.size = eField.attribute("size","").toInt();
-                        aField.decSize = eField.attribute("decsize","").toInt();
-                        aTable.fields.append(aField);
-                    }
-                    field = field.nextSibling();
-                }
-                tables.append(aTable);
-            }
-            table = table.nextSibling();
-        }        
         //Export the tables as XML to the temp directory
         //Call MySQLDump to export each table as XML
         //We use MySQLDump because it very very fast

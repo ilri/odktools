@@ -1100,7 +1100,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
         else
             sql = sql + "\n";
 
-        sqlCreateStrm << sql; //Add the final SQL to the DDL file
+        sqlCreateStrm << sql; //Add the triggers to the SQL DDL file
 
         //Create the inserts of the lookup tables values into the insert SQL
         if (tables[pos].lkpValues.count() > 0)
@@ -1132,8 +1132,8 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                 }
             }
         }
-
     }
+
     sqlInsertStrm << "COMMIT;\n";
     //Create the manifext file. If exist it get overwriten
     if (QFile::exists(xmlFile))
@@ -1243,6 +1243,10 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "time")
     {
         result.type = "time";
+    }
+    if (ODKFieldType == "datetime")
+    {
+        result.type = "datetime";
     }
     if (ODKFieldType == "geopoint")
     {
@@ -1621,6 +1625,13 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QXlsx::Workshee
                                 desc.desc = query.value(fixColumnName(descColumns[pos].desc)).toString();
                                 value.desc.append(desc);
                             }
+                            else
+                            {
+                                TlngLkpDesc desc;
+                                desc.langCode = descColumns[pos].langCode;
+                                desc.desc = "";
+                                value.desc.append(desc);
+                            }
                         }
                         res.append(value);
                     }
@@ -1860,6 +1871,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         QXlsx::CellReference langRef;
         QXlsx::Cell *cell;
         QXlsx::Worksheet *excelSheet = (QXlsx::Worksheet*)xlsx.sheet("settings");
+        bool hasDefaultLanguage = false;
         for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
         {
             ref.setRow(1);
@@ -1872,6 +1884,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                     ref.setRow(2);
                     ref.setColumn(ncols);
                     ODKLanguages.append(excelSheet->cellAt(ref)->value().toString());
+                    hasDefaultLanguage = true;
                 }
         }
 
@@ -1894,6 +1907,14 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                         language = label.right(label.length()-langIdx-1);
                         if (ODKLanguages.indexOf(language) < 0)
                             ODKLanguages.append(language);
+                    }
+                    else
+                    {
+                        if (!hasDefaultLanguage)
+                        {
+                            if (ODKLanguages.indexOf("English") < 0)
+                                ODKLanguages.append("English");
+                        }
                     }
                 }
             }
@@ -2160,7 +2181,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         {
             TlngLkpDesc langDesc;
             langDesc.langCode = languages[lang].code;
-            langDesc.desc = "Survey ID (UUID)";
+            langDesc.desc = "Submission ID";
             fsurveyID.desc.append(langDesc);
         }
         fsurveyID.type = "varchar";
@@ -2183,7 +2204,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         {
             TlngLkpDesc langDesc;
             langDesc.langCode = languages[lang].code;
-            langDesc.desc = "Origin ID: formhub or aggregate";
+            langDesc.desc = "Origin";
             foriginID.desc.append(langDesc);
         }
         foriginID.type = "varchar";
