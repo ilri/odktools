@@ -286,7 +286,7 @@ JSON to CSV creates a CSV file based a JSON file by flattening the JSON structur
 
 
 ## Building and testing
-Installation instructions for Ubuntu Server 16.04 or 18.04 are available [here](https://github.com/qlands/odktools/blob/master/AWS_build_script.txt):
+Installation instructions for Ubuntu Server 16.04 or 18.04 are available [here](https://github.com/qlands/odktools/blob/master/AWS_build_script.txt)
 
     
 ## Author
