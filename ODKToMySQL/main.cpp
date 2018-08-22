@@ -1251,7 +1251,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "geopoint")
     {
         result.type = "varchar";
-        result.size = 60;
+        result.size = 120;
     }
     if (ODKFieldType == "calculate")
     {
