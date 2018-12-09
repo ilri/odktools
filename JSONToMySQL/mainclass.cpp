@@ -671,6 +671,7 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                     parts = key.value.split(".");
                     key.value = parts[0];
                     key.value = key.value.replace("T"," ");
+                    key.value = key.value.replace("Z","");
                 }
             }
             key.uuid = table + "~" + strRecordUUID;
@@ -774,6 +775,7 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                     parts = fieldValue.split(".");
                     fieldValue = parts[0];
                     fieldValue = fieldValue.replace("T"," ");
+                    fieldValue = fieldValue.replace("Z","");
                 }
             }            
             insValue.value = fieldValue;

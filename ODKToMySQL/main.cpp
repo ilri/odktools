@@ -2219,6 +2219,75 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         foriginID.isMultiSelect = false;
         maintable.fields.append(foriginID);
 
+        //Append the Submmited by field to the main table
+        TfieldDef f_submitted_by;
+        f_submitted_by.name = "_submitted_by";
+        for (lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "Submitted by";
+            f_submitted_by.desc.append(langDesc);
+        }
+        f_submitted_by.type = "varchar";
+        f_submitted_by.size = 120;
+        f_submitted_by.decSize = 0;
+        f_submitted_by.rField = "";
+        f_submitted_by.rTable = "";
+        f_submitted_by.key = false;
+        f_submitted_by.isMultiSelect = false;
+        f_submitted_by.xmlCode = "_submitted_by";
+        f_submitted_by.odktype = "text";
+        f_submitted_by.selectSource = "NONE";
+        f_submitted_by.selectListName = "NONE";
+        maintable.fields.append(f_submitted_by);
+
+        //Append the Submmited date field to the main table
+        TfieldDef f_submitted_date;
+        f_submitted_date.name = "_submitted_date";
+        for (lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "Submitted date";
+            f_submitted_date.desc.append(langDesc);
+        }
+        f_submitted_date.type = "datetime";
+        f_submitted_date.size = 120;
+        f_submitted_date.decSize = 0;
+        f_submitted_date.rField = "";
+        f_submitted_date.rTable = "";
+        f_submitted_date.key = false;
+        f_submitted_date.isMultiSelect = false;
+        f_submitted_date.xmlCode = "_submitted_date";
+        f_submitted_date.odktype = "datetime";
+        f_submitted_date.selectSource = "NONE";
+        f_submitted_date.selectListName = "NONE";
+        maintable.fields.append(f_submitted_date);
+
+        //Append the generic GPS field to the main table
+        TfieldDef f_geopoint;
+        f_geopoint.name = "_geopoint";
+        for (lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "GPS point";
+            f_geopoint.desc.append(langDesc);
+        }
+        f_geopoint.type = "varchar";
+        f_geopoint.size = 120;
+        f_geopoint.decSize = 0;
+        f_geopoint.rField = "";
+        f_geopoint.rTable = "";
+        f_geopoint.key = false;
+        f_geopoint.isMultiSelect = false;
+        f_geopoint.xmlCode = "_geopoint";
+        f_geopoint.odktype = "geopoint";
+        f_geopoint.selectSource = "NONE";
+        f_geopoint.selectListName = "NONE";
+        maintable.fields.append(f_geopoint);
+
         tables.append(maintable);
         addToRepeat(mainTable);
 
