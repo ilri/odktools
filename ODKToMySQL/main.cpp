@@ -1242,7 +1242,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "time")
     {
-        result.type = "time";
+        result.type = "datetime";
     }
     if (ODKFieldType == "datetime")
     {
@@ -3211,7 +3211,7 @@ QDomElement getTableXML(QDomDocument doc, TtableDef table)
         notmove = false;
         if (table.fields[pos].key == false)
         {
-            if ((table.fields[pos].name == "surveyid") || (table.fields[pos].name == "originid") || (table.fields[pos].name == "rowuuid"))
+            if ((table.fields[pos].name == "surveyid") || (table.fields[pos].name == "originid") || (table.fields[pos].name == "rowuuid") || (table.fields[pos].name == "_submitted_by") || (table.fields[pos].name == "_submitted_date") || (table.fields[pos].name == "_geopoint"))
                 notmove = true;
             if (table.fields[pos].key == true)
                 notmove = true;
