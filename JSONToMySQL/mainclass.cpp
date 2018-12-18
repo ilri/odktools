@@ -102,7 +102,18 @@ void mainClass::run()
         db.setUserName(user);
         db.setPassword(password);
         if (db.open())
-        {
+        {            
+            QFile UUIDFile(UUIDsFile);
+            //The file is new so write from start
+            if (!UUIDFile.open(QIODevice::WriteOnly | QIODevice::Text))
+            {
+                log("Cannot create processing file");
+                returnCode = 1;
+                db.close();
+                emit finished();
+            }
+            QTextStream UUIDout(&UUIDFile); //Stream to the processing file
+
             QStringList procList;
             QFile file(input);
             if (file.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -268,6 +279,12 @@ void mainClass::run()
             }
             else
             {
+                for (int aUUID = 0; aUUID <= UUIDList.count()-1; aUUID++)
+                {
+                    UUIDout << UUIDList.at(aUUID);
+                }
+                UUIDFile.close();
+
                 QFileInfo fi(json);
                 out << fi.baseName() + "\n";
                 file.close();
@@ -318,7 +335,7 @@ void mainClass::run()
     emit finished();
 }
 
-void mainClass::setParameters(bool voverwrite, QString vjson, QString vmanifest, QString vhost, QString vport, QString vuser, QString vpassword, QString vschema, QString voutput, QString vinput, QString vjavaScript, bool voputSQLSwitch, QString mapDirectory, QString outputType)
+void mainClass::setParameters(bool voverwrite, QString vjson, QString vmanifest, QString vhost, QString vport, QString vuser, QString vpassword, QString vschema, QString voutput, QString vinput, QString vjavaScript, bool voputSQLSwitch, QString mapDirectory, QString outputType, QString uuidsFile)
 {
     overwrite = voverwrite;
     json = vjson;
@@ -334,6 +351,7 @@ void mainClass::setParameters(bool voverwrite, QString vjson, QString vmanifest,
     outSQL = voputSQLSwitch;
     mapOutputDir = mapDirectory;
     this->outputType = outputType;
+    UUIDsFile = uuidsFile;
 }
 
 
@@ -850,6 +868,8 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                 uuids.append(parentkeys[nkey].uuid);
         }
         storeRecord(uuids,table + "~" + strRecordUUID);
+        //Add the UUID to the list
+        UUIDList.append(table + "," + strRecordUUID);
     }
 
     //Now we process the MultiSelects
@@ -933,6 +953,8 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                 {
                     //Store the record in the map
                     storeRecord(table + "~" + strRecordUUID,mSelectTableName + "~" + uuidstr);
+                    //Store the UUD
+                    UUIDList.append(mSelectTableName + "," + uuidstr);
                 }
             }
         }
