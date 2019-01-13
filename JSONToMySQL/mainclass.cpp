@@ -281,7 +281,7 @@ void mainClass::run()
             {
                 for (int aUUID = 0; aUUID <= UUIDList.count()-1; aUUID++)
                 {
-                    UUIDout << UUIDList.at(aUUID);
+                    UUIDout << UUIDList.at(aUUID) + "\n";
                 }
                 UUIDFile.close();
 
