@@ -15,7 +15,6 @@ CONFIG   -= app_bundle
 TEMPLATE = app
 
 unix:INCLUDEPATH += ../3rdparty
-unix:LIBS += -l qjson-qt5
 
 SOURCES += main.cpp \
     insertvalues.cpp \

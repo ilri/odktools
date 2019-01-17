@@ -23,6 +23,12 @@ License along with JSONToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl-3
 #include "mainclass.h"
 #include <QDebug>
 
+void log(QString message)
+{
+    QString temp;
+    temp = message + "\n";
+    printf("%s",temp.toLocal8Bit().data());
+}
 
 int main(int argc, char *argv[])
 {
@@ -55,6 +61,8 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> uuIdsArg("U","uuidsfile","UUIDs output file",false,"./uuids.log","string");
     TCLAP::ValueArg<std::string> outTypeArg("O","outputtype","OutputType: (h)uman readable or (m)achine readble",false,"m","string");
 
+    TCLAP::UnlabeledMultiArg<std::string> suppFiles("supportFile", "support files", false, "string");
+
     //These two parameters should be removed once the external script code works
 
     //TCLAP::SwitchArg ignoreSwitch("g","ignore","Ignore insert in main table", cmd, false);
@@ -73,10 +81,25 @@ int main(int argc, char *argv[])
     cmd.add(outTypeArg);
     cmd.add(uuIdsArg);
     cmd.add(JSArg);
+    cmd.add(suppFiles);
 
     //Parsing the command lines
     cmd.parse( argc, argv );
 
+    QStringList supportFiles;
+    //Get the support files
+    std::vector<std::string> v = suppFiles.getValue();
+    for (int i = 0; static_cast<unsigned int>(i) < v.size(); i++)
+    {
+        QString file = QString::fromStdString(v[i]);
+        if (QFile::exists(file))
+            supportFiles.append(file);
+        else
+        {
+            log("OSM file \"" + file + "\" does not exist.");
+            return 1;
+        }
+    }
 
     //Getting the variables from the command
     bool overwrite = overwriteSwitch.getValue();
@@ -96,7 +119,7 @@ int main(int argc, char *argv[])
 
     mainClass *task = new mainClass(&app);
 
-    task->setParameters(overwrite,json,manifest,host,port,user,password,schema,output,input,javaScript,oputSQLSwitch.getValue(),mapDirectory,outputType, uuidsFile);
+    task->setParameters(overwrite,json,manifest,host,port,user,password,schema,output,input,javaScript,oputSQLSwitch.getValue(),mapDirectory,outputType, uuidsFile, supportFiles);
 
     QObject::connect(task, SIGNAL(finished()), &app, SLOT(quit()));
 

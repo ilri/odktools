@@ -1,33 +1,27 @@
 /*
-ODKToMySQL
+JXFormToMySQL
 
-Copyright (C) 2015-2017 International Livestock Research Institute.
-Author: Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
+Copyright (C) 2019 QLands Technology Consultants.
+Author: Carlos Quiros (cquiros_at_qlands.com)
 
-ODKToMySQL is free software: you can redistribute it and/or modify
+JXFormToMySQL is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
 published by the Free Software Foundation, either version 3 of
 the License, or (at your option) any later version.
 
-ODKToMySQL is distributed in the hope that it will be useful,
+JXFormToMySQL is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
-License along with ODKToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
+License along with JXFormToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
 */
 
 #include <tclap/CmdLine.h>
 #include <QtXml>
 #include <QFile>
 #include <QDir>
-#include "xlsxdocument.h"
-#include "xlsxworkbook.h"
-#include "xlsxworksheet.h"
-#include "xlsxcellrange.h"
-#include "xlsxcellreference.h"
-#include "xlsxcell.h"
 #include <QDebug>
 #include <QDomComment>
 #include <QDirIterator>
@@ -39,25 +33,190 @@ License along with ODKToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl-3.
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QSet>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 
+//*******************************************Global variables***********************************************
 bool debug;
 QString command;
 QString outputType;
+QString default_language;
+QString strYes; //Yes string for comparing Yes/No lookup tables
+QString strNo; //No string for comparing Yes/No lookup tables
+QStringList variableStack; //This is a stack of groups or repeats for a variable. Used to get /xxx/xxx/xxx structures
+QStringList repeatStack; //This is a stack of repeats. So we know in which repeat we are
+QString prefix; //Table prefix
+int tableIndex; //Global index of a table. Used later on to sort them
+QStringList supportFiles;
+bool primaryKeyAdded;
+int CSVRowNumber;
+bool CSVColumError;
+QStringList CSVvalues;
+QStringList CSVSQLs;
+int numColumns;
+int numColumnsInData;
+
+//********************************************Global structures****************************************
+
+//Structure that holds the description of each lkpvalue separated by language
+struct lngDesc
+{
+    QString langCode;
+    QString desc;
+};
+typedef lngDesc TlngLkpDesc;
+
+struct sepSection
+{
+    QString name;
+    QString desc;
+};
+typedef sepSection TsepSection;
+
+//Variable mapping structure between ODK and MySQL
+struct fieldMap
+{
+    QString type;
+    int size;
+    int decSize;
+};
+typedef fieldMap TfieldMap;
+
+//Field Definition structure
+struct fieldDef
+{
+  QString name; //Field Name
+  QList<TlngLkpDesc > desc; //List of field descriptions in different languages
+  QString type; //Variable type in MySQL
+  QString odktype; //Variable type in MySQL
+  int size; //Variable size
+  int decSize; //Variable decimal size
+  bool calculateWithSelect;
+  QString formula;
+  QString rTable; //Related table
+  QString rField; //Related field
+  bool key; //Whether the field is key
+  QString xmlCode; //The field XML code /xx/xx/xx/xx
+  QString xmlFullPath; //The field XML code /xx/xx/xx/xx with groups
+  bool isMultiSelect; //Whether the field if multiselect
+  QString multiSelectTable; //Multiselect table
+  QString selectSource; //The source of the select. Internal, External or Search
+  QString selectListName; //The list name of the select
+};
+typedef fieldDef TfieldDef;
+
+struct ODKGroupingDef
+{
+  QString varibleType; //Type
+  QString varibleName; //Name
+  bool isRepeat;
+};
+typedef ODKGroupingDef TODKGroupingDef;
+
+//Language structure
+struct langDef
+{
+  QString code;
+  QString desc;
+  bool deflang; //Wether the language is default
+};
+typedef langDef TlangDef;
+
+//List of languages
+QList <TlangDef> languages;
+
+//Sirvey Variables in ODK
+struct surveyVariableDef
+{
+  QString name;
+  QString fullName;
+  QString type;
+  QJsonObject object;
+};
+typedef surveyVariableDef TsurveyVariableDef;
+
+//Lookup value structure
+struct lkpValue
+{
+  QString code;
+  QList<TlngLkpDesc > desc; //List of lookup values in different languages
+};
+typedef lkpValue TlkpValue;
+
+//Table structure. Hold information about each table in terms of name, xmlCode, fields
+//and, if its a lookuptable, the lookup values
+struct tableDef
+{
+  QString name;
+  QList<TlngLkpDesc > desc; //List of table descriptions in different languages
+  QList<TfieldDef> fields; //List of fields
+  QList<TlkpValue> lkpValues; //List of lookup values
+  int pos; //Global position of the table
+  bool islookup; //Whether the table is a lookup table
+  bool isSeparated; //Whether the table has been separated
+  QString xmlCode; //The table XML code /xx/xx/xx/xx
+  QString xmlFullPath; //The table XML code /xx/xx/xx/xx
+  QString parentTable; //The parent of the table
+  QDomElement tableElement; //Each table is an Dom Element for building the manifest XML file
+  QDomElement tableCreteElement; //Each table is a second Dom Element for building the XML Create file
+  QStringList loopItems;
+  bool isLoop;
+  bool isOSM;
+  bool isGroup;
+};
+typedef tableDef TtableDef;
+
+QList<TtableDef> tables; //List of tables
+
+struct duplicatedSelectValue
+{
+    QString variableName;
+    QString selectValue;
+};
+typedef duplicatedSelectValue TduplicatedSelectValue;
+QList<TduplicatedSelectValue> duplicatedSelectValues; //List of tables
+
+//***************************************Processes********************************************
+
+int isSelect(QString variableType)
+{
+    QString varType;
+    varType = variableType.toLower().trimmed();
+    varType = varType.replace(" or specify other","");
+    if (varType == "select one")
+        return 1;
+    if (varType == "select one external")
+        return 2;
+    if (varType == "select all that apply")
+        return 3;
+    if (varType == "rank")
+        return 4;
+    return 0;
+}
+
+bool isCalculate(QString variableType)
+{
+    QString varType;
+    varType = variableType.toLower().trimmed();
+    if (varType == "add calculate prompt")
+        return true;
+    if (varType == "calculate")
+        return true;
+    if (varType == "q calculate")
+        return true;
+    return false;
+}
 
 //This logs messages to the terminal. We use printf because qDebug does not log in relase
 void log(QString message)
 {
     QString temp;
     temp = message + "\n";
-    printf(temp.toUtf8().data());
+    printf("%s", temp.toUtf8().data());
 }
 
-int CSVRowNumber;
-bool CSVColumError;
-QStringList CSVvalues;
-QStringList CSVSQLs;
-
-void cb1 (void *s, size_t, void *)
+void cb1(void *s, size_t, void *)
 {
     char* charData;
     charData = (char*)s;
@@ -68,6 +227,7 @@ QString fixColumnName(QString column)
 {
     QString res;
     res = column;
+    res = res.toLower().trimmed();
     res = res.replace(":","_");
     res = res.replace("-","_");
     return res;
@@ -86,9 +246,7 @@ bool isColumnValid(QString column)
     }
 }
 
-int numColumns;
-int numColumnsInData;
-void cb2 (int , void *)
+void cb2(int , void *)
 {
     QString sql;
     if (CSVRowNumber == 1)
@@ -219,108 +377,6 @@ int convertCSVToSQLite(QString fileName, QDir tempDirectory, QSqlDatabase databa
     return 0;
 }
 
-QString strYes; //Yes string for comparing Yes/No lookup tables
-QString strNo; //No string for comparing Yes/No lookup tables
-QStringList variableStack; //This is a stack of groups or repeats for a variable. Used to get /xxx/xxx/xxx structures
-QStringList repeatStack; //This is a stack of repeats. So we know in which repeat we are
-QString prefix; //Table prefix
-int tableIndex; //Global index of a table. Used later on to sort them
-QStringList supportFiles;
-
-//Structure that holds the description of each lkpvalue separated by language
-struct lngDesc
-{
-    QString langCode;
-    QString desc;
-};
-typedef lngDesc TlngLkpDesc;
-
-struct sepSection
-{
-    QString name;
-    QString desc;
-};
-typedef sepSection TsepSection;
-
-//Variable mapping structure between ODK and MySQL
-struct fieldMap
-{
-    QString type;
-    int size;
-    int decSize;
-};
-typedef fieldMap TfieldMap;
-
-//Field Definition structure
-struct fieldDef
-{
-  QString name; //Field Name
-  QList<TlngLkpDesc > desc; //List of field descriptions in different languages
-  QString type; //Variable type in MySQL
-  QString odktype; //Variable type in MySQL
-  int size; //Variable size
-  int decSize; //Variable decimal size
-  QString rTable; //Related table
-  QString rField; //Related field
-  bool key; //Whether the field is key
-  QString xmlCode; //The field XML code /xx/xx/xx/xx
-  bool isMultiSelect; //Whether the field if multiselect
-  QString multiSelectTable; //Multiselect table
-  QString selectSource; //The source of the select. Internal, External or Search
-  QString selectListName; //The list name of the select
-};
-typedef fieldDef TfieldDef;
-
-struct ODKGroupingDef
-{
-  QString varibleType; //Type
-  QString varibleName; //Name
-  bool isRepeat;
-};
-typedef ODKGroupingDef TODKGroupingDef;
-
-//Language structure
-struct langDef
-{
-  QString code;
-  QString desc;
-  bool deflang; //Wether the language is default
-  int idxInSurvey; //Column index in the survey sheet
-  int idxInChoices; //Column index in the choices sheet
-};
-typedef langDef TlangDef;
-
-//List of languages
-QList <TlangDef> languages;
-
-//Lookup value structure
-struct lkpValue
-{
-  QString code;
-  QList<TlngLkpDesc > desc; //List of lookup values in different languages
-};
-typedef lkpValue TlkpValue;
-
-//Table structure. Hold information about each table in terms of name, xmlCode, fields
-//and, if its a lookuptable, the lookup values
-struct tableDef
-{
-  QString name;
-  QList<TlngLkpDesc > desc; //List of table descriptions in different languages
-  QList<TfieldDef> fields; //List of fields
-  QList<TlkpValue> lkpValues; //List of lookup values
-  int pos; //Global position of the table
-  bool islookup; //Whether the table is a lookup table
-  bool isSeparated; //Whether the table has been separated
-  QString xmlCode; //The table XML code /xx/xx/xx/xx
-  QString parentTable; //The parent of the table
-  QDomElement tableElement; //Each table is an Dom Element for building the manifest XML file
-  QDomElement tableCreteElement; //Each table is a second Dom Element for building the XML Create file
-};
-typedef tableDef TtableDef;
-
-QList<TtableDef> tables; //List of tables
-
 // This function return the XML create element of a table.
 // Used to produce the XML create file so a table can be a child of another table
 QDomElement getTableCreateElement(QString table)
@@ -402,6 +458,9 @@ TtableDef getDuplicatedLkpTable(QList<TlkpValue> thisValues)
     bool same;
     TtableDef empty;
     empty.name = "EMPTY";
+    empty.isLoop = false;
+    empty.isOSM = false;
+    empty.isGroup = false;
     QList<TlkpValue> currentValues;
     QString thisDesc;
     QString currenDesc;
@@ -563,7 +622,7 @@ QString fixString(QString source)
 
 //This is the main process that generates the DDL, DML and metadata SQLs.
 //This process also generated the Import manifest file.
-void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, QString transFile, QString XMLCreate, QString insertXML, QString dropSQL)
+void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, QString transFile, QString XMLCreate, QString insertXML, QString dropSQL)
 {
     QStringList fields;
     QStringList indexes;
@@ -636,12 +695,6 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
     QTextStream iso639Strm(&iso639File);
     iso639Strm.setCodec("UTF-8");
 
-//    QFile UUIDTriggersFile(UUIDFile);
-//    if (!UUIDTriggersFile.open(QIODevice::WriteOnly | QIODevice::Text))
-//             return;
-//    QTextStream UUIDStrm(&UUIDTriggersFile);
-//    UUIDStrm.setCodec("UTF-8");
-
     QFile sqlUpdateFile(metaFile);
     if (!sqlUpdateFile.open(QIODevice::WriteOnly | QIODevice::Text))
              return;
@@ -657,49 +710,42 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
     QTextStream sqlDropStrm(&sqlDropFile);
     sqlDropStrm.setCodec("UTF-8");
 
-
     //Start creating the header or each file.
     QDateTime date;
     date = QDateTime::currentDateTime();
 
     QStringList rTables;
 
-    sqlCreateStrm << "-- Code generated by ODKToMySQL" << "\n";
+    sqlCreateStrm << "-- Code generated by JXFormToMySQL" << "\n";
     sqlCreateStrm << "-- " + command << "\n";
     sqlCreateStrm << "-- Created: " + date.toString("ddd MMMM d yyyy h:m:s ap")  << "\n";
-    sqlCreateStrm << "-- by: ODKToMySQL Version 1.0" << "\n";
-    sqlCreateStrm << "-- WARNING! All changes made in this file might be lost when running ODKToMySQL again" << "\n\n";
+    sqlCreateStrm << "-- by: JXFormToMySQL Version 1.0" << "\n";
+    sqlCreateStrm << "-- WARNING! All changes made in this file might be lost when running JXFormToMySQL again" << "\n\n";
 
-    sqlDropStrm << "-- Code generated by ODKToMySQL" << "\n";
+    sqlDropStrm << "-- Code generated by JXFormToMySQL" << "\n";
     sqlDropStrm << "-- " + command << "\n";
     sqlDropStrm << "-- Created: " + date.toString("ddd MMMM d yyyy h:m:s ap")  << "\n";
-    sqlDropStrm << "-- by: ODKToMySQL Version 1.0" << "\n";
-    sqlDropStrm << "-- WARNING! All changes made in this file might be lost when running ODKToMySQL again" << "\n\n";
+    sqlDropStrm << "-- by: JXFormToMySQL Version 1.0" << "\n";
+    sqlDropStrm << "-- WARNING! All changes made in this file might be lost when running JXFormToMySQL again" << "\n\n";
 
-    sqlInsertStrm << "-- Code generated by ODKToMySQL" << "\n";
+    sqlInsertStrm << "-- Code generated by JXFormToMySQL" << "\n";
     sqlInsertStrm << "-- " + command << "\n";
     sqlInsertStrm << "-- Created: " + date.toString("ddd MMMM d yyyy h:m:s ap")  << "\n";
-    sqlInsertStrm << "-- by: ODKToMySQL Version 1.0" << "\n";
-    sqlInsertStrm << "-- WARNING! All changes made in this file might be lost when running ODKToMySQL again" << "\n\n";
+    sqlInsertStrm << "-- by: JXFormToMySQL Version 1.0" << "\n";
+    sqlInsertStrm << "-- WARNING! All changes made in this file might be lost when running JXFormToMySQL again" << "\n\n";
     sqlInsertStrm << "START TRANSACTION;" << "\n\n";
 
-    iso639Strm << "-- Code generated by ODKToMySQL" << "\n";
+    iso639Strm << "-- Code generated by JXFormToMySQL" << "\n";
     iso639Strm << "-- " + command << "\n";
     iso639Strm << "-- Created: " + date.toString("ddd MMMM d yyyy h:m:s ap")  << "\n";
-    iso639Strm << "-- by: ODKToMySQL Version 1.0" << "\n";
-    iso639Strm << "-- WARNING! All changes made in this file might be lost when running ODKToMySQL again" << "\n\n";
+    iso639Strm << "-- by: JXFormToMySQL Version 1.0" << "\n";
+    iso639Strm << "-- WARNING! All changes made in this file might be lost when running JXFormToMySQL again" << "\n\n";
 
-//    UUIDStrm << "-- Code generated by ODKToMySQL" << "\n";
-//    UUIDStrm << "-- " + command << "\n";
-//    UUIDStrm << "-- Created: " + date.toString("ddd MMMM d yyyy h:m:s ap")  << "\n";
-//    UUIDStrm << "-- by: ODKToMySQL Version 1.0" << "\n";
-//    UUIDStrm << "-- WARNING! All changes made in this file might be lost when running ODKToMySQL again" << "\n\n";
-
-    sqlUpdateStrm << "-- Code generated by ODKToMySQL" << "\n";
+    sqlUpdateStrm << "-- Code generated by JXFormToMySQL" << "\n";
     sqlUpdateStrm << "-- " + command << "\n";
     sqlUpdateStrm << "-- Created: " + date.toString("ddd MMMM d yyyy h:m:s ap")  << "\n";
-    sqlUpdateStrm << "-- by: ODKToMySQL Version 1.0" << "\n";
-    sqlUpdateStrm << "-- WARNING! All changes made in this file might be lost when running ODKToMySQL again" << "\n\n";
+    sqlUpdateStrm << "-- by: JXFormToMySQL Version 1.0" << "\n";
+    sqlUpdateStrm << "-- WARNING! All changes made in this file might be lost when running JXFormToMySQL again" << "\n\n";
 
     for (int pos = 0; pos <= languages.count()-1;pos++)
     {
@@ -735,6 +781,18 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                 tables[pos].tableElement.setAttribute("parent",tables[pos].parentTable);
                 if (tables[pos].isSeparated == true)
                     tables[pos].tableElement.setAttribute("separated","true");
+                if (tables[pos].isLoop)
+                {
+                    tables[pos].tableElement.setAttribute("loop","true");
+                    QString loopItems;
+                    loopItems = tables[pos].loopItems.join(QChar(743));
+                    tables[pos].tableElement.setAttribute("loopitems",loopItems);
+                }
+                if (tables[pos].isOSM)
+                    tables[pos].tableElement.setAttribute("osm","true");
+                if (tables[pos].isGroup)
+                    tables[pos].tableElement.setAttribute("group","true");
+
 
                 //For the create XML
                 tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
@@ -775,8 +833,6 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
 
         //Update the dictionary tables to set the table description
         sqlUpdateStrm << "UPDATE dict_tblinfo SET tbl_des = \"" + fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))) + "\" WHERE tbl_cod = '" + prefix + tables[pos].name.toLower() + "';\n";
-
-
 
         //Insert the translation of the table into the dictionary translation table
         for (lng = 0; lng <= languages.count()-1;lng++)
@@ -1191,64 +1247,60 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
 {
     TfieldMap result;
     result.type = "varchar";
-    result.size = 60;
+    result.size = 255;
     result.decSize = 0;
-    if (ODKFieldType == "start")
+    if (ODKFieldType == "acknowledge")
+    {
+        result.size = 2;
+    }
+    if (ODKFieldType == "add acknowledge prompt")
+    {
+        result.size = 2;
+    }
+    if (ODKFieldType == "add date prompt")
+    {
+        result.type = "date";
+    }
+    if (ODKFieldType == "add date time prompt")
     {
         result.type = "datetime";
     }
-    if (ODKFieldType == "today")
+    if (ODKFieldType == "add dateTime prompt")
     {
         result.type = "datetime";
     }
-    if (ODKFieldType == "end")
-    {
-        result.type = "datetime";
-    }
-    if (ODKFieldType == "deviceid")
-    {
-        result.type = "varchar";
-        result.size = 60;
-    }
-    if (ODKFieldType == "subscriberid")
-    {
-        result.type = "varchar";
-        result.size = 60;
-    }
-    if (ODKFieldType == "simserial")
-    {
-        result.type = "varchar";
-        result.size = 60;
-    }
-    if (ODKFieldType == "phonenumber")
-    {
-        result.type = "varchar";
-        result.size = 60;
-    }
-    if (ODKFieldType == "note")
-    {
-        result.type = "text";
-    }
-    if (ODKFieldType == "text")
-    {
-        result.type = "text";
-    }
-    if (ODKFieldType == "decimal")
+    if (ODKFieldType == "add decimal prompt")
     {
         result.type = "decimal";
         result.size = 10;
         result.decSize = 3;
     }
-    if (ODKFieldType == "integer")
+    if (ODKFieldType == "add integer prompt")
     {
         result.type = "int";
         result.size = 9;
-    }        
+    }
+    if (ODKFieldType == "add location prompt")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "audio")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "audit")
+    {
+        result.size = 120;
+    }
     if (ODKFieldType == "date")
     {
         result.type = "date";
     }
-    if (ODKFieldType == "time")
+    if (ODKFieldType == "date time")
+    {
+        result.type = "datetime";
+    }
+    if (ODKFieldType == "dateTime")
     {
         result.type = "datetime";
     }
@@ -1256,17 +1308,257 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     {
         result.type = "datetime";
     }
-    if (ODKFieldType == "geopoint")
+    if (ODKFieldType == "decimal")
     {
-        result.type = "varchar";
+        result.type = "decimal";
+        result.size = 10;
+        result.decSize = 3;
+    }
+    if (ODKFieldType == "device id")
+    {
         result.size = 120;
     }
-    if (ODKFieldType == "calculate")
+    if (ODKFieldType == "deviceid")
     {
-        result.type = "varchar";
-        result.size = 255;
+        result.size = 120;
     }
-    return result; //Otherwise treat it as varchar
+    if (ODKFieldType == "email")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "end")
+    {
+        result.type = "datetime";
+    }
+    if (ODKFieldType == "end time")
+    {
+        result.type = "datetime";
+    }
+    if (ODKFieldType == "file")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "geopoint")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "get device id")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "get end time")
+    {
+        result.type = "datetime";
+    }
+    if (ODKFieldType == "get phone number")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "get sim id")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "get start time")
+    {
+        result.type = "datetime";
+    }
+    if (ODKFieldType == "get subscriber id")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "get today")
+    {
+        result.type = "datetime";
+    }
+    if (ODKFieldType == "gps")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "int")
+    {
+        result.type = "int";
+        result.size = 9;
+    }
+    if (ODKFieldType == "integer")
+    {
+        result.type = "int";
+        result.size = 9;
+    }
+    if (ODKFieldType == "location")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "number of days in last month")
+    {
+        result.type = "int";
+        result.size = 9;
+    }
+    if (ODKFieldType == "number of days in last six months")
+    {
+        result.type = "int";
+        result.size = 9;
+    }
+    if (ODKFieldType == "number of days in last year")
+    {
+        result.type = "int";
+        result.size = 9;
+    }
+    if (ODKFieldType == "percentage")
+    {
+        result.type = "decimal";
+        result.size = 10;
+        result.decSize = 3;
+    }
+    if (ODKFieldType == "phone number")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "phonenumber")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "photo")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "q acknowledge")
+    {
+        result.size = 2;
+    }
+    if (ODKFieldType == "q audio")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "q date")
+    {
+        result.type = "date";
+    }
+    if (ODKFieldType == "q date time")
+    {
+        result.type = "datetime";
+    }
+    if (ODKFieldType == "q dateTime")
+    {
+        result.type = "datetime";
+    }
+    if (ODKFieldType == "q decimal")
+    {
+        result.type = "decimal";
+        result.size = 10;
+        result.decSize = 3;
+    }
+    if (ODKFieldType == "q geopoint")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "q image")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "q int")
+    {
+        result.type = "int";
+        result.size = 9;
+    }
+    if (ODKFieldType == "q location")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "q picture")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "q string")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "q video")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "range")
+    {
+        result.type = "decimal";
+        result.size = 10;
+        result.decSize = 3;
+    }
+    if (ODKFieldType == "sim id")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "simserial")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "start")
+    {
+        result.type = "datetime";
+    }
+    if (ODKFieldType == "start time")
+    {
+        result.type = "datetime";
+    }
+    if (ODKFieldType == "string")
+    {
+       result.size = 120;
+    }
+    if (ODKFieldType == "subscriber id")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "subscriberid")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "time")
+    {
+        result.type = "datetime";
+    }
+    if (ODKFieldType == "today")
+    {
+        result.type = "datetime";
+    }
+    if (ODKFieldType == "trigger")
+    {
+        result.size = 2;
+    }
+    if (ODKFieldType == "uri:deviceid")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "uri:email")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "uri:phonenumber")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "uri:simserial")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "uri:subscriberid")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "uri:username")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "username")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "video")
+    {
+        result.size = 120;
+    }
+    if (ODKFieldType == "xml-external")
+    {
+        result.size = 120;
+    }
+    return result;
 }
 
 //Return whether the values of a lookup table are numbers or strings. Used to determine the type of variables in the lookup tables
@@ -1318,7 +1610,7 @@ int getMaxDescLength(QList<TlkpValue> values)
     int lng;
     for (pos = 0; pos <= values.count()-1;pos++)
     {
-        for (lng = 0; lng < languages.count();lng++)
+        for (lng = 0; lng < values[pos].desc.count();lng++)
         {
             if (values[pos].desc[lng].desc.length() >= res)
                 res = values[pos].desc[lng].desc.length();
@@ -1413,6 +1705,8 @@ void appendUUIDs()
         UUIDField.rField = "";
         UUIDField.xmlCode = "NONE";
         UUIDField.isMultiSelect = false;
+        UUIDField.formula = "";
+        UUIDField.calculateWithSelect = false;
         UUIDField.selectSource = "NONE";
         UUIDField.selectListName = "NONE";
         tables[pos].fields.append(UUIDField);
@@ -1443,9 +1737,9 @@ int genLangIndexByName(QString language)
 }
 
 //Adds a group or repeat to the stack
-void addToStack(QString groupOrRepeat)
+void addToStack(QString groupOrRepeat, QString type)
 {
-    variableStack.append(groupOrRepeat);
+    variableStack.append(groupOrRepeat + "@" + type);
 }
 
 //Fixes table and field name by removing invalid MySQL characters
@@ -1459,7 +1753,9 @@ QString fixField(QString source)
     res = res.replace("-","_");
     res = res.replace(",","");
     res = res.replace(" ","");
-    res = res.replace(".","_");
+    res = res.replace(".","_");    
+    res = res.replace(":","_");
+    res = res.trimmed().simplified().toLower();
     return res;
 }
 
@@ -1492,12 +1788,19 @@ bool removeRepeat()
 }
 
 //This return the stack for a variable in format /xxx/xxx/xxx/
-QString getVariableStack()
+QString getVariableStack(bool full)
 {
     QString res;
     for (int pos = 0; pos < variableStack.count();pos++)
     {
-        res = res + variableStack[pos] + "/";
+        QStringList parts = variableStack[pos].split("@",QString::SkipEmptyParts);
+        if (full)
+            res = res + parts[0] + "/";
+        else
+        {
+            if (parts[1] != "group")
+                res = res + parts[0] + "/";
+        }
     }
     if (res.length() > 0)
         res = res.left(res.length()-1);
@@ -1518,6 +1821,9 @@ TtableDef getTable(QString name)
 {
     TtableDef res;
     res.name = "";
+    res.isLoop = false;
+    res.isOSM = false;
+    res.isGroup = false;
     for (int pos = 0; pos <= tables.count()-1;pos++)
     {
         if (!tables[pos].islookup)
@@ -1531,66 +1837,323 @@ TtableDef getTable(QString name)
 
 bool selectHasOrOther(QString variableType)
 {
-    if (variableType.toLower().trimmed().indexOf("or_other") >= 0)
+    if (variableType.toLower().trimmed().indexOf("or specify other") >= 0)
         return true;
     else
         return false;
 }
 
-//This return the values of a select from an external CSV.
-QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QXlsx::Worksheet *choicesSheet,QString listName,int listNameIdx,int nameIdx, bool hasOrOther, int &result, QDir dir, QSqlDatabase database)
+//This return the labels of any variable in different languages
+QList <TlngLkpDesc > getLabels(QJsonValue labelValue)
+{
+    QList <TlngLkpDesc > labels;
+    if (!labelValue.isObject())
+    {
+        int languageIndex;
+        languageIndex = 0;
+        for (int lng = 0; lng < languages.count();lng++)
+        {
+            if (languages[lng].deflang == true)
+            {
+                languageIndex = lng;
+                break;
+            }
+        }
+        TlngLkpDesc fieldDesc;
+        fieldDesc.langCode = languages[languageIndex].code;
+        fieldDesc.desc = labelValue.toString("Without label");
+        labels.append(fieldDesc);
+    }
+    else
+    {
+        QJsonObject labelObject;
+        labelObject = labelValue.toObject();
+        for (int lbl = 0; lbl < labelObject.keys().count(); lbl++)
+        {
+            TlngLkpDesc fieldDesc;
+            fieldDesc.langCode = getLanguageCode(labelObject.keys()[lbl].toLower().trimmed());
+            fieldDesc.desc = labelObject.value(labelObject.keys()[lbl]).toString();
+            labels.append(fieldDesc);
+        }
+    }
+    return labels;
+}
+
+void checkSelectValue(QString variableName, QList<TlkpValue> values, QString value)
+{
+    for (int idx = 0; idx < values.count(); idx++)
+    {
+        if (values[idx].code.toLower().trimmed() == value.toLower().trimmed())
+        {
+            TduplicatedSelectValue duplicated;
+            duplicated.variableName = variableName;
+            duplicated.selectValue = value.toLower().trimmed();
+            duplicatedSelectValues.append(duplicated);
+        }
+    }
+}
+
+// This return the values of a select that uses an external xml file.
+// e.g., "select one from file a_file.xml" and "select multiple from file a_file.xml"
+QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, bool hasOrOther, int &result, QDir dir)
 {
     QList<TlkpValue> res;
-    QXlsx::CellReference ref;
-    QXlsx::Cell *cell;
-    QXlsx::Cell *cell2;
-
-    // First we get column for code and the different columns for descriptions
-    // like for select_one household_region   search('regions', 'matches', 'cnty_cod', ${hh_country}) :
-    // list_name            name        label::English      label::Spanish
-    // household_region     reg_cod     reg_name_en         reg_name_es
-
-    // codeColum is "reg_cod" and the descColumns are "reg_name_en" and "reg_name_es"
     QString codeColumn;
-    codeColumn = "";
-    QList<TlngLkpDesc> descColumns;
-    for (int nrow = 2; nrow <= choicesSheet->dimension().lastRow(); nrow++)
+    codeColumn = "name";
+    QStringList descColumns;
+    descColumns << "label";
+    descColumns << "label::" + getDefLanguage().toLower().trimmed();
+    for (int lng = 0; lng < languages.count(); lng++)
     {
-        ref.setRow(nrow);
-        ref.setColumn(listNameIdx);
-        cell = choicesSheet->cellAt(ref);
-        if (cell != 0)
+        if (descColumns.indexOf("label::" + languages[lng].desc) < 0)
+            descColumns.append("label::" + languages[lng].desc.toLower().trimmed());
+    }
+    QString xmlFile;
+    xmlFile = dir.absolutePath() + dir.separator() + fileName;
+    if (QFile::exists(xmlFile))
+    {
+        QDomDocument xmlDocument;
+        QFile file(xmlFile);
+        if (!file.open(QIODevice::ReadOnly))
         {
-            if (cell->value().toString().toLower().trimmed() == listName.toLower().trimmed())
+            log("Cannot open XML resource file: "+ xmlFile);
+            exit(21);
+        }
+
+        if (!xmlDocument.setContent(&file))
+        {
+            log("Cannot parse XML resource file: "+ xmlFile);
+            file.close();
+            exit(21);
+        }
+        file.close();
+        QDomNodeList items;
+        items = xmlDocument.elementsByTagName("item");
+        if (items.count() > 0)
+        {
+            for (int nitem = 0; nitem < items.count(); nitem++)
             {
-                ref.setColumn(nameIdx);
-                codeColumn = choicesSheet->cellAt(ref)->value().toString().trimmed();
+                QDomElement Eitem = items.item(nitem).toElement();
+                QDomNodeList columns;
+                columns = Eitem.elementsByTagName(codeColumn);
+                if (columns.count() > 0)
+                {
+                    TlkpValue value;
+                    value.code = columns.item(0).firstChild().nodeValue();
+                    for (int pos = 0; pos <= descColumns.count()-1; pos++)
+                    {
+                        columns = Eitem.elementsByTagName(descColumns[pos]);
+                        if (columns.count() > 0)
+                        {
+                            if (descColumns[pos].indexOf("::") >= 0)
+                            {
+                                QStringList parts;
+                                parts = descColumns[pos].split("::",QString::SkipEmptyParts);
+                                QString langCode;
+                                langCode = getLanguageCode(parts[1]);
+                                if (langCode != "")
+                                {
+                                    TlngLkpDesc desc;
+                                    desc.desc = columns.item(0).firstChild().nodeValue();
+                                    desc.langCode = langCode;
+                                    value.desc.append(desc);
+                                }
+                                else
+                                {
+                                    log("Language " + parts[1] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
+                                    exit(4);
+                                }
+                            }
+                            else
+                            {
+                                TlngLkpDesc desc;
+                                desc.desc = columns.item(0).firstChild().nodeValue();
+                                desc.langCode = getLanguageCode(getDefLanguage());
+                                value.desc.append(desc);
+                            }
+                        }
+                    }
+                    checkSelectValue(variableName,res,value.code);
+                    res.append(value);
+                }
+                else
+                {
+                    log("Unable to find the column called name in the XML file \"" + fileName + "\". Is this a valid XML resource");
+                    exit(12);
+                }
+            }
+            if (hasOrOther)
+            {
+                checkSelectValue(variableName,res,"other");
+                TlkpValue value;
+                value.code = "other";
                 for (int lng = 0; lng < languages.count(); lng++)
                 {
                     TlngLkpDesc desc;
                     desc.langCode = languages[lng].code;
-                    ref.setColumn(languages[lng].idxInChoices);
-                    cell2 = choicesSheet->cellAt(ref);
-                    if (cell2 != 0)
-                    {
-                        QString columDesc;
-                        columDesc = cell2->value().toString().trimmed();
-                        columDesc = fixColumnName(columDesc);
-                        if (isColumnValid(columDesc) == false)
-                        {
-                            log("The XLSX file has an CSV option with an invalid label: \"" + columDesc + "\". Only : and _ are allowed.");
-                            exit(15);
-                        }
-                        desc.desc = columDesc;
-                    }
-                    else
-                        desc.desc = "NONE";
-                    descColumns.append(desc);
+                    desc.desc = "Other";
+                    value.desc.append(desc);
                 }
-
+                res.append(value);
             }
         }
+        else
+        {
+            log("Unable to retreive items from the XML file \"" + fileName + "\". Is this a valid XML resource");
+            exit(12);
+        }
     }
+    else
+    {
+        log("There is no XML file for \"" + fileName + "\". Did you add it when you ran JXFormToMySQL?");
+        exit(13);
+    }
+    result = 0;
+    return res;
+}
+
+// This return the values of a select that uses an external CSV file.
+// e.g., "select one from file a_file.csv","select multiple from file a_file.csv","select one external"
+QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName, bool hasOrOther, int &result, QDir dir, QSqlDatabase database, QString queryValue)
+{
+    QList<TlkpValue> res;
+    QString codeColumn;
+    codeColumn = "name";
+    QStringList descColumns;
+    descColumns << "label";
+    descColumns << "label::" + getDefLanguage().toLower().trimmed();
+    for (int lng = 0; lng < languages.count(); lng++)
+    {
+        if (descColumns.indexOf("label::" + languages[lng].desc) < 0)
+            descColumns.append("label::" + languages[lng].desc.toLower().trimmed());
+    }
+
+    QString sqliteFile;
+    //There should be an sqlite version of such file in the temporary directory
+    sqliteFile = dir.absolutePath() + dir.separator() + fileName.replace(".csv","") + ".sqlite";
+    if (QFile::exists(sqliteFile))
+    {
+        database.setDatabaseName(sqliteFile);
+        if (database.open())
+        {
+            //Contruct a query from using "codeColumn" and the list "descColumns"
+            QSqlQuery query(database);
+            QString sql;
+            sql = "SELECT * FROM data";
+            if (queryValue != "")
+            {
+                sql = sql + " WHERE list_name = '" + queryValue + "'";
+            }
+            if (query.exec(sql))
+            {
+                //Appends each value as a select value
+                while (query.next())
+                {
+                    QVariant queryValue;
+                    queryValue = query.value(fixColumnName(codeColumn));
+                    if (queryValue.isValid())
+                    {
+                        TlkpValue value;
+                        value.code = query.value(fixColumnName(codeColumn)).toString();
+                        for (int pos = 0; pos <= descColumns.count()-1; pos++)
+                        {
+                            queryValue = query.value(fixColumnName(descColumns[pos]));
+                            if (queryValue.isValid())
+                            {
+                                if (descColumns[pos].indexOf("::") >= 0)
+                                {
+                                    QStringList parts;
+                                    parts = descColumns[pos].split("::",QString::SkipEmptyParts);
+                                    QString langCode;
+                                    langCode = getLanguageCode(parts[1]);
+                                    if (langCode != "")
+                                    {
+                                        TlngLkpDesc desc;
+                                        desc.desc = queryValue.toString();
+                                        desc.langCode = langCode;
+                                        value.desc.append(desc);
+                                    }
+                                    else
+                                    {
+                                        log("Language " + parts[1] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
+                                        exit(4);
+                                    }
+                                }
+                                else
+                                {
+                                    TlngLkpDesc desc;
+                                    desc.desc = queryValue.toString();
+                                    desc.langCode = getLanguageCode(getDefLanguage());
+                                    value.desc.append(desc);
+                                }
+                            }
+                        }
+                        checkSelectValue(variableName,res,value.code);
+                        res.append(value);
+                    }
+                    else
+                    {
+                        log("The file " + fileName + "is not a valid ODK resource file");
+                        exit(20);
+                    }
+                }
+                if (hasOrOther)
+                {
+                    checkSelectValue(variableName,res,"other");
+                    TlkpValue value;
+                    value.code = "other";
+                    for (int lng = 0; lng < languages.count(); lng++)
+                    {
+                        TlngLkpDesc desc;
+                        desc.langCode = languages[lng].code;
+                        desc.desc = "Other";
+                        value.desc.append(desc);
+                    }
+                    res.append(value);
+                }
+                result = 0;
+                return res;
+            }
+            else
+            {
+                log("Unable to retreive data for search \"" + fileName + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
+                exit(12);
+            }
+        }
+        else
+        {
+            log("Cannot create SQLite database " + sqliteFile);
+            result = 1;
+            return res;
+        }
+    }
+    else
+    {
+        log("There is no SQLite file for search \"" + fileName + "\". Did you add it as CSV when you ran JXFormToMySQL?");
+        exit(13);
+    }
+    result = 0;
+    return res;
+}
+
+// This return the values of a select that uses an external CSV file through a search expresion in apperance.
+// e.g.:
+//       type: select one canton
+//       appearance: search('cantones', 'matches', 'a_column', ${a_variable})
+QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choices,QString variableName, bool hasOrOther, int &result, QDir dir, QSqlDatabase database)
+{    
+    QList<TlkpValue> res;
+    QString codeColumn;
+    codeColumn = "";
+    QList<TlngLkpDesc> descColumns;
+    for (int nrow = 0; nrow < choices.count(); nrow++)
+    {
+        QJsonValue JSONValue = choices.at(nrow);
+        codeColumn = JSONValue.toObject().value("name").toString();
+        QJsonValue JSONlabel = JSONValue.toObject().value("label");
+        descColumns.append(getLabels(JSONlabel));
+    }
+
     if ((codeColumn != "") && (descColumns.count() > 0))
     {
         int pos;
@@ -1616,7 +2179,7 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QXlsx::Workshee
                     if (descColumns[pos].desc != "NONE")
                         sql = sql + fixColumnName(descColumns[pos].desc) + ",";
                 }
-                sql = sql.left(sql.length()-1) + " FROM data";                
+                sql = sql.left(sql.length()-1) + " FROM data";
                 if (query.exec(sql))
                 {
                     //Appends each value as a select value
@@ -1641,17 +2204,18 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QXlsx::Workshee
                                 value.desc.append(desc);
                             }
                         }
+                        checkSelectValue(variableName,res,value.code);
                         res.append(value);
                     }
                     if (hasOrOther)
                     {
+                        checkSelectValue(variableName,res,"other");
                         TlkpValue value;
                         value.code = "other";
                         for (int lng = 0; lng < languages.count(); lng++)
                         {
                             TlngLkpDesc desc;
                             desc.langCode = languages[lng].code;
-                            ref.setColumn(languages[lng].idxInChoices);
                             desc.desc = "Other";
                             value.desc.append(desc);
                         }
@@ -1675,119 +2239,60 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QXlsx::Workshee
         }
         else
         {
-            log("There is no SQLite file for search \"" + file + "\". Did you add it as CSV when you ran ODKToMySQL?");            
+            log("There is no SQLite file for search \"" + file + "\". Did you add it as CSV when you ran JXFormToMySQL?");
             exit(13);
         }
     }
     else
     {
         if (codeColumn != "")
-            log("Cannot locate the code column for the search select \"" + listName + "\"");
+            log("Cannot locate the code column for the search select \"" + variableName + "\"");
         if (descColumns.count() == 0)
-            log("Cannot locate a description column for the search select \"" + listName + "\"");
+            log("Cannot locate a description column for the search select \"" + variableName + "\"");
         exit(16);
-        return res;
     }
 
     result = 0;
     return res;
 }
 
-//This return the values of a select in different languages. If the select is a reference then it return empty
-QList<TlkpValue> getSelectValues(QXlsx::Worksheet *choicesSheet,QString listName,int listNameIdx,int nameIdx, bool hasOrOther)
+//This return the values of a simple select or select multiple
+QList<TlkpValue> getSelectValues(QString variableName, QJsonArray choices, bool hasOther)
 {
     QList<TlkpValue> res;
-    QXlsx::CellReference ref;
-    QXlsx::Cell *cell;
-    QXlsx::Cell *cell2;
-    bool referenceLookup;
-    referenceLookup = false;
-    for (int nrow = 2; nrow <= choicesSheet->dimension().lastRow(); nrow++)
+    for (int nrow = 0; nrow < choices.count(); nrow++)
     {
-        /*if (debug)
+        QJsonValue JSONValue = choices.at(nrow);
+        TlkpValue value;
+        value.code = JSONValue.toObject().value("name").toString();
+        QJsonValue JSONlabel = JSONValue.toObject().value("label");
+        value.desc = getLabels(JSONlabel);
+        checkSelectValue(variableName,res,value.code);
+        res.append(value);
+    }
+    if (hasOther)
+    {
+        checkSelectValue(variableName,res,"other");
+        TlkpValue value;
+        value.code = "other";
+        for (int lng = 0; lng < languages.count(); lng++)
         {
-            qDebug() << "Choices: " + QString::number(nrow);
-            if (nrow == 48)
-                qDebug() << "Choices here";
-        }*/
-        ref.setRow(nrow);
-        ref.setColumn(listNameIdx);
-        cell = choicesSheet->cellAt(ref);
-        if (cell != 0)
-        {
-            if (cell->value().toString().toLower().trimmed() == listName.toLower().trimmed())
-            {
-                ref.setColumn(nameIdx);
-                TlkpValue value;
-                value.code = choicesSheet->cellAt(ref)->value().toString().trimmed();
-                for (int lng = 0; lng < languages.count(); lng++)
-                {
-                    TlngLkpDesc desc;
-                    desc.langCode = languages[lng].code;
-                    ref.setColumn(languages[lng].idxInChoices);
-                    cell2 = choicesSheet->cellAt(ref);
-                    if (cell2 != 0)
-                        desc.desc = cell2->value().toString().trimmed();
-                    else
-                        desc.desc = "Empty description for value " + value.code + " in language " + languages[lng].desc;
-                    if (desc.desc.indexOf("${") >= 0) //We dont treat reference lists as lookup tables
-                        referenceLookup = true;
-                    value.desc.append(desc);
-                }
-                res.append(value);
-            }
+            TlngLkpDesc desc;
+            desc.langCode = languages[lng].code;
+            desc.desc = "Other";
+            value.desc.append(desc);
         }
+        res.append(value);
     }
-    if (!referenceLookup)
-    {
-        if (hasOrOther)
-        {
-            TlkpValue value;
-            value.code = "other";
-            for (int lng = 0; lng < languages.count(); lng++)
-            {
-                TlngLkpDesc desc;
-                desc.langCode = languages[lng].code;
-                ref.setColumn(languages[lng].idxInChoices);
-                desc.desc = "Other";
-                value.desc.append(desc);
-            }
-            res.append(value);
-        }
-        return res;
-    }
-    else
-    {
-        QList<TlkpValue> empty;
-        return empty; //Return an empty list when the select is a reference
-    }
+
+    return res;
+
 }
 
-/*Main process.
-    Process the ODK Form XLSX File
-    Basically it does the following:
-        1- Check is the xlsx file is an ODK file
-        2- Extracts the languages and points each language to the right columns
-        3- Sequentially goes thorough the survey structure. begin groups/repeats are added to the stacks
-           end groups/repeats are removed from the stacks. Begin repeats create new tables.
-        4- Creates lookup tables for each select or multiselect
-        5- Creates a multiselect table to store each value as a independent row
-        6- Add tables to the list called tables
-*/
-
-bool variableIsControl(QString variableType)
-{
-    if ((variableType == "begin group") || (variableType == "begin_group"))
-        return true;
-    if ((variableType == "end group") || (variableType == "end_group"))
-        return true;
-    if ((variableType == "begin repeat") || (variableType == "begin_repeat"))
-        return true;
-    if ((variableType == "end repeat") || (variableType == "end_repeat"))
-        return true;
-    return false;
-}
-
+// This checks the expresion of a calculate to see if it maps a select multiple
+// e.g.,:
+//        type: calculate
+//        calculation: selected-at(${variable_that_is_select_multiple}, position(..)-1)
 void getReferenceForSelectAt(QString calculateExpresion,QString &fieldType, int &fieldSize, int &fieldDecSize, QString &fieldRTable, QString &fieldRField)
 {
     int pos;
@@ -1806,7 +2311,7 @@ void getReferenceForSelectAt(QString calculateExpresion,QString &fieldType, int 
     {
         for (int pos2 = 0; pos2 <= tables[pos].fields.count()-1; pos2++)
         {
-            if (tables[pos].fields[pos2].name == variable)
+            if (tables[pos].fields[pos2].name.toLower().trimmed() == variable.toLower().trimmed())
             {
                 multiSelectTable = tables[pos].fields[pos2].multiSelectTable;
                 found = true;
@@ -1830,7 +2335,7 @@ void getReferenceForSelectAt(QString calculateExpresion,QString &fieldType, int 
                         fieldSize = tables[pos].fields[pos2].size;
                         fieldDecSize = tables[pos].fields[pos2].decSize;
                         fieldRTable = tables[pos].fields[pos2].rTable;
-                        fieldRField = tables[pos].fields[pos2].rField;
+                        fieldRField = tables[pos].fields[pos2].rField;                        
                         return;
                     }
                 }
@@ -1839,256 +2344,1312 @@ void getReferenceForSelectAt(QString calculateExpresion,QString &fieldType, int 
     }
 }
 
-//This is the main process. It parses the XLSX file and store all information in the array "tables"
-int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir dir, QSqlDatabase database)
+//Adds OSM tags as columns to a OSM table
+void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
 {
-    bool hasSurveySheet;
-    bool hasChoicesSheet;
-    bool hasExternalChoicesSheet;
-    bool hasSettingsSheet;
-    hasSurveySheet = false;
-    hasChoicesSheet = false;
-    hasSettingsSheet = false;
-    hasExternalChoicesSheet = false;
-    QXlsx::Document xlsx(inputFile);
-    QStringList sheets = xlsx.sheetNames();
-    for (int nsheet = 0; nsheet <= sheets.count()-1;nsheet++)
+    QString variableName;
+    variableName = fieldObject.value("name").toString();
+    variableName = variableName.toLower();
+    if (fieldObject.keys().indexOf("choices") >= 0)
     {
-        if (sheets[nsheet].toLower() == "survey")
-            hasSurveySheet = true;
-        if (sheets[nsheet].toLower() == "choices")
-            hasChoicesSheet = true;
-        if (sheets[nsheet].toLower() == "settings")
-            hasSettingsSheet = true;
-        if (sheets[nsheet].toLower() == "external_choices")
-            hasExternalChoicesSheet = true;
-    }
-    if (!hasSurveySheet || !hasChoicesSheet || !hasSettingsSheet)
-    {
-        log("The excel file does not seems to be an ODK XLSX file");
-        return 1;
+        QList<TlkpValue> values;
+        values.append(getSelectValues(variableName,fieldObject.value("choices").toArray(),false));
+
+        TfieldDef aField;
+        aField.selectSource = "NONE";
+        aField.name = fixField(variableName.toLower());
+        aField.odktype = "NONE";
+        aField.selectListName = "NONE";
+        aField.calculateWithSelect = false;
+        aField.formula = "";
+        aField.type = "varchar";
+        aField.size = getMaxValueLength(values);
+        aField.decSize = 0;
+        aField.key = false;
+        aField.isMultiSelect = false;
+        aField.multiSelectTable = "";
+        aField.formula = "";
+        aField.calculateWithSelect = false;
+        aField.xmlCode = variableName;
+        aField.xmlFullPath = "NONE";
+        QJsonValue labelValue = fieldObject.value("label");
+        aField.desc.append(getLabels(labelValue));
+        if (values.count() > 0) //If the lookup table has values
+        {
+            //Creating the lookp table if its neccesary
+            if (isLookUpYesNo(values) == false) //Do not process yes/no values as lookup tables
+            {
+                TtableDef lkpTable = getDuplicatedLkpTable(values);
+                lkpTable.isLoop = false;
+                lkpTable.isOSM = false;
+                lkpTable.isGroup = false;
+                if (lkpTable.name == "EMPTY")
+                {
+                    lkpTable.name = "lkp" + fixField(variableName.toLower());
+                    for (int lang = 0; lang < aField.desc.count(); lang++)
+                    {
+                        TlngLkpDesc fieldDesc;
+                        fieldDesc.langCode = aField.desc[lang].langCode;
+                        fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
+                        lkpTable.desc.append(fieldDesc);
+                    }
+                    lkpTable.pos = -1;
+                    lkpTable.islookup = true;
+                    lkpTable.isSeparated = false;
+                    lkpTable.lkpValues.append(values);
+                    //Creates the field for code in the lookup
+                    TfieldDef lkpCode;
+                    lkpCode.name = fixField(variableName.toLower()) + "_cod";
+                    lkpCode.selectSource = "NONE";
+                    lkpCode.selectListName = "NONE";
+                    for (int lang = 0; lang <= languages.count()-1;lang++)
+                    {
+                        TlngLkpDesc langDesc;
+                        langDesc.langCode = languages[lang].code;
+                        langDesc.desc = "Code";
+                        lkpCode.desc.append(langDesc);
+                    }
+                    lkpCode.key = true;
+                    lkpCode.type = aField.type;
+                    lkpCode.size = aField.size;
+                    lkpCode.decSize = aField.decSize;
+                    lkpTable.fields.append(lkpCode);
+                    //Creates the field for description in the lookup
+                    TfieldDef lkpDesc;
+                    lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                    lkpDesc.selectSource = "NONE";
+                    lkpDesc.selectListName = "NONE";
+                    for (int lang = 0; lang <= languages.count()-1;lang++)
+                    {
+                        TlngLkpDesc langDesc;
+                        langDesc.langCode = languages[lang].code;
+                        langDesc.desc = "Description";
+                        lkpDesc.desc.append(langDesc);
+                    }
+                    lkpDesc.key = false;
+                    lkpDesc.type = "varchar";
+                    lkpDesc.size = getMaxDescLength(values);
+                    lkpDesc.decSize = 0;
+                    lkpTable.fields.append(lkpDesc);
+                    aField.rTable = lkpTable.name;
+                    aField.rField = lkpCode.name;
+                    tables.append(lkpTable);
+                }
+                else
+                {
+                    if (outputType == "h")
+                        log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
+                    aField.rTable = lkpTable.name;
+                    aField.rField = getKeyField(lkpTable.name);
+                }
+            }
+        }
+        else
+        {
+            aField.rTable = "";
+            aField.rField = "";
+        }
+        OSMTable.fields.append(aField);
     }
     else
     {
-        //Processing Key field
-        QString variableType;
-        QString variableName;
-        int nrow;
-        QXlsx::CellReference ref;
-        QXlsx::Cell *cell;
-        QXlsx::Worksheet *excelSheet = (QXlsx::Worksheet*)xlsx.sheet("survey");
-        // Pass thorogh all rows collecting their names
-        QList<TODKGroupingDef > embedding_array;
-        QStringList variable_array;
-        int columnType;
-        columnType = -1;
-        int columnName;
-        columnName = -1;
-        int ncols;
-        int columnAppearance;
-        columnAppearance = -1;
-        int columnCalculation;
-        columnCalculation = -1;
+        TfieldDef aField;
+        aField.name = fixField(variableName.toLower());
+        aField.xmlCode = variableName;
+        aField.selectSource = "NONE";
+        aField.selectListName = "NONE";
+        aField.odktype = "NONE";
+        aField.type = "varchar";
+        aField.size = 255;
+        aField.decSize = 0;
+        aField.calculateWithSelect = false;
+        aField.isMultiSelect = false;
+        aField.formula = "";
+        aField.rTable = "";
+        aField.rField = "";
+        QJsonValue labelValue = fieldObject.value("label");
+        aField.desc.append(getLabels(labelValue));
+        OSMTable.fields.append(aField);
+    }
+}
 
-        for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
-        {
-            ref.setRow(1);
-            ref.setColumn(ncols);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
-            {
-                if (cell->value().toString().toLower().indexOf("type") >= 0)
-                {
-                    columnType = ncols;
-                }
-                if (cell->value().toString().toLower().indexOf("name") >= 0)
-                {
-                    columnName = ncols;
-                }
-                if (cell->value().toString().toLower().indexOf("appearance") >= 0)
-                {
-                    columnAppearance = ncols;
-                }
-                if (cell->value().toString().toLower().indexOf("calculation") >= 0)
-                {
-                    columnCalculation = ncols;
-                }
-            }
-        }
-        if ((columnType == -1) || (columnName == -1))
-        {
-            log("Cannot find type or name column in the ODK. Is this an ODK file?");
-            return 1;
-        }
+// Adds a ODK table as a field to a table
+void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, QDir dir, QSqlDatabase database, QString varXMLCode ="")
+{
+    QString variableApperance;
+    QString variableCalculation;
+    QString tableName;
+    int tblIndex;
+    tableName = getTopRepeat();
+    if (tableName == "")
+        tableName = mainTable;
+    tblIndex = getTableIndex(tableName);
+    QString variableType;
+    variableType = fieldObject.value("type").toString("text");
+    QString variableName;
+    variableName = fieldObject.value("name").toString();    
+    //log("\tProcessing field:" + variableName);
+    QString tableType = "NotLoop";
+    if (tables[tblIndex].isLoop)
+        tableType = "loop";
 
-        for (nrow = 2; nrow <= excelSheet->dimension().lastRow(); nrow++)
+    if (isSelect(variableType) == 0)
+    {
+        TfieldDef aField;
+        aField.name = fixField(variableName.toLower());
+        TfieldMap vartype = mapODKFieldTypeToMySQL(variableType);
+        aField.selectSource = "NONE";
+        aField.selectListName = "NONE";
+        aField.odktype = variableType;
+        aField.type = vartype.type;
+        aField.size = vartype.size;
+        aField.decSize = vartype.decSize;
+        aField.calculateWithSelect = false;
+        aField.formula = "";
+        if (fixField(variableName) == fixField(mainField.toLower()))
         {
-            ref.setRow(nrow);
-            ref.setColumn(columnType);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
-                variableType = cell->value().toString().toLower().trimmed();
+            if (!primaryKeyAdded)
+                aField.key = true;
             else
-                variableType = "note";
-            ref.setColumn(columnName);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
-                variableName = cell->value().toString().toLower().trimmed();
+                return;
+        }
+        else
+            aField.key = false;
+        if (!isCalculate(variableType))
+        {
+            aField.rTable = "";
+            aField.rField = "";
+        }
+        else
+        {
+            variableCalculation = fieldObject.value("bind").toObject().value("calculate").toString().toLower();
+            if (variableCalculation.indexOf("selected-at(") >=0 )
+            {
+                aField.rTable = "";
+                aField.rField = "";
+                aField.calculateWithSelect = true;
+                aField.formula = variableCalculation;                
+            }
             else
-                variableName = "";
-            if (variableType == "begin group")
             {
-                TODKGroupingDef aGroup;
-                aGroup.varibleName = variableName;
-                aGroup.varibleType = variableType;
-                aGroup.isRepeat = false;
-                embedding_array.append(aGroup);
-            }
-            if (variableType == "begin repeat")
-            {
-                TODKGroupingDef aGroup;
-                aGroup.varibleName = variableName;
-                aGroup.varibleType = variableType;
-                aGroup.isRepeat = true;
-                embedding_array.append(aGroup);
+                aField.rTable = "";
+                aField.rField = "";
             }
 
-            if (variableType == "end group")
+        }
+        if (getVariableStack(true) != "")
+        {
+            if (tableType != "loop")
             {
-                TODKGroupingDef lastItem;
-                lastItem = embedding_array.last();
-                if (lastItem.varibleType == "begin group")
-                    embedding_array.removeLast();
-                else
-                    log("Error in closing group!!!");
+                aField.xmlCode = getVariableStack(true) + "/" + variableName;
+                aField.xmlFullPath = getVariableStack(true) + "/" + variableName;
             }
-            if (variableType == "end repeat")
+            else
             {
-                TODKGroupingDef lastItem;
-                lastItem = embedding_array.last();
-                if (lastItem.varibleType  == "begin repeat")
-                    embedding_array.removeLast();
-                else
-                    log("Error inc losing repeat!!!");
+                aField.xmlCode = variableName;
+                aField.xmlFullPath = variableName;
+            }
+        }
+        else
+        {
+            aField.xmlCode = variableName;
+            aField.xmlFullPath = variableName;
+        }
+        if (varXMLCode != "")
+            aField.xmlCode = varXMLCode;
 
-            }
-            if ((variableType != "begin group") && (variableType != "begin repeat") && (variableType != "end group") && (variableType != "end repeat"))
+        aField.isMultiSelect = false;
+        aField.multiSelectTable = "";
+
+        QJsonValue labelValue = fieldObject.value("label");
+        aField.desc.append(getLabels(labelValue));
+        tables[tblIndex].fields.append(aField);
+    }
+    else
+    {
+        //Gather the lookup values
+        QList<TlkpValue> values;
+        if ((isSelect(variableType) == 1) || (isSelect(variableType) == 3) || (isSelect(variableType) == 4))
+        {
+            bool fromSearchCSV;
+            fromSearchCSV = false;
+            if (fieldObject.keys().indexOf("control") >= 0)
             {
-                if (variableName != "")
+                QString variableApperance;
+                variableApperance = fieldObject.value("control").toObject().value("appearance").toString("").toLower().trimmed();
+                if (variableApperance != "")
                 {
-                QString varPath;
-                for (int nitem = 0; nitem <= embedding_array.count()-1; nitem++)
-                    if (embedding_array[nitem].isRepeat == true)
-                        varPath = varPath + embedding_array[nitem].varibleName  + "/";
-//                log(varPath + variableName);
-                variable_array.append(varPath + variableName);
+                    if (variableApperance.indexOf("search(") >= 0)
+                        fromSearchCSV = true;
+                }
+            }
+
+            if ((fieldObject.value("itemset").toString("").toLower().trimmed().indexOf(".csv") > 0) || (fieldObject.value("itemset").toString("").toLower().trimmed().indexOf(".xml") > 0))
+            {
+                if (fieldObject.value("itemset").toString("").toLower().trimmed().indexOf(".csv") > 0)
+                {
+                    QString fileName;
+                    fileName = fieldObject.value("itemset").toString("").toLower().trimmed();
+                    int result;
+                    values.append(getSelectValuesFromCSV2(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir,database,""));
+                    if (result != 0)
+                        exit(19);
+                }
+                else                    
+                {
+                    QString fileName;
+                    fileName = fieldObject.value("itemset").toString("").toLower().trimmed();
+                    int result;
+                    getSelectValuesFromXML(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir);
+                    if (result != 0)
+                        exit(19);
+                }
+            }
+            else
+            {
+                if (!fromSearchCSV)
+                    values.append(getSelectValues(fixField(variableName),fieldObject.value("choices").toArray(),selectHasOrOther(variableType)));
+                else
+                {
+                    int result;
+                    values.append(getSelectValuesFromCSV(variableApperance,fieldObject.value("choices").toArray(),fixField(variableName),selectHasOrOther(variableType),result,dir,database));
+                    if (result != 0)
+                        exit(19);
                 }
             }
         }
-        if (variable_array.indexOf(mainField) < 0)
+        if ((isSelect(variableType) == 2))
+        {
+            QString queryField;
+            queryField = fieldObject.value("query").toString("");
+            if (queryField != "")
+            {
+                int result;
+                values.append(getSelectValuesFromCSV2(fixField(variableName),"itemsets.csv",selectHasOrOther(variableType),result,dir,database,queryField));
+                if (result != 0)
+                    exit(19);
+            }
+        }
+
+        //Creating a select one field
+        if ((isSelect(variableType) == 1) || (isSelect(variableType) == 2))
+        {
+            TfieldDef aField;
+            aField.selectSource = "NONE";
+            aField.name = fixField(variableName.toLower());
+            aField.odktype = variableType;
+            aField.selectListName = "NONE";
+            aField.calculateWithSelect = false;
+            aField.formula = "";
+            if (!selectHasOrOther(variableType))
+            {
+                if (areValuesStrings(values))
+                    aField.type = "varchar";
+                else
+                    aField.type = "int";
+            }
+            else
+                aField.type = "varchar";
+            aField.size = getMaxValueLength(values);
+            aField.decSize = 0;
+            if (fixField(variableName) == fixField(mainField.toLower()))
+            {
+                if (!primaryKeyAdded)
+                    aField.key = true;
+                else
+                    return;
+            }
+            else
+                aField.key = false;
+            aField.isMultiSelect = false;
+            aField.multiSelectTable = "";
+            aField.formula = "";
+            aField.calculateWithSelect = false;
+            if (getVariableStack(true) != "")
+            {
+                if (tableType != "loop")
+                {
+                    aField.xmlCode = getVariableStack(true) + "/" + variableName;
+                    aField.xmlFullPath = getVariableStack(true) + "/" + variableName;
+                }
+                else
+                {
+                    aField.xmlCode = variableName;
+                    aField.xmlFullPath = variableName;
+                }
+            }
+            else
+            {
+                aField.xmlCode = variableName;
+                aField.xmlFullPath = variableName;
+            }
+            if (varXMLCode != "")
+                aField.xmlCode = varXMLCode;
+            QJsonValue labelValue = fieldObject.value("label");
+            aField.desc.append(getLabels(labelValue));
+            if (values.count() > 0) //If the lookup table has values
+            {
+                //Creating the lookp table if its neccesary
+                if (isLookUpYesNo(values) == false) //Do not process yes/no values as lookup tables
+                {
+                    TtableDef lkpTable = getDuplicatedLkpTable(values);
+                    lkpTable.isLoop = false;
+                    lkpTable.isOSM = false;
+                    lkpTable.isGroup = false;
+                    if (lkpTable.name == "EMPTY")
+                    {
+                        lkpTable.name = "lkp" + fixField(variableName.toLower());
+                        for (int lang = 0; lang < aField.desc.count(); lang++)
+                        {
+                            TlngLkpDesc fieldDesc;
+                            fieldDesc.langCode = aField.desc[lang].langCode;
+                            fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
+                            lkpTable.desc.append(fieldDesc);
+                        }
+                        lkpTable.pos = -1;
+                        lkpTable.islookup = true;
+                        lkpTable.isSeparated = false;
+                        lkpTable.lkpValues.append(values);
+                        //Creates the field for code in the lookup
+                        TfieldDef lkpCode;
+                        lkpCode.name = fixField(variableName.toLower()) + "_cod";
+                        lkpCode.selectSource = "NONE";
+                        lkpCode.selectListName = "NONE";
+                        for (int lang = 0; lang <= languages.count()-1;lang++)
+                        {
+                            TlngLkpDesc langDesc;
+                            langDesc.langCode = languages[lang].code;
+                            langDesc.desc = "Code";
+                            lkpCode.desc.append(langDesc);
+                        }
+                        lkpCode.key = true;
+                        lkpCode.type = aField.type;
+                        lkpCode.size = aField.size;
+                        lkpCode.decSize = aField.decSize;
+                        lkpTable.fields.append(lkpCode);
+                        //Creates the field for description in the lookup
+                        TfieldDef lkpDesc;
+                        lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                        lkpDesc.selectSource = "NONE";
+                        lkpDesc.selectListName = "NONE";
+                        for (int lang = 0; lang <= languages.count()-1;lang++)
+                        {
+                            TlngLkpDesc langDesc;
+                            langDesc.langCode = languages[lang].code;
+                            langDesc.desc = "Description";
+                            lkpDesc.desc.append(langDesc);
+                        }
+                        lkpDesc.key = false;
+                        lkpDesc.type = "varchar";
+                        lkpDesc.size = getMaxDescLength(values);
+                        lkpDesc.decSize = 0;
+                        lkpTable.fields.append(lkpDesc);
+                        aField.rTable = lkpTable.name;
+                        aField.rField = lkpCode.name;
+                        tables.append(lkpTable);
+                    }
+                    else
+                    {
+                        if (outputType == "h")
+                            log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);                        
+                        aField.rTable = lkpTable.name;
+                        aField.rField = getKeyField(lkpTable.name);                        
+                    }
+                }
+            }
+            else
+            {
+                aField.rTable = "";
+                aField.rField = "";
+            }
+            tables[tblIndex].fields.append(aField);
+
+            //We add here the has other field
+            if (selectHasOrOther(variableType))
+            {
+                TfieldDef oField;
+                oField.name = aField.name + "_other";
+                oField.selectSource = "NONE";
+                oField.selectListName = "NONE";
+                oField.xmlCode = aField.xmlCode + "_other";
+                oField.decSize = 0;
+                for (int lng = 0; lng < languages.count();lng++)
+                {
+                    TlngLkpDesc fieldDesc;
+                    fieldDesc.langCode = languages[lng].code;
+                    fieldDesc.desc = "Other";
+                    oField.desc.append(fieldDesc);
+                }
+                oField.isMultiSelect = false;
+                aField.formula = "";
+                aField.calculateWithSelect = false;
+                oField.key = false;
+                oField.multiSelectTable = "";
+                oField.rField = "";
+                oField.rTable = "";
+                oField.size = 120;
+                oField.type = "varchar";
+                tables[tblIndex].fields.append(oField);
+            }
+        }
+        else
+        {
+            //Creating a multiSelect
+            TfieldDef aField;
+            aField.name = fixField(variableName.toLower());
+            aField.selectSource = "NONE";
+            aField.selectListName = "NONE";
+            aField.type = "varchar";
+            aField.size = getMaxMSelValueLength(values);
+            aField.decSize = 0;
+            aField.key = false;
+            aField.isMultiSelect = true;
+            aField.formula = "";
+            aField.calculateWithSelect = false;
+            aField.multiSelectTable = fixField(tables[tblIndex].name) + "_msel_" + fixField(variableName.toLower());
+            if (getVariableStack(true) != "")
+            {
+                if (tableType != "loop")
+                {
+                    aField.xmlCode = getVariableStack(true) + "/" + variableName;
+                    aField.xmlFullPath = getVariableStack(true) + "/" + variableName;
+                }
+                else
+                {
+                    aField.xmlCode = variableName;
+                    aField.xmlFullPath = variableName;
+                }
+            }
+            else
+            {
+                aField.xmlCode = variableName;
+                aField.xmlFullPath = variableName;
+            }
+            if (varXMLCode != "")
+                aField.xmlCode = varXMLCode;
+            QJsonValue labelValue = fieldObject.value("label");
+            aField.desc.append(getLabels(labelValue));
+            if (values.count() > 0) //If the lookup table has values
+            {
+                //Creating the multiselect table
+                TtableDef mselTable;
+                mselTable.isLoop = false;
+                mselTable.isOSM = false;
+                mselTable.isGroup = false;
+                //The multiselect table is a child of the current table thus pass the keyfields
+                for (int field = 0; field < tables[tblIndex].fields.count();field++)
+                {
+                    if (tables[tblIndex].fields[field].key == true)
+                    {
+                        TfieldDef relField;
+                        relField.selectSource = "NONE";
+                        relField.selectListName = "NONE";
+                        relField.name = tables[tblIndex].fields[field].name;
+                        relField.desc.append(tables[tblIndex].fields[field].desc);
+                        relField.type = tables[tblIndex].fields[field].type;
+                        relField.size = tables[tblIndex].fields[field].size;
+                        relField.decSize = tables[tblIndex].fields[field].decSize;
+                        relField.key = true;
+                        relField.rTable = tables[tblIndex].name;
+                        relField.rField = tables[tblIndex].fields[field].name;
+                        relField.xmlCode = "NONE";
+                        relField.isMultiSelect = false;
+                        relField.formula = "";
+                        relField.calculateWithSelect = false;
+                        relField.multiSelectTable = "";
+                        mselTable.fields.append(relField);
+                    }
+                }
+                mselTable.name =  fixField(tables[tblIndex].name) + + "_msel_" + fixField(variableName.toLower());
+
+                for (int lang = 0; lang < aField.desc.count(); lang++)
+                {
+                    TlngLkpDesc fieldDesc;
+                    fieldDesc.langCode = aField.desc[lang].langCode;
+                    fieldDesc.desc = "Table for multiple select of field " + variableName + " in table " + tables[tblIndex].name;
+                    mselTable.desc.append(fieldDesc);
+                }
+
+                mselTable.islookup = false;
+                tableIndex++;
+                mselTable.pos = tableIndex;
+                mselTable.parentTable = tables[tblIndex].name;
+                mselTable.xmlCode = "NONE";
+                //Creating the extra field to the multiselect table that will be linked to the lookuptable
+                TfieldDef mselKeyField;
+                mselKeyField.name = aField.name;
+                mselKeyField.selectSource = "NONE";
+                mselKeyField.selectListName = "NONE";
+                mselKeyField.desc.append(aField.desc);
+                mselKeyField.key = true;
+
+                if (!selectHasOrOther(variableType))
+                {
+                    if (areValuesStrings(values))
+                        mselKeyField.type = "varchar";
+                    else
+                        mselKeyField.type = "int";
+                }
+                else
+                    mselKeyField.type = "varchar";
+
+                mselKeyField.size = getMaxValueLength(values);
+                mselKeyField.decSize = 0;
+                //Processing the lookup table if neccesary
+                TtableDef lkpTable = getDuplicatedLkpTable(values);
+                lkpTable.isLoop = false;
+                lkpTable.isOSM = false;
+                lkpTable.isGroup = false;
+                if (lkpTable.name == "EMPTY")
+                {
+                    lkpTable.name = "lkp" + fixField(variableName.toLower());
+
+                    for (int lang = 0; lang < aField.desc.count(); lang++)
+                    {
+                        TlngLkpDesc fieldDesc;
+                        fieldDesc.langCode = aField.desc[lang].langCode;
+                        fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
+                        lkpTable.desc.append(fieldDesc);
+                    }
+                    lkpTable.pos = -1;
+                    lkpTable.islookup = true;
+                    lkpTable.isSeparated = false;                    
+                    //Creates the field for code in the lookup
+                    TfieldDef lkpCode;
+                    lkpCode.name = fixField(variableName.toLower()) + "_cod";
+                    lkpCode.selectSource = "NONE";
+                    lkpCode.selectListName = "NONE";
+                    int lang;
+                    for (lang = 0; lang <= languages.count()-1;lang++)
+                    {
+                        TlngLkpDesc langDesc;
+                        langDesc.langCode = languages[lang].code;
+                        langDesc.desc = "Code";
+                        lkpCode.desc.append(langDesc);
+                    }
+                    lkpCode.key = true;
+                    lkpCode.type = mselKeyField.type;
+                    lkpCode.size = mselKeyField.size;
+                    lkpCode.decSize = mselKeyField.decSize;
+                    lkpTable.fields.append(lkpCode);
+                    //Creates the field for description in the lookup
+                    TfieldDef lkpDesc;
+                    lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                    lkpDesc.selectSource = "NONE";
+                    lkpDesc.selectListName = "NONE";
+                    for (lang = 0; lang <= languages.count()-1;lang++)
+                    {
+                        TlngLkpDesc langDesc;
+                        langDesc.langCode = languages[lang].code;
+                        langDesc.desc = "Description";
+                        lkpDesc.desc.append(langDesc);
+                    }
+
+                    lkpDesc.key = false;
+                    lkpDesc.type = "varchar";
+                    lkpDesc.size = getMaxDescLength(values);
+                    lkpDesc.decSize = 0;                    
+                    lkpTable.fields.append(lkpDesc);                    
+                    //Linking the multiselect field to this lookup table
+                    mselKeyField.rTable = lkpTable.name;
+                    mselKeyField.rField = lkpCode.name;
+                    lkpTable.lkpValues.append(values);
+                    tables.append(lkpTable); //Append the lookup table to the list of tables
+                }
+                else
+                {
+                    if (outputType == "h")
+                        log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
+                    //Linkin the multiselect table to the existing lookup table
+                    mselKeyField.rTable = lkpTable.name;
+                    mselKeyField.rField = getKeyField(lkpTable.name);
+                }
+                mselTable.fields.append(mselKeyField); //Add the multiselect key now linked to the looktable to the multiselect table
+                tables.append(mselTable); //Append the multiselect to the list of tables
+            }
+            else
+            {
+                aField.rTable = "";
+                aField.rField = "";
+                aField.isMultiSelect = false;
+                aField.multiSelectTable = "";
+                aField.formula = "";
+                aField.calculateWithSelect = false;
+            }
+            tables[tblIndex].fields.append(aField); //Appends the multi select varchar field to the list
+
+            //We add here the has other field
+            if (selectHasOrOther(variableType))
+            {
+                TfieldDef oField;
+                oField.name = aField.name + "_other";
+                oField.selectSource = "NONE";
+                oField.selectListName = "NONE";
+                oField.xmlCode = aField.xmlCode + "_other";
+                oField.decSize = 0;
+                for (int lng = 0; lng < languages.count();lng++)
+                {
+                    TlngLkpDesc fieldDesc;
+                    fieldDesc.langCode = languages[lng].code;
+                    fieldDesc.desc = "Other";
+                    oField.desc.append(fieldDesc);
+                }
+                oField.isMultiSelect = false;
+                oField.formula = "";
+                oField.calculateWithSelect = false;
+                oField.key = false;
+                oField.multiSelectTable = "";
+                oField.rField = "";
+                oField.rTable = "";
+                oField.size = 120;
+                oField.type = "varchar";
+                tables[tblIndex].fields.append(oField);
+            }
+        }
+    }
+
+}
+
+// Get the root variables of the survey
+void getJSONRootVariables(QJsonObject JSONObject, QList <TsurveyVariableDef> &surveyVariables)
+{
+    if (JSONObject.keys().indexOf("type") >= 0)
+    {
+        bool hasChildren = false;
+        if (JSONObject.value("type").toString() == "survey")
+        {
+            hasChildren = true;
+        }
+        if (JSONObject.value("type").toString() == "repeat")
+        {
+            hasChildren = true;
+        }
+        if (JSONObject.value("type").toString() == "group")
+        {
+            hasChildren = true;
+            addToStack(JSONObject.value("name").toString(),"group");
+        }
+        if (JSONObject.value("type").toString() == "loop")
+        {
+            hasChildren = true;
+        }
+        if (!hasChildren)
+        {
+            QString variableName = JSONObject.value("name").toString();
+            QString root = getVariableStack(false);
+            if (root != "")
+                variableName = root + "/" + variableName;
+            TsurveyVariableDef aVariable;
+            aVariable.name = variableName;
+            root = getVariableStack(true);
+            if (root != "")
+                variableName = root + "/" + variableName;
+            aVariable.fullName = variableName;
+            aVariable.type = JSONObject.value("type").toString();
+            aVariable.object = JSONObject;
+            surveyVariables.append(aVariable);
+        }
+        else
+        {
+            if ((JSONObject.value("type").toString() == "group") || (JSONObject.value("type").toString() == "survey"))
+            {
+                QJsonValue value;
+                value = JSONObject.value("children");
+                QJsonArray JSONArray = value.toArray();
+                for (int nitem = 0; nitem < JSONArray.count(); nitem++)
+                {
+                    QJsonValue value = JSONArray.at(nitem);
+                    if (value.isObject())
+                    {
+                        getJSONRootVariables(value.toObject(),surveyVariables);
+                    }
+                }
+                removeFromStack();
+            }
+        }
+    }
+}
+
+//Coverts group, repeat, loop and osm types into tables
+void parseTable(QJsonObject tableObject, QString tableType)
+{
+    QString tableName;
+    tableName = getTopRepeat();
+    //Creates the new tables
+    tableIndex = tableIndex + 1;
+    TtableDef aTable;
+    aTable.isLoop = false;
+    aTable.isOSM = false;
+    aTable.isGroup = false;
+    QString variableName;
+    variableName = tableObject.value("name").toString();
+    aTable.name = fixField(variableName.toLower());
+    QJsonValue labelValue = tableObject.value("label");
+    aTable.desc.append(getLabels(labelValue));
+    aTable.pos = tableIndex;
+    aTable.islookup = false;
+    aTable.isSeparated = false;
+    if (getVariableStack(true) == "")
+    {
+        aTable.xmlCode = variableName;
+        aTable.xmlFullPath = variableName;
+    }
+    else
+    {
+        aTable.xmlCode = getVariableStack(true) + "/" + variableName;
+        aTable.xmlFullPath = getVariableStack(true) + "/" + variableName;
+    }
+    aTable.parentTable = tableName;
+    //Add the father key fields to the table as related fields
+    TtableDef parentTable = getTable(tableName);
+    for (int field = 0; field < parentTable.fields.count();field++)
+    {
+        if (parentTable.fields[field].key == true)
+        {
+            TfieldDef relField;
+            relField.name = parentTable.fields[field].name;
+            relField.desc.append(parentTable.fields[field].desc);
+            relField.type = parentTable.fields[field].type;
+            relField.size = parentTable.fields[field].size;
+            relField.decSize = parentTable.fields[field].decSize;
+            relField.key = true;
+            relField.rTable = parentTable.name;
+            relField.rField = parentTable.fields[field].name;
+            relField.xmlCode = "NONE";
+            relField.xmlFullPath = "NONE";
+            relField.selectSource = "NONE";
+            relField.selectListName = "NONE";
+            relField.isMultiSelect = false;
+            relField.formula = "";
+            relField.calculateWithSelect = false;
+            relField.multiSelectTable = "";
+            aTable.fields.append(relField);
+        }
+    }
+    if (tableType == "group")
+        aTable.isGroup = true;
+
+    if (tableType == "repeat")
+    {
+        //Add the extra row ID Key field to this table
+        TfieldDef keyField;
+        keyField.name = fixField(variableName.toLower()) + "_rowid";
+        for (int lng = 0; lng < languages.count(); lng++)
+        {
+            TlngLkpDesc fieldDesc;
+            fieldDesc.langCode = languages[lng].code;
+            fieldDesc.desc = "Unique Row ID";
+            keyField.desc.append(fieldDesc);
+        }
+        keyField.type = "int";
+        keyField.size = 3;
+        keyField.decSize = 0;
+        keyField.key = true;
+        keyField.rTable = "";
+        keyField.rField = "";
+        keyField.xmlCode = "NONE";
+        keyField.xmlFullPath = "NONE";
+        keyField.selectSource = "NONE";
+        keyField.selectListName = "NONE";
+        keyField.isMultiSelect = false;
+        keyField.formula = "";
+        keyField.calculateWithSelect = false;
+        keyField.multiSelectTable = "";
+        aTable.fields.append(keyField);
+    }
+    if (tableType == "loop")
+    {
+        aTable.isLoop = true;
+        QList<TlkpValue> values;
+        values.append(getSelectValues(aTable.name,tableObject.value("columns").toArray(),false));
+        for (int litem = 0; litem < values.count(); litem++)
+        {
+            aTable.loopItems.append(values[litem].code);
+        }
+
+        // Since the loop items comes from a select. Add add a primary key column to the loop table linked to the lookup os such select
+        TfieldDef aField;
+        aField.selectSource = "NONE";
+        aField.name = aTable.name;
+        aField.odktype = "select one";
+        aField.selectListName = "NONE";
+        aField.calculateWithSelect = false;
+        aField.formula = "";
+        if (areValuesStrings(values))
+            aField.type = "varchar";
+        else
+            aField.type = "int";
+        aField.size = getMaxValueLength(values);
+        aField.decSize = 0;
+        aField.key = true;
+        aField.isMultiSelect = false;
+        aField.multiSelectTable = "";
+        aField.formula = "";
+        aField.calculateWithSelect = false;
+        aField.xmlCode = "NONE";
+        aField.xmlFullPath = "NONE";
+        for (int lang = 0; lang < aField.desc.count(); lang++)
+        {
+            TlngLkpDesc fieldDesc;
+            fieldDesc.langCode = aField.desc[lang].langCode;
+            fieldDesc.desc = "Loop elements";
+            aField.desc.append(fieldDesc);
+        }
+        if (values.count() > 0) //If the lookup table has values
+        {
+            //Creating the lookp table if its neccesary
+            if (isLookUpYesNo(values) == false) //Do not process yes/no values as lookup tables
+            {
+                TtableDef lkpTable = getDuplicatedLkpTable(values);
+                lkpTable.isLoop = false;
+                lkpTable.isOSM = false;
+                lkpTable.isGroup = false;
+                if (lkpTable.name == "EMPTY")
+                {
+                    lkpTable.name = "lkp" + fixField(variableName.toLower());
+                    for (int lang = 0; lang < aField.desc.count(); lang++)
+                    {
+                        TlngLkpDesc fieldDesc;
+                        fieldDesc.langCode = aField.desc[lang].langCode;
+                        fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
+                        lkpTable.desc.append(fieldDesc);
+                    }
+                    lkpTable.pos = -1;
+                    lkpTable.islookup = true;
+                    lkpTable.isSeparated = false;
+                    lkpTable.lkpValues.append(values);
+                    //Creates the field for code in the lookup
+                    TfieldDef lkpCode;
+                    lkpCode.name = fixField(variableName.toLower()) + "_cod";
+                    lkpCode.selectSource = "NONE";
+                    lkpCode.selectListName = "NONE";
+                    for (int lang = 0; lang <= languages.count()-1;lang++)
+                    {
+                        TlngLkpDesc langDesc;
+                        langDesc.langCode = languages[lang].code;
+                        langDesc.desc = "Code";
+                        lkpCode.desc.append(langDesc);
+                    }
+                    lkpCode.key = true;
+                    lkpCode.type = aField.type;
+                    lkpCode.size = aField.size;
+                    lkpCode.decSize = aField.decSize;
+                    lkpTable.fields.append(lkpCode);
+                    //Creates the field for description in the lookup
+                    TfieldDef lkpDesc;
+                    lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                    lkpDesc.selectSource = "NONE";
+                    lkpDesc.selectListName = "NONE";
+                    for (int lang = 0; lang <= languages.count()-1;lang++)
+                    {
+                        TlngLkpDesc langDesc;
+                        langDesc.langCode = languages[lang].code;
+                        langDesc.desc = "Description";
+                        lkpDesc.desc.append(langDesc);
+                    }
+                    lkpDesc.key = false;
+                    lkpDesc.type = "varchar";
+                    lkpDesc.size = getMaxDescLength(values);
+                    lkpDesc.decSize = 0;
+                    lkpTable.fields.append(lkpDesc);
+                    aField.rTable = lkpTable.name;
+                    aField.rField = lkpCode.name;
+                    tables.append(lkpTable);
+                }
+                else
+                {
+                    if (outputType == "h")
+                        log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
+                    aField.rTable = lkpTable.name;
+                    aField.rField = getKeyField(lkpTable.name);
+                }
+            }
+        }
+        else
+        {
+            aField.rTable = "";
+            aField.rField = "";
+        }
+        aTable.fields.append(aField);
+    }
+    if (tableType == "osm")
+    {
+        if (getVariableStack(true) != "")
+        {
+            aTable.xmlCode = getVariableStack(true) + "/" + variableName;
+        }
+        else
+        {
+            aTable.xmlCode = variableName;
+        }
+
+        aTable.isOSM = true;
+        //Add the extra row ID Key field to this table
+        TfieldDef keyField;
+        keyField.name = fixField(variableName.toLower()) + "_rowid";
+        for (int lng = 0; lng < languages.count(); lng++)
+        {
+            TlngLkpDesc fieldDesc;
+            fieldDesc.langCode = languages[lng].code;
+            fieldDesc.desc = "Unique Row ID";
+            keyField.desc.append(fieldDesc);
+        }
+        keyField.type = "int";
+        keyField.size = 3;
+        keyField.decSize = 0;
+        keyField.key = true;
+        keyField.rTable = "";
+        keyField.rField = "";
+        keyField.xmlCode = "NONE";
+        keyField.xmlFullPath = "NONE";
+        keyField.selectSource = "NONE";
+        keyField.selectListName = "NONE";
+        keyField.isMultiSelect = false;
+        keyField.formula = "";
+        keyField.calculateWithSelect = false;
+        keyField.multiSelectTable = "";
+        aTable.fields.append(keyField);
+
+        //Add the lat field
+        TfieldDef f_geopoint_lat;
+        f_geopoint_lat.name = "geopoint_lat";
+        for (int lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "Latitude point";
+            f_geopoint_lat.desc.append(langDesc);
+        }
+        f_geopoint_lat.type = "varchar";
+        f_geopoint_lat.size = 40;
+        f_geopoint_lat.decSize = 0;
+        f_geopoint_lat.rField = "";
+        f_geopoint_lat.rTable = "";
+        f_geopoint_lat.key = false;
+        f_geopoint_lat.isMultiSelect = false;
+        f_geopoint_lat.xmlCode = "NONE";
+        f_geopoint_lat.odktype = "NONE";
+        f_geopoint_lat.calculateWithSelect = false;
+        f_geopoint_lat.formula = "";
+        f_geopoint_lat.selectSource = "NONE";
+        f_geopoint_lat.selectListName = "NONE";
+        aTable.fields.append(f_geopoint_lat);
+
+        //Add the lon field
+        TfieldDef f_geopoint_lon;
+        f_geopoint_lon.name = "geopoint_lon";
+        for (int lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "Longitude point";
+            f_geopoint_lon.desc.append(langDesc);
+        }
+        f_geopoint_lon.type = "varchar";
+        f_geopoint_lon.size = 40;
+        f_geopoint_lon.decSize = 0;
+        f_geopoint_lon.rField = "";
+        f_geopoint_lon.rTable = "";
+        f_geopoint_lon.key = false;
+        f_geopoint_lon.isMultiSelect = false;
+        f_geopoint_lon.xmlCode = "NONE";
+        f_geopoint_lon.odktype = "NONE";
+        f_geopoint_lon.calculateWithSelect = false;
+        f_geopoint_lon.formula = "";
+        f_geopoint_lon.selectSource = "NONE";
+        f_geopoint_lon.selectListName = "NONE";
+        aTable.fields.append(f_geopoint_lon);
+
+        //Parse the tags as columns
+        QJsonArray OSMtags;
+        OSMtags = tableObject.value("tags").toArray();
+        for (int tag = 0; tag < OSMtags.count(); tag++)
+        {
+            parseOSMField(aTable,OSMtags[tag].toObject());
+        }
+    }    
+    tables.append(aTable);
+    if (tableType != "osm")
+        addToRepeat(variableName);
+}
+
+//Checks whether a group has variables or is just a control group (a group that only contains other groups or repeats)
+bool checkIgnoreGroup(QJsonArray children)
+{
+    bool ignore = true;
+    for (int child =0; child < children.count(); child++ )
+    {
+        if (children[child].isObject())
+        {
+            QJsonObject a_child = children[child].toObject();
+            if ((a_child.value("type").toString("") != "repeat") && (a_child.value("type").toString("") != "group") && (a_child.value("type").toString("") != "loop"))
+                ignore = false;
+        }
+    }
+    return ignore;
+}
+
+//Reads a JSON object and converts it according to its type
+void parseJSONObject(QJsonObject JSONObject, QString mainTable, QString mainField, QDir dir, QSqlDatabase database)
+{
+//    if (JSONObject.value("name") == "maininfo")
+//        qDebug() << JSONObject.value("name");
+    if (JSONObject.keys().indexOf("type") >= 0)
+    {
+        bool hasChildren = false;
+        bool isOSM = false;
+        bool ignoreGroup = false;
+        if (JSONObject.value("type").toString() == "survey")
+        {
+//            log("*1* Begin processing survey: " + JSONObject.value("name").toString() + "***");
+            hasChildren = true;
+        }
+        if (JSONObject.value("type").toString() == "repeat")
+        {
+//            log("*2* Begin processing repeat: " + JSONObject.value("name").toString() + "***");
+            hasChildren = true;
+            parseTable(JSONObject,"repeat");
+            addToStack(JSONObject.value("name").toString(),"repeat");
+
+        }
+        if (JSONObject.value("type").toString() == "group")
+        {
+//            log("*3* Begin processing group: " + JSONObject.value("name").toString() + "***");
+            hasChildren = true;            
+            ignoreGroup = checkIgnoreGroup(JSONObject.value("children").toArray());
+            if (!ignoreGroup)
+                parseTable(JSONObject,"group");
+            addToStack(JSONObject.value("name").toString(),"group");
+        }
+        if (JSONObject.value("type").toString() == "loop")
+        {
+//            log("*4* Begin processing loop: " + JSONObject.value("name").toString() + "***");
+            hasChildren = true;
+            parseTable(JSONObject,"loop");
+            addToStack(JSONObject.value("name").toString(),"loop");
+        }
+        if (JSONObject.value("type").toString() == "osm")
+        {
+            isOSM = true;
+        }
+        if (!hasChildren)
+        {
+            if (!isOSM)
+                parseField(JSONObject,mainTable,mainField,dir,database);
+            else
+            {
+                parseTable(JSONObject,"osm");
+            }
+        }
+        else
+        {
+            QJsonValue value;
+            value = JSONObject.value("children");
+            QJsonArray JSONArray = value.toArray();
+            for (int nitem = 0; nitem < JSONArray.count(); nitem++)
+            {
+                QJsonValue value = JSONArray.at(nitem);
+                if (value.isObject())
+                {
+                    parseJSONObject(value.toObject(),mainTable,mainField,dir,database);
+                }
+            }
+            if (JSONObject.value("type").toString() == "survey")
+            {
+//                log("*-1* End processing survey: " + JSONObject.value("name").toString() + "***");
+            }
+            if (JSONObject.value("type") == "repeat")
+            {
+                removeRepeat();
+                removeFromStack();
+//                log("*-2* End processing repeat: " + JSONObject.value("name").toString() + "***");
+            }
+            if (JSONObject.value("type") == "group")
+            {
+                if (!ignoreGroup)
+                    removeRepeat();
+                removeFromStack();
+//                log("*-3* End processing group: " + JSONObject.value("name").toString() + "***");
+            }
+            if (JSONObject.value("type") == "loop")
+            {
+                removeRepeat();
+                removeFromStack();
+//                log("*-4* End processing loop: " + JSONObject.value("name").toString() + "***");
+            }
+        }
+    }
+}
+
+void getLanguages(QJsonObject JSONObject, QStringList &languageList)
+{
+    for (int nkey = 0; nkey < JSONObject.keys().count(); nkey++)
+    {
+        QString key = JSONObject.keys()[nkey];
+        if (key != "label")
+        {
+            QJsonValue value;
+            value = JSONObject.value(key);
+            if (!value.isArray())
+            {
+                if (value.isObject())
+                    getLanguages(value.toObject(), languageList);
+            }
+            else
+            {
+                QJsonArray JSONArray = value.toArray();
+                for (int nitem = 0; nitem < JSONArray.count(); nitem++)
+                {
+                    QJsonValue value = JSONArray.at(nitem);
+                    if (value.isObject())
+                    {
+                        getLanguages(value.toObject(), languageList);
+                    }
+                }
+            }
+        }
+        else
+        {
+            QJsonValue value;
+            value = JSONObject.value(key);
+            if (value.isObject())
+            {
+                QJsonObject labelObject = value.toObject();
+                for (int nitem = 0; nitem < labelObject.keys().count(); nitem++)
+                {
+                    QString language;
+                    language = labelObject.keys()[nitem].toLower();
+                    if (language == "default")
+                    {
+                        if (default_language == "default")
+                            language = "english";
+                        else
+                            language = default_language;
+                    }                                        
+                    if (languageList.indexOf(language) < 0)
+                        languageList.append(language);
+                }
+            }
+        }
+    }
+}
+
+void reportSelectDuplicates()
+{
+    QDomDocument XMLResult;
+    XMLResult = QDomDocument("XMLResult");
+    QDomElement XMLRoot;
+    XMLRoot = XMLResult.createElement("XMLResult");
+    XMLResult.appendChild(XMLRoot);
+    if (outputType != "m")
+    {
+        log("The following variables have duplicated options");
+    }
+    for (int pos = 0; pos <= duplicatedSelectValues.count()-1; pos++)
+    {
+        if (outputType != "m")
+        {
+            log("\tVariable: " + duplicatedSelectValues[pos].variableName + " - Option: " + duplicatedSelectValues[pos].selectValue);
+        }
+        QDomElement eDuplicatedItem;
+        eDuplicatedItem = XMLResult.createElement("duplicatedItem");
+        eDuplicatedItem.setAttribute("variableName",duplicatedSelectValues[pos].variableName);
+        eDuplicatedItem.setAttribute("duplicatedValue",duplicatedSelectValues[pos].selectValue);
+        XMLRoot.appendChild(eDuplicatedItem);
+    }
+    if (outputType == "m")
+        log(XMLResult.toString());
+}
+
+//Reads the input JSON file and converts it to a MySQL database
+int processJSON(QString inputFile, QString mainTable, QString mainField, QDir dir, QSqlDatabase database)
+{
+    primaryKeyAdded = false;
+    QFile JSONFile(inputFile);
+    if (!JSONFile.open(QIODevice::ReadOnly))
+    {
+        log("Cannot open" + inputFile);
+        return 1;
+    }
+    QByteArray JSONData = JSONFile.readAll();
+    QJsonDocument JSONDocument;
+    JSONDocument = QJsonDocument::fromJson(JSONData);
+    QJsonObject firstObject = JSONDocument.object();
+    if (!firstObject.isEmpty())
+    {
+        default_language = firstObject.value("default_language").toString("default");
+        //Get the root variables to then check if the primary key exists and is valid
+        QList <TsurveyVariableDef> surveyVariables;
+        getJSONRootVariables(firstObject, surveyVariables);
+        int mainFieldIndex =  -1;
+        for (int ivar=0; ivar < surveyVariables.count(); ivar++)
+        {
+            if (surveyVariables[ivar].name.toLower().simplified().trimmed() == mainField.toLower().simplified().trimmed())
+            {
+                mainFieldIndex = ivar;
+                break;
+            }
+        }
+        if (mainFieldIndex == -1)
         {
             log("The primary key field does not exists or is inside a repeat");
             exit(10);
         }
-        QStringList temp;
-        temp = variable_array;
-        QStringList duplicated;
-        for (int aVar = 0; aVar <= temp.count()-1; aVar++)
-        {
-            if (variable_array.count(temp[aVar]) != 1)
-            {
-                if (duplicated.indexOf(temp[aVar]) < 0)
-                    duplicated.append(temp[aVar]);
-            }
-        }
-        if (duplicated.length() > 0)
-        {
-            if (outputType == "h")
-            {
-                log("The ODK has the following variables duplicated within the same repeat or outside a repeat");
-                for (int dp=0; dp <= duplicated.count()-1; dp++)
-                {
-                    log(duplicated[dp]);
-                }
-            }
-            else
-            {
-                QDomDocument XMLResult;
-                XMLResult = QDomDocument("XMLResult");
-                QDomElement XMLRoot;
-                XMLRoot = XMLResult.createElement("XMLResult");
-                XMLResult.appendChild(XMLRoot);
-                QDomElement eDuplicates;
-                eDuplicates = XMLResult.createElement("duplicated");
-                for (int pos = 0; pos <= duplicated.count()-1;pos++)
-                {
-                    QDomElement eDuplicate;
-                    eDuplicate = XMLResult.createElement("variable");
-                    QDomText vDuplicatedVar;
-                    vDuplicatedVar = XMLResult.createTextNode(duplicated[pos]);
-                    eDuplicate.appendChild(vDuplicatedVar);
-                    eDuplicates.appendChild(eDuplicate);
-                }
-                XMLRoot.appendChild(eDuplicates);
-                log(XMLResult.toString());
-            }
-            exit(17);
-        }
-        //Processing languages
-        QStringList ODKLanguages;               
-        QXlsx::CellReference langRef;        
-        excelSheet = (QXlsx::Worksheet*)xlsx.sheet("settings");
-        bool hasDefaultLanguage = false;
-        for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
-        {
-            ref.setRow(1);
-            ref.setColumn(ncols);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
+        QStringList invalidKeyTypes;
+        invalidKeyTypes << "acknowledge";
+        invalidKeyTypes << "add acknowledge prompt";
+        invalidKeyTypes << "add note prompt";
+        invalidKeyTypes << "audio";
+        invalidKeyTypes << "audit";
+        invalidKeyTypes << "device id";
+        invalidKeyTypes << "deviceid";
+        invalidKeyTypes << "geoshape";
+        invalidKeyTypes << "geotrace";
+        invalidKeyTypes << "get device id";
+        invalidKeyTypes << "get sim id";
+        invalidKeyTypes << "get subscriber id";
+        invalidKeyTypes << "hidden";
+        invalidKeyTypes << "note";
+        invalidKeyTypes << "osm";
+        invalidKeyTypes << "photo";
+        invalidKeyTypes << "q acknowledge";
+        invalidKeyTypes << "q audio";
+        invalidKeyTypes << "q geoshape";
+        invalidKeyTypes << "q geotrace";
+        invalidKeyTypes << "q image";
+        invalidKeyTypes << "q note";
+        invalidKeyTypes << "q picture";
+        invalidKeyTypes << "q video";
+        invalidKeyTypes << "range";
+        invalidKeyTypes << "rank";
+        invalidKeyTypes << "select all that apply";
+        invalidKeyTypes << "sim id";
+        invalidKeyTypes << "simserial";
+        invalidKeyTypes << "subscriber id";
+        invalidKeyTypes << "subscriberid";
+        invalidKeyTypes << "trigger";
+        invalidKeyTypes << "uri:deviceid";
+        invalidKeyTypes << "uri:simserial";
+        invalidKeyTypes << "uri:subscriberid";
+        invalidKeyTypes << "uri:username";
+        invalidKeyTypes << "uri:phonenumber";
+        invalidKeyTypes << "username";
+        invalidKeyTypes << "video";
+        invalidKeyTypes << "Xml-external";
 
-                if (cell->value().toString().toLower() == "default_language")
-                {
-                    ref.setRow(2);
-                    ref.setColumn(ncols);
-                    ODKLanguages.append(excelSheet->cellAt(ref)->value().toString());
-                    hasDefaultLanguage = true;
-                }
+        if (invalidKeyTypes.indexOf(surveyVariables[mainFieldIndex].object.value("type").toString()) >= 0)
+        {
+            log("The type of the primary key field is invalid");
+            exit(18);
         }
+        QString primaryKeyXMLCode = surveyVariables[mainFieldIndex].fullName;
+        QJsonObject primaryKeyObject = surveyVariables[mainFieldIndex].object;
 
-        excelSheet = (QXlsx::Worksheet*)xlsx.sheet("survey");
-        for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
-        {            
-            ref.setRow(1);
-            ref.setColumn(ncols);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
-            {
-                if (cell->value().toString().indexOf("label") >= 0)
-                {
-                    QString label;
-                    label = cell->value().toString();
-                    if (label.indexOf(":") >= 0)
-                    {
-                        int langIdx = label.lastIndexOf(":");
-                        QString language;
-                        language = label.right(label.length()-langIdx-1);
-                        if (ODKLanguages.indexOf(language) < 0)
-                            ODKLanguages.append(language);
-                    }
-                    else
-                    {
-                        if (!hasDefaultLanguage)
-                        {
-                            if (ODKLanguages.indexOf("English") < 0)
-                                ODKLanguages.append("English");
-                        }
-                    }
-                }
-            }
-        }
-        if (ODKLanguages.count() == 0)
-            ODKLanguages.append("English");
 
+        QStringList ODKLanguages;
+        getLanguages(firstObject, ODKLanguages);
+        //qDebug() << ODKLanguages;
+        //Check if we have indicated the proper amount of languages
         if ((ODKLanguages.count() > 1) && (languages.count() == 1))
         {
             if (outputType == "h")
@@ -2116,7 +3677,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
             }
             exit(3);
         }
-
+        //Check that each language is properly coded
         bool languageNotFound;
         languageNotFound = false;
         QDomDocument XMLResult;
@@ -2150,140 +3711,15 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         {
             if (outputType == "m")
                 log(XMLResult.toString());
-            return 4;
+            exit(4);
         }
-
-        //Allocating survey labels column indexes to languages
-        for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
-        {
-            ref.setRow(1);
-            ref.setColumn(ncols);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
-            {
-                if (cell->value().toString().toLower().indexOf("label") >= 0)
-                {
-                    QString label;
-                    label = cell->value().toString();
-                    if (label.indexOf(":") >= 0)
-                    {
-                        int langIdx = label.lastIndexOf(":");
-                        QString language;
-                        language = label.right(label.length()-langIdx-1);
-                        langIdx = genLangIndexByName(language);
-                        languages[langIdx].idxInSurvey = ncols;
-                    }
-                    else
-                    {
-                        int langIdx = genLangIndexByName(ODKLanguages[0]);
-                        languages[langIdx].idxInSurvey = ncols;
-                    }
-                }
-            }
-        }
-
-        //Allocating choices labels column indexes to languages
-        excelSheet = (QXlsx::Worksheet*)xlsx.sheet("choices");
-        for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
-        {
-            ref.setRow(1);
-            ref.setColumn(ncols);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
-            {
-                if (cell->value().toString().toLower().indexOf("label") >= 0)
-                {
-                    QString label;
-                    label = cell->value().toString();
-                    if (label.indexOf(":") >= 0)
-                    {
-                        int langIdx = label.lastIndexOf(":");
-                        QString language;
-                        language = label.right(label.length()-langIdx-1);
-                        langIdx = genLangIndexByName(language);
-                        languages[langIdx].idxInChoices = ncols;
-                    }
-                    else
-                    {
-                        int langIdx = genLangIndexByName(ODKLanguages[0]);
-                        languages[langIdx].idxInChoices = ncols;
-                    }
-                }
-            }
-        }
-        for (ncols = 0; ncols < languages.count();ncols++)
-        {
-            if ((languages[ncols].idxInChoices == -1) || (languages[ncols].idxInSurvey == -1))
-            {
-                log("Language " + languages[ncols].desc + " is not present in the labels of the sheets choices or Survey");
-                exit(5);
-            }
-        }
-
-        QXlsx::Worksheet *choicesSheet = (QXlsx::Worksheet*)xlsx.sheet("choices");
-        int columnListName;
-        columnListName = -1;
-        int columnChoiceName;
-        columnChoiceName = -1;
-        for (ncols = 1; ncols <= choicesSheet->dimension().lastColumn(); ncols++)
-        {
-            ref.setRow(1);
-            ref.setColumn(ncols);
-            cell =  choicesSheet->cellAt(ref);
-            if (cell != 0)
-            {
-                if (cell->value().toString().toLower().indexOf("list_name") >= 0)
-                {
-                    columnListName = ncols;
-                }
-                if (cell->value().toString().toLower().indexOf("name") >= 0)
-                {
-                    columnChoiceName = ncols;
-                }
-            }
-        }
-        if ((columnListName == -1) || (columnChoiceName == -1))
-        {
-            log("Cannot find list_name or name in choices in the ODK. Is this an ODK file?");
-            return 1;
-        }
-        //Look for external choices
-        int externalColumnListName;
-        externalColumnListName = -1;
-        int externalColumnChoiceName;
-        externalColumnChoiceName = -1;
-        QXlsx::Worksheet *externalChoicesSheet = (QXlsx::Worksheet*)xlsx.sheet("external_choices");
-        if (hasExternalChoicesSheet)
-        {
-            for (ncols = 1; ncols <= externalChoicesSheet->dimension().lastColumn(); ncols++)
-            {
-                ref.setRow(1);
-                ref.setColumn(ncols);
-                cell =  externalChoicesSheet->cellAt(ref);
-                if (cell != 0)
-                {
-                    if (cell->value().toString().toLower().indexOf("list_name") >= 0)
-                    {
-                        externalColumnListName = ncols;
-                    }
-                    if (cell->value().toString().toLower().indexOf("name") >= 0)
-                    {
-                        externalColumnChoiceName = ncols;
-                    }
-                }
-            }
-            if ((externalColumnListName == -1) || (externalColumnChoiceName == -1))
-            {
-                log("Cannot find list_name or name in external choices in the ODK. Is this an ODK file?");
-                return 1;
-            }
-        }
-
-
         int lang;
         //Creating the main table
         tableIndex = tableIndex + 1;
         TtableDef maintable;
+        maintable.isLoop = false;
+        maintable.isOSM = false;
+        maintable.isGroup = false;
         maintable.name = fixField(mainTable.toLower());
 
         for (lang = 0; lang <= languages.count()-1;lang++)
@@ -2312,11 +3748,13 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         }
         fsurveyID.type = "varchar";
         fsurveyID.size = 80;
-        fsurveyID.decSize = 0;        
+        fsurveyID.decSize = 0;
         fsurveyID.rField = "";
         fsurveyID.rTable = "";
         fsurveyID.key = false;
         fsurveyID.isMultiSelect = false;
+        fsurveyID.formula = "";
+        fsurveyID.calculateWithSelect = false;
         fsurveyID.xmlCode = "NONE";
         fsurveyID.selectSource = "NONE";
         fsurveyID.selectListName = "NONE";
@@ -2335,7 +3773,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         }
         foriginID.type = "varchar";
         foriginID.size = 15;
-        foriginID.decSize = 0;        
+        foriginID.decSize = 0;
         foriginID.rField = "";
         foriginID.rTable = "";
         foriginID.key = false;
@@ -2343,6 +3781,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         foriginID.selectSource = "NONE";
         foriginID.selectListName = "NONE";
         foriginID.isMultiSelect = false;
+        foriginID.formula = "";
+        foriginID.calculateWithSelect = false;
         maintable.fields.append(foriginID);
 
         //Append the Submmited by field to the main table
@@ -2364,6 +3804,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         f_submitted_by.isMultiSelect = false;
         f_submitted_by.xmlCode = "_submitted_by";
         f_submitted_by.odktype = "text";
+        f_submitted_by.calculateWithSelect = false;
+        f_submitted_by.formula = "";
         f_submitted_by.selectSource = "NONE";
         f_submitted_by.selectListName = "NONE";
         maintable.fields.append(f_submitted_by);
@@ -2387,6 +3829,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         f_submitted_date.isMultiSelect = false;
         f_submitted_date.xmlCode = "_submitted_date";
         f_submitted_date.odktype = "datetime";
+        f_submitted_date.calculateWithSelect = false;
+        f_submitted_date.formula = "";
         f_submitted_date.selectSource = "NONE";
         f_submitted_date.selectListName = "NONE";
         maintable.fields.append(f_submitted_date);
@@ -2410,685 +3854,40 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         f_geopoint.isMultiSelect = false;
         f_geopoint.xmlCode = "_geopoint";
         f_geopoint.odktype = "geopoint";
+        f_geopoint.calculateWithSelect = false;
+        f_geopoint.formula = "";
         f_geopoint.selectSource = "NONE";
         f_geopoint.selectListName = "NONE";
         maintable.fields.append(f_geopoint);
 
         tables.append(maintable);
         addToRepeat(mainTable);
-
-
-        //Processing survey structure
-        excelSheet = (QXlsx::Worksheet*)xlsx.sheet("survey");
-        QString variableApperance;
-        QString variableCalculation;
-        QString tableName;
-        int tblIndex;
-        bool mainFieldFound;
-        mainFieldFound = false;
-        bool mainFieldinMainTable;
-        mainFieldinMainTable = false;
-
-
-        for (nrow = 2; nrow <= excelSheet->dimension().lastRow(); nrow++)
+        parseField(primaryKeyObject,mainTable, mainField, dir, database,primaryKeyXMLCode);
+        primaryKeyAdded = true;        
+        parseJSONObject(firstObject, mainTable, mainField, dir, database);
+        if (duplicatedSelectValues.count() == 0)
         {
-            /*qDebug() << nrow;
-            if (nrow == 39)
+            for (int itable = 0; itable < tables.count(); itable++)
             {
-                qDebug() << "Here";
-                debug = true;
-            }*/
-
-            ref.setRow(nrow);
-            ref.setColumn(columnType);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
-                variableType = cell->value().toString().toLower().trimmed();
-            else
-                variableType = "note";
-            ref.setColumn(columnName);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)            
-                variableName = cell->value().toString().trimmed();
-            else
-                variableName = "";
-            //Read the apperance value
-            ref.setColumn(columnAppearance);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
-                variableApperance = cell->value().toString().trimmed().toLower();
-            else
-                variableApperance = "";
-            //Read the calculation value
-            ref.setColumn(columnCalculation);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
-                variableCalculation = cell->value().toString().trimmed().toLower();
-            else
-                variableCalculation = "";
-
-            //if (variableName == "secd_d4_exotic_breed")
-            //{
-            //    qDebug() << "!!!!!!!!!!!!!secd_d4_exotic_breed!!!!!!!!!!!!";
-            //}
-
-            if ((variableType == "begin group") || (variableType == "begin_group"))
-                addToStack(variableName);
-            if ((variableType == "end group") || (variableType == "end_group"))
-                removeFromStack();
-            if ((variableType == "begin repeat") || (variableType == "begin_repeat"))
-            {
-                if (variableName.toLower() != mainTable.toLower())
+                if (tables[itable].islookup == false)
                 {
-                    //Find the father of this table
-                    tableName = getTopRepeat();
-                    //Creates the new tables
-                    tableIndex = tableIndex + 1;
-                    TtableDef aTable;
-                    aTable.name = fixField(variableName.toLower());
-
-                    for (int lng = 0; lng < languages.count();lng++)
+                    for (int ifield = 0; ifield < tables[itable].fields.count(); ifield++)
                     {
-                        langRef.setRow(nrow);
-                        langRef.setColumn(languages[lng].idxInSurvey);
-                        cell = excelSheet->cellAt(langRef);
-                        if (cell != 0)
+                        if (tables[itable].fields[ifield].calculateWithSelect == true)
                         {
-                            TlngLkpDesc fieldDesc;
-                            fieldDesc.langCode = languages[lng].code;
-                            fieldDesc.desc = cell->value().toString().trimmed();
-                            aTable.desc.append(fieldDesc);
-                        }
-                    }
-
-                    aTable.pos = tableIndex;
-                    aTable.islookup = false;
-                    aTable.isSeparated = false;
-                    if (getVariableStack() == "")
-                        aTable.xmlCode = variableName;
-                    else
-                        aTable.xmlCode = getVariableStack() + "/" + variableName;
-                    aTable.parentTable = tableName;
-                    //Add the father key fields to the table as related fields
-                    TtableDef parentTable = getTable(tableName);
-                    for (int field = 0; field < parentTable.fields.count()-1;field++)
-                    {
-                        if (parentTable.fields[field].key == true)
-                        {
-                            TfieldDef relField;
-                            relField.name = parentTable.fields[field].name;
-                            relField.desc.append(parentTable.fields[field].desc);
-                            relField.type = parentTable.fields[field].type;
-                            relField.size = parentTable.fields[field].size;
-                            relField.decSize = parentTable.fields[field].decSize;
-                            relField.key = true;
-                            relField.rTable = parentTable.name;
-                            relField.rField = parentTable.fields[field].name;
-                            relField.xmlCode = "NONE";
-                            relField.selectSource = "NONE";
-                            relField.selectListName = "NONE";
-                            relField.isMultiSelect = false;
-                            relField.multiSelectTable = "";
-                            aTable.fields.append(relField);
-                        }
-                    }
-                    //Add the extra row ID Key field to this table
-                    TfieldDef keyField;
-                    keyField.name = fixField(variableName.toLower()) + "_rowid";
-                    for (int lng = 0; lng < languages.count(); lng++)
-                    {
-                        TlngLkpDesc fieldDesc;
-                        fieldDesc.langCode = languages[lng].code;
-                        fieldDesc.desc = "Unique Row ID";
-                        keyField.desc.append(fieldDesc);
-                    }
-                    keyField.type = "int";
-                    keyField.size = 3;
-                    keyField.decSize = 0;
-                    keyField.key = true;
-                    keyField.rTable = "";
-                    keyField.rField = "";
-                    keyField.xmlCode = "NONE";
-                    keyField.selectSource = "NONE";
-                    keyField.selectListName = "NONE";
-                    keyField.isMultiSelect = false;
-                    keyField.multiSelectTable = "";
-                    aTable.fields.append(keyField);
-                    tables.append(aTable);
-                    addToRepeat(variableName);
-                    addToStack(variableName);
-                }
-                else
-                {
-                    int mainTableIndex;
-                    mainTableIndex = getTableIndex(variableName.toLower());
-                    if (getVariableStack() == "")
-                        tables[mainTableIndex].xmlCode = variableName;
-                    else
-                        tables[mainTableIndex].xmlCode = getVariableStack() + "/" + variableName;
-                    addToStack(variableName);
-                }
-            }
-            if ((variableType == "end repeat") || (variableType == "end_repeat"))
-            {
-                if (variableName.trimmed().toLower() == "")
-                    variableName = getTopRepeat();
-
-                if (variableName.toLower() != mainTable.toLower())
-                {
-                    removeRepeat();
-                    removeFromStack();
-                }
-                else
-                {
-                    removeFromStack();
-                }
-            }
-            if (!variableIsControl(variableType))
-            {
-                tableName = getTopRepeat();
-
-                //if (tableName == "rpt_lrq1_labouract")
-                //    qDebug() << "rpt_lrq1_labouract";
-
-                if (tableName == "")
-                    tableName = mainTable;
-                tblIndex = getTableIndex(tableName);
-                if (variableType.trimmed() != "") //Not process empty cells
-                {
-                    if ((variableType.indexOf("select_one") == -1) && (variableType.indexOf("select_multiple") == -1) && (variableType.indexOf("note") == -1) && (variableType.indexOf("select_one_external") == -1))
-                    {
-
-                        TfieldDef aField;
-                        aField.name = fixField(variableName.toLower());
-                        TfieldMap vartype = mapODKFieldTypeToMySQL(variableType);
-                        aField.selectSource = "NONE";
-                        aField.selectListName = "NONE";
-                        aField.odktype = variableType; //variableType
-                        aField.type = vartype.type;
-                        aField.size = vartype.size;
-                        aField.decSize = vartype.decSize;
-                        if (fixField(variableName.toLower()) == fixField(mainField.toLower()))
-                        {
-                            mainFieldFound = true;
-
-                            if (fixField(tables[tblIndex].name.trimmed().toLower()) == fixField(mainTable.toLower()))
-                                mainFieldinMainTable = true;
-
-                            aField.key = true;
-                            if (aField.type == "text")
-                            {
-                                aField.type = "varchar";
-                                aField.size = 60;
-                            }
-                        }
-                        else
-                            aField.key = false;
-                        if (variableType != "calculate")
-                        {
-                            aField.rTable = "";
-                            aField.rField = "";
-                        }
-                        else
-                        {
-                            if (variableCalculation.indexOf("selected-at(") >=0 )
-                            {
-                                getReferenceForSelectAt(variableCalculation,aField.type,aField.size,aField.decSize,aField.rTable,aField.rField);
-                            }
-                            else
-                            {
-                                aField.rTable = "";
-                                aField.rField = "";
-                            }
-
-                        }
-                        if (getVariableStack() != "")
-                            aField.xmlCode = getVariableStack() + "/" + variableName;
-                        else
-                            aField.xmlCode = variableName;                        
-                        aField.isMultiSelect = false;
-                        aField.multiSelectTable = "";
-                        for (int lng = 0; lng < languages.count();lng++)
-                        {
-                            ref.setRow(nrow);
-                            ref.setColumn(languages[lng].idxInSurvey);
-                            cell = excelSheet->cellAt(ref);
-                            if (cell != 0)
-                            {
-                                TlngLkpDesc fieldDesc;
-                                fieldDesc.langCode = languages[lng].code;
-                                fieldDesc.desc = cell->value().toString().trimmed();
-                                aField.desc.append(fieldDesc);
-                            }
-                        }
-                        tables[tblIndex].fields.append(aField);
-                    }
-                    else
-                    {
-                        //Processing selects                        
-                        if ((variableType.indexOf("select_one") >= 0) || ((variableType.indexOf("select_one_external") >= 0) && (hasExternalChoicesSheet)))
-                        {
-                            QList<TlkpValue> values;
-                            QString listName;
-                            listName = "";
-                            if (variableType.indexOf(" ") >= 0)
-                                listName = variableType.split(" ",QString::SkipEmptyParts)[1].trimmed();
-                            if (variableType.indexOf(" ") >= 0)
-                                listName = variableType.split(" ",QString::SkipEmptyParts)[1].trimmed();
-                            if (listName != "")
-                            {
-                                if (variableType.indexOf("select_one_external") >= 0)
-                                    values.append(getSelectValues(externalChoicesSheet,listName,externalColumnListName,externalColumnChoiceName,selectHasOrOther(variableType)));
-                                else
-                                {
-                                    if (variableApperance.indexOf("search(") == -1)
-                                        values.append(getSelectValues(choicesSheet,listName,columnListName,columnChoiceName,selectHasOrOther(variableType)));
-                                    else
-                                    {
-                                        int result;
-                                        values.append(getSelectValuesFromCSV(variableApperance,choicesSheet,listName,columnListName,columnChoiceName,selectHasOrOther(variableType),result,dir,database));
-                                        if (result != 0)
-                                            return result;
-                                    }
-                                }
-                            }
-                            //Processing field
-                            TfieldDef aField;
-                            if (variableType.indexOf("select_one_external") >= 0)
-                                aField.selectSource = "EXTERNAL";
-                            else
-                            {
-                                if (variableApperance.indexOf("search(") == -1)
-                                    aField.selectSource = "INTERNAL";
-                                else
-                                    aField.selectSource = "SEARCH";
-                            }
-
-                            aField.name = fixField(variableName.toLower());
-                            aField.odktype = variableType;
-                            aField.selectListName = listName;
-                            if (!selectHasOrOther(variableType))
-                            {
-                                if (areValuesStrings(values))
-                                    aField.type = "varchar";
-                                else
-                                    aField.type = "int";
-                            }
-                            else
-                                aField.type = "varchar";
-
-                            aField.size = getMaxValueLength(values);
-                            aField.decSize = 0;
-                            if (fixField(variableName.toLower()) == fixField(mainField.toLower()))
-                            {
-                                aField.key = true;
-
-                                mainFieldFound = true;
-
-                                if (fixField(tables[tblIndex].name.trimmed().toLower()) == fixField(mainTable.toLower()))
-                                    mainFieldinMainTable = true;
-                            }
-                            else
-                                aField.key = false;
-                            aField.isMultiSelect = false;
-                            aField.multiSelectTable = "";
-                            if (getVariableStack() != "")
-                                aField.xmlCode = getVariableStack() + "/" + variableName;
-                            else
-                                aField.xmlCode = variableName;
-                            for (int lng = 0; lng < languages.count();lng++)
-                            {
-                                ref.setRow(nrow);
-                                ref.setColumn(languages[lng].idxInSurvey);
-                                cell = excelSheet->cellAt(ref);
-                                if (cell != 0)
-                                {
-                                    TlngLkpDesc fieldDesc;
-                                    fieldDesc.langCode = languages[lng].code;
-                                    fieldDesc.desc = cell->value().toString().trimmed();
-                                    aField.desc.append(fieldDesc);
-                                }
-                            }
-                            if (values.count() > 0) //If the lookup table has values
-                            {
-                                //Creating the lookp table if its neccesary
-                                if (isLookUpYesNo(values) == false) //Do not process yes/no values as lookup tables
-                                {
-                                    TtableDef lkpTable = getDuplicatedLkpTable(values);
-                                    if (lkpTable.name == "EMPTY")
-                                    {
-                                        lkpTable.name = "lkp" + fixField(variableName.toLower());
-                                        for (lang = 0; lang < aField.desc.count(); lang++)
-                                        {
-                                            TlngLkpDesc fieldDesc;
-                                            fieldDesc.langCode = aField.desc[lang].langCode;
-                                            fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
-                                            lkpTable.desc.append(fieldDesc);
-                                        }
-                                        lkpTable.pos = -1;
-                                        lkpTable.islookup = true;
-                                        lkpTable.isSeparated = false;
-                                        lkpTable.lkpValues.append(values);
-                                        //Creates the field for code in the lookup
-                                        TfieldDef lkpCode;
-                                        lkpCode.name = fixField(variableName.toLower()) + "_cod";
-                                        lkpCode.selectSource = "NONE";
-                                        lkpCode.selectListName = "NONE";
-                                        for (lang = 0; lang <= languages.count()-1;lang++)
-                                        {
-                                            TlngLkpDesc langDesc;
-                                            langDesc.langCode = languages[lang].code;
-                                            langDesc.desc = "Code";
-                                            lkpCode.desc.append(langDesc);
-                                        }
-                                        lkpCode.key = true;
-                                        lkpCode.type = aField.type;
-                                        lkpCode.size = aField.size;
-                                        lkpCode.decSize = aField.decSize;
-                                        lkpTable.fields.append(lkpCode);
-                                        //Creates the field for description in the lookup
-                                        TfieldDef lkpDesc;
-                                        lkpDesc.name = fixField(variableName.toLower()) + "_des";
-                                        lkpDesc.selectSource = "NONE";
-                                        lkpDesc.selectListName = "NONE";
-                                        for (lang = 0; lang <= languages.count()-1;lang++)
-                                        {
-                                            TlngLkpDesc langDesc;
-                                            langDesc.langCode = languages[lang].code;
-                                            langDesc.desc = "Description";
-                                            lkpDesc.desc.append(langDesc);
-                                        }
-                                        lkpDesc.key = false;
-                                        lkpDesc.type = "varchar";
-                                        lkpDesc.size = getMaxDescLength(values);
-                                        lkpDesc.decSize = 0;
-                                        lkpTable.fields.append(lkpDesc);
-                                        aField.rTable = lkpTable.name;
-                                        aField.rField = lkpCode.name;
-                                        tables.append(lkpTable);
-                                    }
-                                    else
-                                    {
-                                        if (outputType == "h")
-                                            log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
-                                        aField.rTable = lkpTable.name;
-                                        aField.rField = getKeyField(lkpTable.name);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                aField.rTable = "";
-                                aField.rField = "";
-                            }
-                            tables[tblIndex].fields.append(aField);
-
-                            //We add here the has other field
-                            if (selectHasOrOther(variableType))
-                            {
-                                TfieldDef oField;
-                                oField.name = aField.name + "_other";
-                                oField.selectSource = "NONE";
-                                oField.selectListName = "NONE";
-                                oField.xmlCode = aField.xmlCode + "_other";
-                                oField.decSize = 0;
-                                for (int lng = 0; lng < languages.count();lng++)
-                                {
-                                    TlngLkpDesc fieldDesc;
-                                    fieldDesc.langCode = languages[lng].code;
-                                    fieldDesc.desc = "Other";
-                                    oField.desc.append(fieldDesc);
-                                }
-                                oField.isMultiSelect = false;
-                                oField.key = false;
-                                oField.multiSelectTable = "";
-                                oField.rField = "";
-                                oField.rTable = "";
-                                oField.size = 120;
-                                oField.type = "varchar";
-                                tables[tblIndex].fields.append(oField);
-                            }
-                        }                        
-                        //Select multiple
-                        if (variableType.indexOf("select_multiple") >= 0)
-                        {
-                            if (fixField(variableName.toLower()) == fixField(mainField.toLower()))
-                            {
-                                log("Error: Primary ID : " + mainField + " cannot be a multi-select variable");
-                                return 1;
-                            }
-                            //Processing multiselects
-                            QString listName;
-                            listName = "";
-                            if (variableType.indexOf(" ") >= 0)
-                                listName = variableType.split(" ",QString::SkipEmptyParts)[1].trimmed();
-                            if (variableType.indexOf(" ") >= 0)
-                                listName = variableType.split(" ",QString::SkipEmptyParts)[1].trimmed();
-                            QList<TlkpValue> values;
-                            if (listName != "")
-                            {
-                                if (variableApperance.indexOf("search(") == -1)
-                                    values.append(getSelectValues(choicesSheet,listName,columnListName,columnChoiceName,selectHasOrOther(variableType)));
-                                else
-                                {
-                                    int result;
-                                    values.append(getSelectValuesFromCSV(variableApperance,choicesSheet,listName,columnListName,columnChoiceName,selectHasOrOther(variableType),result,dir,database));
-                                    if (result != 0)
-                                        return result;
-                                }
-                            }
-
-                            //Processing  the field
-                            TfieldDef aField;
-                            aField.name = fixField(variableName.toLower());
-                            if (variableApperance.indexOf("search(") == -1)
-                                aField.selectSource = "INTERNAL";
-                            else
-                                aField.selectSource = "SEARCH";
-                            aField.selectListName = listName;
-                            aField.type = "varchar";
-                            aField.size = getMaxMSelValueLength(values);
-                            aField.decSize = 0;
-                            aField.key = false;
-                            aField.isMultiSelect = true;
-                            aField.multiSelectTable = fixField(tables[tblIndex].name) + "_msel_" + fixField(variableName.toLower());
-                            if (getVariableStack() != "")
-                                aField.xmlCode = getVariableStack() + "/" + variableName;
-                            else
-                                aField.xmlCode = variableName;
-                            for (int lng = 0; lng < languages.count();lng++)
-                            {
-                                ref.setRow(nrow);
-                                ref.setColumn(languages[lng].idxInSurvey);
-                                cell = excelSheet->cellAt(ref);
-                                if (cell != 0)
-                                {
-                                    TlngLkpDesc fieldDesc;
-                                    fieldDesc.langCode = languages[lng].code;
-                                    fieldDesc.desc = cell->value().toString().trimmed();
-                                    aField.desc.append(fieldDesc);
-                                }
-                            }
-                            if (values.count() > 0) //If the lookup table has values
-                            {
-                                //Creating the multiselect table
-                                TtableDef mselTable;
-                                //The multiselect table is a child of the current table thus pass the keyfields
-                                for (int field = 0; field < tables[tblIndex].fields.count();field++)
-                                {
-                                    if (tables[tblIndex].fields[field].key == true)
-                                    {
-                                        TfieldDef relField;
-                                        relField.selectSource = "NONE";
-                                        relField.selectListName = "NONE";
-                                        relField.name = tables[tblIndex].fields[field].name;
-                                        relField.desc.append(tables[tblIndex].fields[field].desc);
-                                        relField.type = tables[tblIndex].fields[field].type;
-                                        relField.size = tables[tblIndex].fields[field].size;
-                                        relField.decSize = tables[tblIndex].fields[field].decSize;
-                                        relField.key = true;
-                                        relField.rTable = tables[tblIndex].name;
-                                        relField.rField = tables[tblIndex].fields[field].name;
-                                        relField.xmlCode = "NONE";
-                                        relField.isMultiSelect = false;
-                                        relField.multiSelectTable = "";
-                                        mselTable.fields.append(relField);
-                                    }
-                                }
-                                mselTable.name =  fixField(tables[tblIndex].name) + + "_msel_" + fixField(variableName.toLower());
-
-                                for (lang = 0; lang < aField.desc.count(); lang++)
-                                {
-                                    TlngLkpDesc fieldDesc;
-                                    fieldDesc.langCode = aField.desc[lang].langCode;
-                                    fieldDesc.desc = "Table for multiple select of field " + variableName + " in table " + tables[tblIndex].name;
-                                    mselTable.desc.append(fieldDesc);
-                                }
-
-                                mselTable.islookup = false;
-                                tableIndex++;
-                                mselTable.pos = tableIndex;
-                                mselTable.parentTable = tables[tblIndex].name;
-                                mselTable.xmlCode = "NONE";
-                                //Creating the extra field to the multiselect table that will be linked to the lookuptable
-                                TfieldDef mselKeyField;
-                                mselKeyField.name = aField.name;
-                                mselKeyField.selectSource = "NONE";
-                                mselKeyField.selectListName = "NONE";
-                                mselKeyField.desc.append(aField.desc);
-                                mselKeyField.key = true;
-
-                                if (!selectHasOrOther(variableType))
-                                {
-                                    if (areValuesStrings(values))
-                                        mselKeyField.type = "varchar";
-                                    else
-                                        mselKeyField.type = "int";
-                                }
-                                else
-                                    mselKeyField.type = "varchar";
-
-                                mselKeyField.size = getMaxValueLength(values);
-                                mselKeyField.decSize = 0;
-                                //Processing the lookup table if neccesary
-                                TtableDef lkpTable = getDuplicatedLkpTable(values);
-                                if (lkpTable.name == "EMPTY")
-                                {
-                                    lkpTable.name = "lkp" + fixField(variableName.toLower());
-
-                                    for (lang = 0; lang < aField.desc.count(); lang++)
-                                    {
-                                        TlngLkpDesc fieldDesc;
-                                        fieldDesc.langCode = aField.desc[lang].langCode;
-                                        fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
-                                        lkpTable.desc.append(fieldDesc);
-                                    }
-                                    lkpTable.pos = -1;
-                                    lkpTable.islookup = true;
-                                    lkpTable.isSeparated = false;
-                                    lkpTable.lkpValues.append(values);
-                                    //Creates the field for code in the lookup
-                                    TfieldDef lkpCode;
-                                    lkpCode.name = fixField(variableName.toLower()) + "_cod";
-                                    lkpCode.selectSource = "NONE";
-                                    lkpCode.selectListName = "NONE";
-                                    int lang;
-                                    for (lang = 0; lang <= languages.count()-1;lang++)
-                                    {
-                                        TlngLkpDesc langDesc;
-                                        langDesc.langCode = languages[lang].code;
-                                        langDesc.desc = "Code";
-                                        lkpCode.desc.append(langDesc);
-                                    }
-                                    lkpCode.key = true;
-                                    lkpCode.type = mselKeyField.type;
-                                    lkpCode.size = mselKeyField.size;
-                                    lkpCode.decSize = mselKeyField.decSize;
-                                    lkpTable.fields.append(lkpCode);
-                                    //Creates the field for description in the lookup
-                                    TfieldDef lkpDesc;
-                                    lkpDesc.name = fixField(variableName.toLower()) + "_des";
-                                    lkpDesc.selectSource = "NONE";
-                                    lkpDesc.selectListName = "NONE";
-                                    for (lang = 0; lang <= languages.count()-1;lang++)
-                                    {
-                                        TlngLkpDesc langDesc;
-                                        langDesc.langCode = languages[lang].code;
-                                        langDesc.desc = "Description";
-                                        lkpDesc.desc.append(langDesc);
-                                    }
-
-                                    lkpDesc.key = false;
-                                    lkpDesc.type = "varchar";
-                                    lkpDesc.size = getMaxDescLength(values);
-                                    lkpDesc.decSize = 0;
-                                    lkpTable.fields.append(lkpDesc);
-                                    //Linking the multiselect field to this lookup table
-                                    mselKeyField.rTable = lkpTable.name;
-                                    mselKeyField.rField = lkpCode.name;
-                                    tables.append(lkpTable); //Append the lookup table to the list of tables
-                                }
-                                else
-                                {
-                                    if (outputType == "h")
-                                        log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
-                                    //Linkin the multiselect table to the existing lookup table
-                                    mselKeyField.rTable = lkpTable.name;
-                                    mselKeyField.rField = getKeyField(lkpTable.name);
-                                }
-                                mselTable.fields.append(mselKeyField); //Add the multiselect key now linked to the looktable to the multiselect table
-                                tables.append(mselTable); //Append the multiselect to the list of tables
-                            }
-                            else
-                            {
-                                aField.rTable = "";
-                                aField.rField = "";
-                                aField.isMultiSelect = false;
-                                aField.multiSelectTable = "";
-                            }
-                            tables[tblIndex].fields.append(aField); //Appends the multi select varchar field to the list
-
-                            //We add here the has other field
-                            if (selectHasOrOther(variableType))
-                            {
-                                TfieldDef oField;
-                                oField.name = aField.name + "_other";
-                                oField.selectSource = "NONE";
-                                oField.selectListName = "NONE";
-                                oField.xmlCode = aField.xmlCode + "_other";
-                                oField.decSize = 0;
-                                for (int lng = 0; lng < languages.count();lng++)
-                                {
-                                    TlngLkpDesc fieldDesc;
-                                    fieldDesc.langCode = languages[lng].code;
-                                    fieldDesc.desc = "Other";
-                                    oField.desc.append(fieldDesc);
-                                }
-                                oField.isMultiSelect = false;
-                                oField.key = false;
-                                oField.multiSelectTable = "";
-                                oField.rField = "";
-                                oField.rTable = "";
-                                oField.size = 120;
-                                oField.type = "varchar";
-                                tables[tblIndex].fields.append(oField);
-                            }
-
+                            TfieldDef aField = tables[itable].fields[ifield];
+                            getReferenceForSelectAt(aField.formula,aField.type,aField.size,aField.decSize,aField.rTable,aField.rField);
                         }
                     }
                 }
             }
         }
-        if (!mainFieldFound)
+        else
         {
-            log("ERROR!: The main variable \"" + mainField + "\" was not found in the ODK. Please indicate a correct main variable");
-            exit(10);
+            reportSelectDuplicates();
+            exit(9);
         }
-        if (!mainFieldinMainTable)
-        {
-            log("ERROR!: The main variable \"" + mainField + "\" is not in the main table \"" + mainTable + "\". Please indicate a correct main variable.");
-            exit(11);
-        }
+
     }
     return 0;
 }
@@ -3132,11 +3931,9 @@ bool separationSectionFound(QList<sepSection> sections, QString name)
 // Separate a table into different subtables.
 // This because MySQL cant handle a maximum of 64 reference tables or a row structure of more than 65,535 bytes.
 
-// We put a cap of 100 fiels in a table.
-// Basically it is ridiculous to have a table with more the 100 variable and consider it normalized.
+// We put a cap of 60 fiels in a table.
+// Basically it is ridiculous to have a table with more the 60 columns and consider it normalized.
 // We force the user to think and come with common (normalized) groups of data
-
-// This is one reason fo creating a manifest file.
 int separateTable(TtableDef &table, QDomNode groups)
 {
     //log("separateTable");
@@ -3157,9 +3954,7 @@ int separateTable(TtableDef &table, QDomNode groups)
         grpName = temp.toElement().attribute("name","unknown");
         grpDesc = temp.toElement().attribute("description","unknown");
         if (grpName == "main")
-            mainFound = true;
-        //if (temp.childNodes().count() > 100)
-            //log("WARNING!: " + grpName + " has more than 200 fields. This might end up in further separation");
+            mainFound = true;        
         if (separationSectionFound(sections,grpName) == false)
         {
             TsepSection aSection;
@@ -3208,6 +4003,9 @@ int separateTable(TtableDef &table, QDomNode groups)
         {
             tableIndex++;
             TtableDef ntable;
+            ntable.isLoop = false;
+            ntable.isOSM = false;
+            ntable.isGroup = false;
             ntable.name = table.name + "_" + sections[pos].name;
 
             for (int lang = 0; lang < languages.count()-1; lang++)
@@ -3232,6 +4030,7 @@ int separateTable(TtableDef &table, QDomNode groups)
                 //A secondary group will be linked to the main
                 keyfield.selectSource = "NONE";
                 keyfield.selectListName = "NONE";
+                keyfield.isMultiSelect = false;
                 keyfield.rTable = table.name;
                 keyfield.rField = keys[pos2].name;
                 ntable.fields.append(keyfield);
@@ -3353,106 +4152,6 @@ QDomElement getTableXML(QDomDocument doc, TtableDef table)
     }
     tnode.appendChild(gnode);
     return tnode;
-}
-
-//This function return the list names referencing a lookup table
-QStringList getReferencingLists(QString table)
-{
-    QStringList res;
-    for (int pos = 0; pos <= tables.count()-1; pos++)
-    {
-        for (int pos2 = 0; pos2 <= tables[pos].fields.count()-1; pos2++)
-        {
-            if (tables[pos].fields[pos2].rTable == table)
-                res.append(tables[pos].fields[pos2].xmlCode + "~~" + tables[pos].fields[pos2].selectListName);
-        }
-    }
-    return res;
-}
-
-//This function checks the lookup tables to see if a value appears more than once
-int checkLookupTables()
-{
-    QDomDocument XMLResult;
-    XMLResult = QDomDocument("XMLResult");
-    QDomElement XMLRoot;
-    XMLRoot = XMLResult.createElement("XMLResult");
-    XMLResult.appendChild(XMLRoot);
-
-    bool repeatedValues;
-    repeatedValues = false;
-    for (int pos = 0; pos <= tables.count()-1; pos++)
-    {
-        QDomElement eList;
-        eList = XMLResult.createElement("list");
-        eList.setAttribute("name",tables[pos].name);
-
-        QDomElement eValues;
-        eValues = XMLResult.createElement("values");
-        eList.appendChild(eValues);
-        QDomElement eReferences;
-        eReferences = XMLResult.createElement("references");
-        eList.appendChild(eReferences);
-
-        if (tables[pos].islookup)
-        {                        
-            QSet<QString> valueSet;
-            QStringList repeated;
-            for (int pos2 = 0; pos2 <= tables[pos].lkpValues.count()-1;pos2++)
-            {
-                if (valueSet.contains(tables[pos].lkpValues[pos2].code))
-                {
-                    if (repeated.indexOf(tables[pos].lkpValues[pos2].code) == -1)
-                        repeated.append(tables[pos].lkpValues[pos2].code);
-                }
-                else
-                    valueSet << tables[pos].lkpValues[pos2].code;
-            }
-            if (repeated.count() > 0)
-            {
-                if (outputType == "h")
-                    log("Error: Duplicated options. Variables:");
-                repeatedValues = true;
-                QStringList references;
-                references = getReferencingLists(tables[pos].name);
-                for (int pos2 = 0; pos2 <= references.count()-1; pos2++)
-                {
-                    QDomElement eReference;
-                    eReference = XMLResult.createElement("reference");
-                    QStringList refCode;
-                    refCode = references[pos2].split("~~");
-                    eReference.setAttribute("variable",refCode[0]);
-                    eReference.setAttribute("option",refCode[1]);
-                    eReferences.appendChild(eReference);
-                    if (outputType == "h")
-                        log(refCode[0] + " with option " + refCode[1]);
-                }
-                if (outputType == "h")
-                    log("Have duplicated values: ");
-                for (int pos2 = 0; pos2 <= repeated.count()-1; pos2++)
-                {
-                    QDomElement eValue;
-                    eValue = XMLResult.createElement("value");
-                    QDomText vValue;
-                    vValue = XMLResult.createTextNode(repeated[pos2]);
-                    eValue.appendChild(vValue);
-                    eValues.appendChild(eValue);
-                    if (outputType == "h")
-                        log(repeated[pos2]);
-                }
-                if (outputType == "h")
-                    log("----------------------------");
-                XMLRoot.appendChild(eList);
-            }
-        }
-    }
-    if (repeatedValues)
-    {
-        if (outputType == "m")
-            log(XMLResult.toString());
-        exit(9);
-    }
-    return 0;
 }
 
 // This function check the tables. If the table has more than 60 relationships creates a separation file using UUID as file name
@@ -3579,11 +4278,9 @@ int addLanguage(QString langCode, bool defLang)
         QString name = reEngLetterOnly.cap(2);
         name = name;
         TlangDef language;
-        language.code = code;
-        language.desc = name;
-        language.deflang = defLang;
-        language.idxInChoices = -1;
-        language.idxInSurvey = -1;
+        language.code = code.toLower();
+        language.desc = name.toLower();
+        language.deflang = defLang;        
         languages.append(language);
     }
     return 0;
@@ -3593,18 +4290,14 @@ int main(int argc, char *argv[])
 {
     QString title;
     title = title + "********************************************************************* \n";
-    title = title + " * ODK To MySQL                                                      * \n";
-    title = title + " * This tool generates a MySQL schema from a ODK XLSX survey file    * \n";
-    title = title + " * Though ODK Aggregate can store data in MySQL such repository      * \n";
-    title = title + " * is for storage only. The resulting schema from Aggregate is not   * \n";
-    title = title + " * relational or easy for analysis.                                  * \n";
-    title = title + " * ODKtoMySQL generates a full relational MySQL database from a      * \n";
-    title = title + " * ODK XLSX file.                                                    * \n";
+    title = title + " * JSON XForm To MySQL                                               * \n";
+    title = title + " * This tool generates a MySQL schema from a PyXForm JSON file.      * \n";
+    title = title + " * JXFormToMySQL generates full relational MySQL databases.          * \n";
     title = title + " ********************************************************************* \n";
 
     TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
 
-    TCLAP::ValueArg<std::string> inputArg("x","inputXLSX","Input ODK XLSX survey file",true,"","string");
+    TCLAP::ValueArg<std::string> inputArg("j","inputJSON","Input PyXForm JSON survey file",true,"","string");
     TCLAP::ValueArg<std::string> tableArg("t","mainTable","Name of the master table for the target schema. ODK surveys do not have a master table however this is neccesary to store ODK variables that are not inside a repeat. Please give a name for the master table for maintable, mainmodule, coverinformation, etc.",true,"","string");
     TCLAP::ValueArg<std::string> mainVarArg("v","mainVariable","Code of the main variable of the ODK survey. For example HH_ID",true,"","string");
     TCLAP::ValueArg<std::string> ddlArg("c","outputdml","Output DDL file. Default ./create.sql",false,"./create.sql","string");
@@ -3796,6 +4489,11 @@ int main(int argc, char *argv[])
             if (CSVError != 0)
                 return CSVError;
         }
+        if (supportFiles[pos].right(3).toLower() == "xml")
+        {
+            QFileInfo supportFile(supportFiles[pos]);
+            QFile::copy(supportFiles[pos],dir.absolutePath() + QDir::separator() + supportFile.fileName());
+        }
     }
 
 
@@ -3819,7 +4517,7 @@ int main(int argc, char *argv[])
         if (addLanguage(othLanguages[lng].replace("'",""),false) != 0)
             exit(6);
     
-    if (isDefaultLanguage("English") == false)
+    if (isDefaultLanguage("english") == false)
     {
         if (yesNoString == "")
         {
@@ -3846,7 +4544,7 @@ int main(int argc, char *argv[])
     }
 
     int returnValue;
-    returnValue = processXLSX(input,mTable.trimmed(),mainVar.trimmed(),dir,dblite);
+    returnValue = processJSON(input,mTable.trimmed(),mainVar.trimmed(),dir,dblite);
     if (returnValue == 0)
     {
         //dumpTablesForDebug();
@@ -3856,7 +4554,7 @@ int main(int argc, char *argv[])
             QFile file(sepFile);
             if (file.exists())
             {
-                if (separeteTables(sepFile) == 1) //Separate the tables using the file  //TODO: If separation happens then we need to move multi-select tables to the end of the list
+                if (separeteTables(sepFile) == 1) //Separate the tables using the file
                     return 1;
             }
         }
@@ -3866,10 +4564,9 @@ int main(int argc, char *argv[])
         {
             exit(2); //If a table has more than 60 related field then exit
         }
-        if (checkLookupTables() != 0)
-            exit(9);
-        //log("Generating SQL scripts");
-        genSQL(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
+
+        //log("Generating output files");
+        generateOutputFiles(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
     }
     else
         return returnValue;
