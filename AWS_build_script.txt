@@ -42,7 +42,7 @@ sudo ln -s /usr/bin/aclocal-1.15 /usr/bin/aclocal-1.14
 sudo ln -s /usr/bin/automake-1.15 /usr/bin/automake-1.14
 
 sudo tar xvfz RELEASE_0.7.6.tar.gz
-cd libxlsxwriter-RELEASE_0.7.5
+cd libxlsxwriter-RELEASE_0.7.6
 sudo mkdir build
 cd build
 sudo cmake ..
@@ -68,15 +68,6 @@ sudo qmake
 sudo make
 sudo cp json2csv /usr/bin
 cd ../../
-
-sudo git submodule update --init --recursive
-cd 3rdparty/qjson
-sudo mkdir build
-cd build
-sudo cmake ..
-sudo make
-sudo make install
-cd ../../..
 
 sudo qmake
 sudo make

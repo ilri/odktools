@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     title = title + " * to import the JSON data into the neccesary MySQL tables.          * \n";
     title = title + " ********************************************************************* \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "2.0");
 
     TCLAP::ValueArg<std::string> jsonArg("j","json","Input JSON File",true,"","string");
     TCLAP::ValueArg<std::string> manifestArg("m","manifest","Input manifest XML file",true,"","string");

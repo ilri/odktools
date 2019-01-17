@@ -2,8 +2,7 @@ TEMPLATE = subdirs
 
 CONFIG += debug
 
-SUBDIRS = ODKToMySQL/odktomysql.pro \
-JXFormToMysql/jxformtomysql.pro \
+SUBDIRS = JXFormToMysql/jxformtomysql.pro \
 JSONToMySQL/jsontomysql.pro \
     utilities \
     XMLtoJSON/xmltojson.pro

@@ -24,7 +24,7 @@ void mainClass::log(QString message)
 {
     QString temp;
     temp = message + "\n";
-    printf(temp.toLocal8Bit().data());
+    printf("%s",temp.toLocal8Bit().data());
 }
 
 void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool includeProtected, QString tempDir)
