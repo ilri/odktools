@@ -56,6 +56,8 @@ QStringList CSVvalues;
 QStringList CSVSQLs;
 int numColumns;
 int numColumnsInData;
+QStringList duplicatedTables;
+
 
 //********************************************Global structures****************************************
 
@@ -175,9 +177,61 @@ struct duplicatedSelectValue
     QString selectValue;
 };
 typedef duplicatedSelectValue TduplicatedSelectValue;
-QList<TduplicatedSelectValue> duplicatedSelectValues; //List of tables
+QList<TduplicatedSelectValue> duplicatedSelectValues;
+
+struct duplicatedField
+{
+    QString table;
+    QStringList fields;
+};
+typedef duplicatedField TduplicatedField;
+QList<TduplicatedField> duplicatedFields;
 
 //***************************************Processes********************************************
+
+//Checks wether a field already exist in a table
+void checkFieldName(TtableDef table, QString fieldName)
+{
+    for (int pos = 0; pos < table.fields.count(); pos++)
+    {
+        if (table.fields[pos].name == fieldName)
+        {
+            int idx;
+            idx = -1;
+            for (int pos2 = 0; pos2 < duplicatedFields.count(); pos2++)
+            {
+                if (duplicatedFields[pos2].table == table.name)
+                {
+                    idx = pos2;
+                    break;
+                }
+            }
+            if (idx == -1)
+            {
+                TduplicatedField duplicated;
+                duplicated.table = table.name;
+                duplicated.fields.append(fieldName);
+                duplicatedFields.append(duplicated);
+            }
+            else
+            {
+                duplicatedFields[idx].fields.append(fieldName);
+            }
+        }
+    }
+}
+
+//Checks wether the table aready exits.
+void checkTableName(QString tableName)
+{
+    for (int pos = 0; pos < tables.count(); pos++)
+    {
+        if (tables[pos].name == tableName)
+        {
+            duplicatedTables.append(tableName);
+        }
+    }
+}
 
 int isSelect(QString variableType)
 {
@@ -2358,6 +2412,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
         TfieldDef aField;
         aField.selectSource = "NONE";
         aField.name = fixField(variableName.toLower());
+        checkFieldName(OSMTable,aField.name);
         aField.odktype = "NONE";
         aField.selectListName = "NONE";
         aField.calculateWithSelect = false;
@@ -2497,6 +2552,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
     {
         TfieldDef aField;
         aField.name = fixField(variableName.toLower());
+        checkFieldName(tables[tblIndex],aField.name);
         TfieldMap vartype = mapODKFieldTypeToMySQL(variableType);
         aField.selectSource = "NONE";
         aField.selectListName = "NONE";
@@ -2637,6 +2693,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             TfieldDef aField;
             aField.selectSource = "NONE";
             aField.name = fixField(variableName.toLower());
+            checkFieldName(tables[tblIndex],aField.name);
             aField.odktype = variableType;
             aField.selectListName = "NONE";
             aField.calculateWithSelect = false;
@@ -2797,6 +2854,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             //Creating a multiSelect
             TfieldDef aField;
             aField.name = fixField(variableName.toLower());
+            checkFieldName(tables[tblIndex],aField.name);
             aField.selectSource = "NONE";
             aField.selectListName = "NONE";
             aField.type = "varchar";
@@ -3007,7 +3065,6 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             }
         }
     }
-
 }
 
 // Get the root variables of the survey
@@ -3084,6 +3141,7 @@ void parseTable(QJsonObject tableObject, QString tableType)
     QString variableName;
     variableName = tableObject.value("name").toString();
     aTable.name = fixField(variableName.toLower());
+    checkTableName(aTable.name);
     QJsonValue labelValue = tableObject.value("label");
     aTable.desc.append(getLabels(labelValue));
     aTable.pos = tableIndex;
@@ -3534,6 +3592,69 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList)
     }
 }
 
+void reportDuplicatedFields()
+{
+    QDomDocument XMLResult;
+    XMLResult = QDomDocument("XMLResult");
+    QDomElement XMLRoot;
+    XMLRoot = XMLResult.createElement("XMLResult");
+    XMLResult.appendChild(XMLRoot);
+    if (outputType != "m")
+    {
+        log("The following tables have duplicated fields: ");
+    }
+    for (int pos = 0; pos < duplicatedFields.count(); pos++)
+    {
+        if (outputType != "m")
+        {
+            log("\tTable: " + duplicatedFields[pos].table);
+        }
+        QDomElement eDuplicatedTable;
+        eDuplicatedTable = XMLResult.createElement("duplicatedTable");
+        eDuplicatedTable.setAttribute("tableName",duplicatedFields[pos].table);
+        for (int pos2 = 0; pos2 < duplicatedFields[pos].fields.count(); pos2++)
+        {
+            if (outputType != "m")
+            {
+                log("\t\tField: " + duplicatedFields[pos].fields[pos2]);
+            }
+            QDomElement eDuplicatedField;
+            eDuplicatedField = XMLResult.createElement("duplicatedField");
+            eDuplicatedField.setAttribute("fieldName",duplicatedFields[pos].fields[pos2]);
+            eDuplicatedTable.appendChild(eDuplicatedField);
+        }
+        XMLRoot.appendChild(eDuplicatedTable);
+    }
+    if (outputType == "m")
+        log(XMLResult.toString());
+}
+
+void reportDuplicatedTables()
+{
+    QDomDocument XMLResult;
+    XMLResult = QDomDocument("XMLResult");
+    QDomElement XMLRoot;
+    XMLRoot = XMLResult.createElement("XMLResult");
+    XMLResult.appendChild(XMLRoot);
+    if (outputType != "m")
+    {
+        log("The following tables have the same name: ");
+    }
+    for (int pos = 0; pos < duplicatedTables.count(); pos++)
+    {
+        if (outputType != "m")
+        {
+            log("\tTable: " + duplicatedTables[pos]);
+        }
+        QDomElement eDuplicatedItem;
+        eDuplicatedItem = XMLResult.createElement("duplicatedItem");
+        eDuplicatedItem.setAttribute("tableName",duplicatedTables[pos]);
+        XMLRoot.appendChild(eDuplicatedItem);
+    }
+    if (outputType == "m")
+        log(XMLResult.toString());
+}
+
 void reportSelectDuplicates()
 {
     QDomDocument XMLResult;
@@ -3864,28 +3985,36 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         addToRepeat(mainTable);
         parseField(primaryKeyObject,mainTable, mainField, dir, database,primaryKeyXMLCode);
         primaryKeyAdded = true;        
-        parseJSONObject(firstObject, mainTable, mainField, dir, database);
-        if (duplicatedSelectValues.count() == 0)
+        parseJSONObject(firstObject, mainTable, mainField, dir, database);       
+        if (duplicatedTables.count() > 0)
         {
-            for (int itable = 0; itable < tables.count(); itable++)
-            {
-                if (tables[itable].islookup == false)
-                {
-                    for (int ifield = 0; ifield < tables[itable].fields.count(); ifield++)
-                    {
-                        if (tables[itable].fields[ifield].calculateWithSelect == true)
-                        {
-                            TfieldDef aField = tables[itable].fields[ifield];
-                            getReferenceForSelectAt(aField.formula,aField.type,aField.size,aField.decSize,aField.rTable,aField.rField);
-                        }
-                    }
-                }
-            }
+            reportDuplicatedTables();
+            exit(22);
         }
-        else
+        if (duplicatedFields.count() > 0)
+        {
+            reportDuplicatedFields();
+            exit(23);
+        }
+        if (duplicatedSelectValues.count() > 0)
         {
             reportSelectDuplicates();
             exit(9);
+        }
+
+        for (int itable = 0; itable < tables.count(); itable++)
+        {
+            if (tables[itable].islookup == false)
+            {
+                for (int ifield = 0; ifield < tables[itable].fields.count(); ifield++)
+                {
+                    if (tables[itable].fields[ifield].calculateWithSelect == true)
+                    {
+                        TfieldDef aField = tables[itable].fields[ifield];
+                        getReferenceForSelectAt(aField.formula,aField.type,aField.size,aField.decSize,aField.rTable,aField.rField);
+                    }
+                }
+            }
         }
 
     }
@@ -4295,7 +4424,7 @@ int main(int argc, char *argv[])
     title = title + " * JXFormToMySQL generates full relational MySQL databases.          * \n";
     title = title + " ********************************************************************* \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "2.0");
 
     TCLAP::ValueArg<std::string> inputArg("j","inputJSON","Input PyXForm JSON survey file",true,"","string");
     TCLAP::ValueArg<std::string> tableArg("t","mainTable","Name of the master table for the target schema. ODK surveys do not have a master table however this is neccesary to store ODK variables that are not inside a repeat. Please give a name for the master table for maintable, mainmodule, coverinformation, etc.",true,"","string");

@@ -26,7 +26,7 @@ void log(QString message)
 {
     QString temp;
     temp = message + "\n";
-    printf(temp.toUtf8().data());
+    printf("%s",temp.toUtf8().data());
 }
 
 QString fixString(QString source)
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
     title = title + " * compareInsertXML.                                                 * \n";
     title = title + " ********************************************************************* \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "2.0");
 
     TCLAP::ValueArg<std::string> inputArg("i","input","Input insert XML file",true,"","string");
     TCLAP::ValueArg<std::string> outputArg("o","output","Output SQL file",false,"./insert.sql","string");

@@ -44,7 +44,7 @@ void log(QString message)
 {
     QString temp;
     temp = message + "\n";
-    printf(temp.toUtf8().data());
+    printf("%s",temp.toUtf8().data());
 }
 
 void fatal(QString message)
@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
     title = title + " * ODK survey that must be combined in one common database.          * \n";
     title = title + " ********************************************************************* \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "2.0");
 
     TCLAP::ValueArg<std::string> aArg("a","inputa","Input insert XML file A",true,"","string");
     TCLAP::ValueArg<std::string> bArg("b","inputb","Input insert XML file B",true,"","string");
