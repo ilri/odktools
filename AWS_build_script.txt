@@ -1,7 +1,7 @@
 #ODK Tools - Installation script tested in Ubuntu server 16.04 and 18.04
 
 sudo apt-get update
-sudo apt-get install build-essential qt5-default qtbase5-private-dev qtdeclarative5-dev cmake mongodb jq libboost-all-dev unzip zlib1g-dev automake npm
+sudo apt-get install build-essential qt5-default qtbase5-private-dev qtdeclarative5-dev libqt5sql5-mysql cmake mongodb jq libboost-all-dev unzip zlib1g-dev automake npm
 
 cd /opt
 sudo git clone https://github.com/qlands/odktools.git
