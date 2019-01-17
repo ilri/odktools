@@ -32,7 +32,7 @@ void log(QString message)
 {
     QString temp;
     temp = message + "\n";
-    printf(temp.toUtf8().data());
+    printf("%s",temp.toUtf8().data());
 }
 
 QStringList chuckFiles;
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
     title = title + " * groups of 10,000 items.                                                           * \n";
     title = title + " ************************************************************************************* \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "2.0");
 
     TCLAP::ValueArg<std::string> inputArg("i","input","Input directory containing JSON files",true,"","string");
     TCLAP::ValueArg<std::string> outputArg("o","output","Output CSV file (./output.csv by default)",false,"./output.csv","string");

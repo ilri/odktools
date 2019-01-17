@@ -1,12 +1,12 @@
 # ODK Tools
-ODK Tools is a toolbox for processing [ODK](https://opendatakit.org/) survey data into MySQL databases. The toolbox can either be combined with [FormShare](https://github.com/qlands/FormShare) as it conveniently stores submissions in JSON format but also can process ODK raw submissions in XML format. The toolbox can also be combined with [META](https://github.com/ilri/meta) to support multiple languages. 
+ODK Tools is a toolbox for processing [ODK](https://opendatakit.org/) survey data into MySQL databases. The toolbox can either be combined with [FormShare](https://github.com/qlands/FormShare) as it conveniently stores submissions in JSON format but also can process ODK raw submissions in XML format. The toolbox can also be combined with [META](https://github.com/ilri/meta) to support multiple languages.
 
 ODK Tools comprises of three command line tools performing different tasks and six utility programs. The toolbox is cross-platform and can be built in Windows, Linux, and Mac.
 
 ## The toolbox
 
-### ODK to MySQL
-ODK to MySQL converts an ODK Excel File (XLSX survey file) into a relational MySQL schema. Even though [ODK Aggregate](https://opendatakit.org/use/aggregate/) stores submissions in MySQL, the Aggregate schema lacks basic functionality like:
+### JSON PyXForm to MySQL
+JSON PyXForm to MySQL converts an the JSON output of [PyXForm](https://github.com/XLSForm/pyxform) into a relational MySQL schema. Even though [ODK Aggregate](https://opendatakit.org/use/aggregate/) stores submissions in MySQL, the Aggregate schema lacks basic functionality like:
  - Avoid duplicated submissions if a unique ID is used in a survey.
  - Store and link select values.
  - Store multi-select values as independent rows.
@@ -14,17 +14,19 @@ ODK to MySQL converts an ODK Excel File (XLSX survey file) into a relational MyS
  - In some cases, data could end up with too many columns.
  - No dictionary.
  - No multi-language support.
+ - No proper support for complex types like Open Street Map (OSM).
 
  ODK to MySQL creates a complete relational schema with the following features:
  - A variable can be identified as a unique ID and becomes the primary key.
  - Select and multi-select values are stored in lookup tables. Lookup tables are then linked to main tables.
  - Multi-select values are stored in sub-tables where each value is recorded as an independent row.
- - Repeats are stored in independent tables. Sub-repeats are related to parent-repeats.
- - Repeats and variable names are extracted and accessible.
+ - Repeats and groups are stored in independent tables. Sub-repeats/groups are related to parent-repeats/groups.
+ - Repeats/groups and variable names are extracted and accessible.
  - Multiple languages support.
  - Selects create lookup tables. Since two or more selects can have the same items, the tool minimizes the number of lookup tables created.
- - Yes/No selects are ignored
- - Tables with more than 100 fields (indicating the data covers various themes or topics) are required to be separated into sub-tables by theme or topic. 
+ - **As much as possible, Yes/No selects are ignored**
+ - Tables with more than 100 fields (indicating the data covers various themes or topics) are required to be separated into sub-tables by theme or topic.
+ - Complex types like OSM, Loops, GeoShapes and GoTraces are stored in separated tables.
 
  Output files produced:
  - create.sql: A [DDL](http://en.wikipedia.org/wiki/Data_definition_language) script containing all data structures, indexes, and relationships.
@@ -37,10 +39,10 @@ ODK to MySQL converts an ODK Excel File (XLSX survey file) into a relational MyS
  - insert.xml: This is an XML representation of the lookup tables and values. Used by utilities compareInsertXML & insertFromXML.
 
 #### *Parameters*
-  - x - Input ODK XLSX file.
+  - j - Input PyXForm JSON file. This is generated with [xls2json](https://github.com/XLSForm/pyxform/blob/master/pyxform/xls2json.py)
   - v - Main survey variable. This is the variable that is unique to each survey submission. For example National ID, Passport or Farmer Id, etc. **This IS NOT the ODK survey ID found in settings.** This variable will become the primary key in the main table. You can only select **one** variable.
-  - t - Main table. Name of the master table for the target schema. ODK surveys do not have a master table however this is necessary to store ODK variables that are not inside a repeat. You can choose any name for example "maintable" **Important note: If the main survey variable is store inside a repeat then the main table must be such repeat.**
-  - d - Default storing language. For example (en)English. **This is the default language for the database and might be different as the default language in the ODK survey.** If not indicated then English will be assumed.
+  - t - Main table. Name of the master table for the target schema. ODK surveys do not have a master table however this is necessary to store ODK variables that are not inside a repeat. You can choose any name for example "maintable" **Important note: The main survey variable cannot be stored inside a repeat.**
+  - d - Default storing language. For example (en)English. **This is the default language for the database and might be different as the default language in the ODK survey.** If not indicated then (en)English will be assumed.
   - l - Other languages. For example (fr)French, (es)Español. Required if the ODK file has multiple languages.
   - y - Yes and No strings in the default language in the format "String|String". This will allow the tool to identify Yes/No lookup tables and exclude them. **It is not case sensitive.** For example, if the default language is Spanish then this value should be indicated as "Si|No". If its empty then English "Yes|No" will be assumed.
   - p - Table prefix. A prefix that can be added to each table. This is useful if a common schema is used to store different surveys.
@@ -50,28 +52,28 @@ ODK to MySQL converts an ODK Excel File (XLSX survey file) into a relational MyS
   - T - Output translation file. "iso639.sql" by default.
   - f - Output manifest file. "manifest.xml" by default
   - S - Output separation file. This file might be generated by this tool when tables have too many columns. If no output is indicated an autogenerated file is created.
-  - s - Input separation file. This file is the one indicated with -S or autogenerated by the tool when tables have too many columns. 
+  - s - Input separation file. This file is the one indicated with -S or autogenerated by the tool when tables have too many columns.
   - I - Output lookup tables and values in XML format. "insert.xml" by default.
   - C - Output schema as in XML format. "create.xml" by default
   - o - Output type: (h)uman readable or (m)achine readable. Machine by default.
   - e - Temporary directory. If no directory is specified then ./tmp will be created.
-  - *support files* separated with space. You can indicate multiple support files like CSVs or ZIPs. The tool will use CSVs to collect options from external sources.
+  - *support files* separated with space. You can indicate multiple support files like XMLs, CSVs or ZIPs. The tool will use XML's or CSVs to collect options from external sources.
 
 
 #### *Example for a single language ODK*
 
-    $ ./odktomysql -x my_input_xlsx_file.xlsx -v QID -t maintable
+    $ ./jxformtomysql -j my_input_json_file.json -v QID -t maintable
 
 #### *Example for a multi-language ODK (English and Español) where English is the default storing language*
 
-    $ ./odktomysql -x my_input_xlsx_file.xlsx -v main_questionarie_ID -t maintable -l "(es)Español"
+    $ ./jxformtomysql -j my_input_json_file.json -v main_questionarie_ID -t maintable -l "(es)Español"
 
 #### *Example for a multi-language ODK (English and Español) where Spanish is the default storing language*
- 
 
-    $ ./odktomysql -x my_input_xlsx_file.xlsx -v main_questionarie_ID -t maintable -d "(es)Español" -l "(en)English" -y "Si|No"
 
-  See examples for single and multiple languages [here](https://github.com/ilri/odktools/tree/master/ODKToMySQL/examples)
+    $ ./jxformtomysql -j my_input_json_file.json -v main_questionarie_ID -t maintable -d "(es)Español" -l "(en)English" -y "Si|No"
+
+
 
 ---
 ### FormShare to JSON
@@ -85,9 +87,8 @@ FormShare stores ODK submissions in a [Mongo](https://www.mongodb.org/) database
   - w - Overwrite JSON file if exists. False by default.
 
 #### *Example*
- 
-    $ python formsharetojson.py -m "mongodb://my_mongoDB_server:27017/" -y my_survey_id -o ./my_output_directory
 
+    $ python formsharetojson.py -m "mongodb://my_mongoDB_server:27017/" -y my_survey_id -o ./my_output_directory
 
 ---
 ### XML to JSON
@@ -107,7 +108,7 @@ JSON to MySQL imports JSON files (generated by **FormShare To JSON** or  **XML t
 
 **What is a Map file**
 
-ODK submissions either in XML format or converted into JSON format contains data in a tree-like structure where different branches refer to different types of data. When this structure is imported into a MySQL Database by **JSON to MySQL** each branch of data goes into a different table. This process is called [normalization](https://en.wikipedia.org/wiki/Database_normalization). In some cases, particularly for data analysis, it is necessary to reconstruct the tree structure from the tables ([Denormalize the data](https://en.wikipedia.org/wiki/Denormalization)). This can only be done efficiently by preserving the tree structure but where each branch of data points to a row in a table. **JSON to MySQL** assigns a Universally Unique Identifier ([UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier)) to each branch inserted into a table. The Map file has the same tree structure of the ODK submissions but only containing UUIDs. 
+ODK submissions either in XML format or converted into JSON format contains data in a tree-like structure where different branches refer to different types of data. When this structure is imported into a MySQL Database by **JSON to MySQL** each branch of data goes into a different table. This process is called [normalization](https://en.wikipedia.org/wiki/Database_normalization). In some cases, particularly for data analysis, it is necessary to reconstruct the tree structure from the tables ([Denormalize the data](https://en.wikipedia.org/wiki/Denormalization)). This can only be done efficiently by preserving the tree structure but where each branch of data points to a row in a table. **JSON to MySQL** assigns a Universally Unique Identifier ([UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier)) to each branch inserted into a table. The Map file has the same tree structure of the ODK submissions but only containing UUIDs.
 
 
 #### *Parameters*
@@ -120,7 +121,8 @@ ODK submissions either in XML format or converted into JSON format contains data
   - M - Output directory to store the Map file
   - j - Input JSON file.
   - o - Output log file. "output.csv" by default.
-  - O - Output type: (h)umand or (machine) readable. Machine by default.
+  - O - Output type: (h)umand or (machine) readable. Machine by default
+  - U - Output UUIDs file. This contains the unique ids pushed to each table
   - J - Input JavaScript file with a "beforeInsert" function to customize the values entering the database. **See notes below**.
 
 #### *Example*
@@ -130,7 +132,7 @@ ODK submissions either in XML format or converted into JSON format contains data
 #### *Customizing the insert with an external JavaScript*
  The insert process of **JSON to MySQL** can be hooked up to an external JavaScript file to perform changes in the data before inserting them into the MySQL database. This is done by creating a .js file with the following code:
 
- 
+
 
     function beforeInsert(table,data)
     {
@@ -200,10 +202,9 @@ If the merging on **A** into **B** is successful the tool will create **"C"** an
 
     $ ./comparecreatexml -a ./my_A_file.xml -b ./my_B_file.xml -c ./my_output_C_file.xml -o h
 
-
 ---
 ### Compare Insert XML (Utility)
-Compare Insert XML compares two insert XML files created by **ODK to MySQL** (**A** and **B**) for incremental changes. **A** is consider an incremental version of **B**. This tool is useful when dealing with multiple versions of an ODK survey that must be combined in one common database. The tool informs of lookup tables and their values in **A** that ARE NOT in **B**. 
+Compare Insert XML compares two insert XML files created by **ODK to MySQL** (**A** and **B**) for incremental changes. **A** is consider an incremental version of **B**. This tool is useful when dealing with multiple versions of an ODK survey that must be combined in one common database. The tool informs of lookup tables and their values in **A** that ARE NOT in **B**.
 
 If the merging on **A** into **B** is successful the tool will create **"C"** which has all the values of **B** plus all of **A** and a SQL file containing the insert instructions to upgrade the database created by **B** so it has the lookup values needed by **A**.
 
@@ -226,7 +227,6 @@ If the tool finds an inconsistency in a value between A and B  it will ask the u
 
     $ ./compareinsertxml -a ./my_A_file.xml -b ./my_B_file.xml -c ./my_output_C_file.xml -o h
 
-
 ---
 ### Create From XML (Utility)
 Create From XML creates a SQL DDL script file from a XML schema file generated either by **ODK To MySQL** or **Compare Create XML**.
@@ -236,7 +236,7 @@ Create From XML creates a SQL DDL script file from a XML schema file generated e
   - o - Output SQL DDL file. "create.sql" by default.
 
 #### *Example*
- 
+
 
     $ ./createfromxml -i ./my_create_file.xml -o ./my_output_sql_file.sql
 
@@ -254,7 +254,7 @@ Insert From XML creates a SQL DML script file from a XML insert file generated e
 
 ---
 ### MySQL Denormalize (Utility)
-MySQL Denormalize converts data from a MySQL Database into the tree representation of the original submission but with the data coming from the database thus containing any changes made to the data after the original submission. It relies on the Map XML files created by **JSON to MySQL**. 
+MySQL Denormalize converts data from a MySQL Database into the tree representation of the original submission but with the data coming from the database thus containing any changes made to the data after the original submission. It relies on the Map XML files created by **JSON to MySQL**.
 
 #### *Parameters*
   - H - MySQL host server. Default is localhost
@@ -269,26 +269,26 @@ MySQL Denormalize converts data from a MySQL Database into the tree representati
 
 #### *Example*
 
-    $ ./mysqldenormalize -H my_MySQL_server -u my_user -p my_pass -s my_schema -t main_table -m /path/to/the/map/files -o /path/to/output/directory 
+    $ ./mysqldenormalize -H my_MySQL_server -u my_user -p my_pass -s my_schema -t main_table -m /path/to/the/map/files -o /path/to/output/directory
 
 ---
 ### JSON to CSV (Utility)
-JSON to CSV creates a CSV file based a JSON file by flattening the JSON structure as described [here](https://sunlightfoundation.com/2014/03/11/making-json-as-simple-as-a-spreadsheet/). 
+JSON to CSV creates a CSV file based a JSON file by flattening the JSON structure as described [here](https://sunlightfoundation.com/2014/03/11/making-json-as-simple-as-a-spreadsheet/).
 
 #### *Parameters*
   - i - Input directory containing the JSON files
   - o - Output CSV file. ./output.csv by default.
-  - t - Temporary directory. ./tmp by default. 
+  - t - Temporary directory. ./tmp by default.
 
 #### *Example*
 
-    $ ./jsontocsv -i /path/to/directory/with/json/files -o ./my_output.csv 
+    $ ./jsontocsv -i /path/to/directory/with/json/files -o ./my_output.csv
 
 
 ## Building and testing
 Installation instructions for Ubuntu Server 16.04 or 18.04 are available [here](https://github.com/qlands/odktools/blob/master/AWS_build_script.txt)
 
-    
+
 ## Author
 Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
 
@@ -296,8 +296,6 @@ Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
 This repository contains the code of:
 
 - [TClap](http://tclap.sourceforge.net/) which is licensed under the [MIT license](https://raw.githubusercontent.com/twbs/bootstrap/master/LICENSE).
-- [Qt XLSX](https://github.com/dbzhang800/QtXlsxWriter) which is licensed under the [MIT license](https://raw.githubusercontent.com/twbs/bootstrap/master/LICENSE).
-- [QJSON](https://github.com/flavio/qjson) which is licensed under the [GNU Lesser General Public License version 2.1](http://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html)
 - [MongoDB C++ Driver](https://mongodb.github.io/mongo-cxx-driver/) which is licensed under the [Apache License, version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 - [JSON2CSV-CPP](https://github.com/once-ler/json2csv-cpp) which does not have a license. We assume MIT or BSD.
 
