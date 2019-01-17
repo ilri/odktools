@@ -18,6 +18,13 @@ You should have received a copy of the GNU Lesser General Public
 License along with JSONToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
 */
 
+/*
+    TODO:        
+        2- We need to process loops
+        3- We need to process OSM extenal data
+*/
+
+
 #include "mainclass.h"
 #include <QUuid>
 #include <QFileInfo>
@@ -229,7 +236,7 @@ void mainClass::run()
             SQLError = false;
             SQLErrorNumber = "";
             int processError;
-            processError = processFile(db,json,manifest,procList);
+            processError = processFile2(db,json,manifest,procList);
             if (processError == 1)
             {
                 //This will happen if the file is already processes or an error ocurred
@@ -335,7 +342,7 @@ void mainClass::run()
     emit finished();
 }
 
-void mainClass::setParameters(bool voverwrite, QString vjson, QString vmanifest, QString vhost, QString vport, QString vuser, QString vpassword, QString vschema, QString voutput, QString vinput, QString vjavaScript, bool voputSQLSwitch, QString mapDirectory, QString outputType, QString uuidsFile)
+void mainClass::setParameters(bool voverwrite, QString vjson, QString vmanifest, QString vhost, QString vport, QString vuser, QString vpassword, QString vschema, QString voutput, QString vinput, QString vjavaScript, bool voputSQLSwitch, QString mapDirectory, QString outputType, QString uuidsFile, QStringList supportFiles)
 {
     overwrite = voverwrite;
     json = vjson;
@@ -352,6 +359,14 @@ void mainClass::setParameters(bool voverwrite, QString vjson, QString vmanifest,
     mapOutputDir = mapDirectory;
     this->outputType = outputType;
     UUIDsFile = uuidsFile;
+    for (int idx =0; idx < supportFiles.count(); idx++)
+    {
+        TOSMFileDef OSM_file;
+        QFileInfo file_info(supportFiles[idx]);
+        OSM_file.fileName = supportFiles[idx];
+        OSM_file.baseName = file_info.fileName();
+        OSMFiles.append(OSM_file);
+    }
 }
 
 
@@ -391,7 +406,7 @@ void mainClass::log(QString message)
 {
     QString temp;
     temp = message + "\n";
-    printf(temp.toLocal8Bit().data());
+    printf("%s",temp.toLocal8Bit().data());
 }
 
 //This function returns a the xmlFieldCode based on its MySQL name
@@ -403,6 +418,50 @@ QString mainClass::getXMLCodeFromField(QList< TfieldDef> fields, QString field)
             return fields[pos].xmlCode;
     }
     return "Unknown";
+}
+
+//This procedure creates log entries into the log file for OSM. It used the dictionary tables to retrive a more understanable message.
+void mainClass::logLoopError(QString errorMessage, QString table, QString loopItem, QString execSQL)
+{
+    if (outputType == "h")
+        logStream << fileID + "\t" + table + "\t" + loopItem + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
+    else
+    {
+        QDomElement eError;
+        eError = xmlLog.createElement("error");
+        eError.setAttribute("FileUUID",fileID);
+        eError.setAttribute("Table",table);
+        eError.setAttribute("LoopItem",loopItem);
+        eError.setAttribute("JSONVariable","");
+        eError.setAttribute("Error",errorMessage);
+        eError.setAttribute("Notes","");
+        QDomText sqlExecuted;
+        sqlExecuted = xmlLog.createTextNode(execSQL);
+        eError.appendChild(sqlExecuted);
+        eErrors.appendChild(eError);
+    }
+}
+
+//This procedure creates log entries into the log file for OSM. It used the dictionary tables to retrive a more understanable message.
+void mainClass::logOSMError(QString errorMessage, QString table, int nodeIndex, QString execSQL)
+{
+    if (outputType == "h")
+        logStream << fileID + "\t" + table + "\t" + QString::number(nodeIndex) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
+    else
+    {
+        QDomElement eError;
+        eError = xmlLog.createElement("error");
+        eError.setAttribute("FileUUID",fileID);
+        eError.setAttribute("Table",table);
+        eError.setAttribute("Node",QString::number(nodeIndex));
+        eError.setAttribute("JSONVariable","");
+        eError.setAttribute("Error",errorMessage);
+        eError.setAttribute("Notes","");
+        QDomText sqlExecuted;
+        sqlExecuted = xmlLog.createTextNode(execSQL);
+        eError.appendChild(sqlExecuted);
+        eErrors.appendChild(eError);
+    }
 }
 
 //This procedure creates log entries into the log file. It used the dictionary tables to retrive a more understanable message.
@@ -669,10 +728,22 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
     }
     for (pos = 0; pos <= fields.count()-1;pos++)
     {
+//        if (fields[pos].xmlCode == "yes_concent/maininfo/rpthhinfo/alone")
+//        {
+//            qDebug() << "**********************77";
+//            qDebug() << fields[pos].xmlCode;
+//            qDebug() << "----------------------";
+//            QMapIterator<QString, QVariant> i(jsonData);
+//            while (i.hasNext()) {
+//                i.next();
+//                qDebug() << i.key();
+//            }
+//            qDebug() << "**********************77";
+//        }
         // If a new key is found in the list of fields
         // then we added to the result of keys that will be passes to any possible child table
         if (fields[pos].key == true)
-        {
+        {            
             TfieldDef key;
             key.key = true;
             key.name = fields[pos].name;
@@ -681,7 +752,7 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
             key.multiSelectTable = fields[pos].multiSelectTable;
             key.value = jsonData[fields[pos].xmlCode].toString();
             key.value = key.value.simplified();
-            if ((fields[pos].ODKType == "start") || (fields[pos].ODKType == "end") || (fields[pos].ODKType == "time") || (fields[pos].ODKType == "datetime"))
+            if (fields[pos].type == "datetime")
             {
                 if (key.value.indexOf(".") >= 0)
                 {
@@ -690,6 +761,14 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                     key.value = parts[0];
                     key.value = key.value.replace("T"," ");
                     key.value = key.value.replace("Z","");
+                    if (fields[pos].ODKType == "time")
+                    {
+                        if (key.value.indexOf("-") < 0)
+                        {
+                            //Treat time as datetime by fixing date a date
+                            key.value = "2019-01-01 " + key.value;
+                        }
+                    }
                 }
             }
             key.uuid = table + "~" + strRecordUUID;
@@ -784,8 +863,8 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                 }
 
                 //sqlValues = sqlValues + "'" + fixString(fieldValue) + "',";
-            }            
-            if ((fields[pos].ODKType == "start") || (fields[pos].ODKType == "end") || (fields[pos].ODKType == "time") || (fields[pos].ODKType == "datetime"))
+            }
+            if (fields[pos].type == "datetime")
             {
                 if (fieldValue.indexOf(".") >= 0)
                 {
@@ -793,7 +872,15 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                     parts = fieldValue.split(".");
                     fieldValue = parts[0];
                     fieldValue = fieldValue.replace("T"," ");
-                    fieldValue = fieldValue.replace("Z","");
+                    fieldValue = fieldValue.replace("Z","");                    
+                    if (fields[pos].ODKType == "time")
+                    {
+                        if (fieldValue.indexOf("-") < 0)
+                        {
+                            //Treat time as datetime by fixing date a date
+                            fieldValue = "2019-01-01 " + fieldValue;
+                        }
+                    }
                 }
             }            
             insValue.value = fieldValue;
@@ -814,12 +901,17 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
         }
     }
 
+    bool hasSomethingToInsert;
+    hasSomethingToInsert = false;
     for (pos = 0; pos < insertObject.count();pos++)
     {
         if (insertObject.itemName(pos) != "rowuuid")
         {
             sqlHeader = sqlHeader + insertObject.itemName(pos) + ",";
             sqlValues = sqlValues + "'" + insertObject.itemValue(pos) + "',";
+            if (insertObject.itemIsKey(pos) == false)
+                if (insertObject.itemValue(pos).simplified().trimmed() != "")
+                    hasSomethingToInsert = true;
         }
 
         // Key values could have changed by the external JavaScript so
@@ -850,26 +942,29 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
         sqlStream << sql + ";\n";
     }
     QSqlQuery query(db);
-
-    if (!query.exec(sql))
+    hasSomethingToInsert = true;
+    if (hasSomethingToInsert) //There are other values besides keys to insert
     {
-      SQLError = true; //An error occurred. This will trigger a rollback
-      if (SQLErrorNumber == "")
-        SQLErrorNumber = query.lastError().nativeErrorCode() + "&"  + query.lastError().databaseText() + "@" + table;
-      logError(db,query.lastError().databaseText(),table,tblIndex,jsonData,fields,sql); //Write the error to the log
-    }
-    else
-    {
-        //Store the record in the map
-        QStringList uuids;
-        for (int nkey = 0; nkey <= parentkeys.count()-1;nkey++)
+        if (!query.exec(sql))
         {
-            if (uuids.indexOf(parentkeys[nkey].uuid) == -1)
-                uuids.append(parentkeys[nkey].uuid);
+            SQLError = true; //An error occurred. This will trigger a rollback
+            if (SQLErrorNumber == "")
+                SQLErrorNumber = query.lastError().nativeErrorCode() + "&"  + query.lastError().databaseText() + "@" + table;
+            logError(db,query.lastError().databaseText(),table,tblIndex,jsonData,fields,sql); //Write the error to the log
         }
-        storeRecord(uuids,table + "~" + strRecordUUID);
-        //Add the UUID to the list
-        UUIDList.append(table + "," + strRecordUUID);
+        else
+        {
+            //Store the record in the map
+            QStringList uuids;
+            for (int nkey = 0; nkey <= parentkeys.count()-1;nkey++)
+            {
+                if (uuids.indexOf(parentkeys[nkey].uuid) == -1)
+                    uuids.append(parentkeys[nkey].uuid);
+            }
+            storeRecord(uuids,table + "~" + strRecordUUID);
+            //Add the UUID to the list
+            UUIDList.append(table + "," + strRecordUUID);
+        }
     }
 
     //Now we process the MultiSelects
@@ -986,23 +1081,234 @@ void mainClass::debugMap(QVariantMap jsonData)
     }
 }
 
-//Process a table in the manifest. This fuction is recursive
-int mainClass::procTable(QSqlDatabase db,QVariantMap jsonData, QDomNode table, QList< TfieldDef> parentkeys)
+QString  mainClass::fixField(QString source)
+{
+    QString res;
+    res = source;
+    res = res.replace("'","");
+    res = res.replace('\"',"");
+    res = res.replace(";","");
+    res = res.replace("-","_");
+    res = res.replace(",","");
+    res = res.replace(" ","");
+    res = res.replace(".","_");
+    res = res.replace(":","_");
+    res = res.trimmed().simplified().toLower();
+    return res;
+}
+
+void mainClass::insertOSMData(QString OSMField, QDomElement node, int nodeIndex, QDomNodeList tags, QList< TfieldDef> parentkeys, QSqlDatabase db)
+{
+    QUuid recordUUID=QUuid::createUuid();
+    QString strRecordUUID=recordUUID.toString().replace("{","").replace("}","");
+
+    QString sql;
+    sql = "INSERT INTO " + OSMField  + " (";
+    for (int ikey = 0; ikey < parentkeys.count(); ikey++)
+    {
+        sql = sql + parentkeys[ikey].name + ",";
+    }
+    sql = sql + OSMField + "_rowid,geopoint_lat,geopoint_lon,";
+    for (int itag = 0; itag < tags.count(); itag++)
+    {
+        QDomElement ETag = tags.item(itag).toElement();
+        QString column = ETag.attribute("k","NONE");
+        if (column != "NONE")
+        {
+            sql = sql + fixField(column) + ",";
+        }
+    }
+    sql = sql + "rowuuid) VALUES (";
+    for (int ikey = 0; ikey < parentkeys.count(); ikey++)
+    {
+        sql = sql + "'" + parentkeys[ikey].value + "',";
+    }
+    sql = sql + QString::number(nodeIndex) + ",";
+    sql = sql + "'" + node.attribute("lat","") + "',";
+    sql = sql + "'" + node.attribute("lon","") + "',";
+    for (int itag = 0; itag < tags.count(); itag++)
+    {
+        QDomElement ETag = tags.item(itag).toElement();
+        QString column = ETag.attribute("k","NONE");
+        QString value = ETag.attribute("v","");
+        if (column != "NONE")
+        {
+            sql = sql + "'" + value + "',";
+        }
+    }
+    sql = sql + "'" + strRecordUUID + "')";
+    QSqlQuery query(db);
+    if (!query.exec(sql))
+    {
+        SQLError = true; //An error occurred. This will trigger a rollback
+        if (SQLErrorNumber == "")
+            SQLErrorNumber = query.lastError().nativeErrorCode() + "&"  + query.lastError().databaseText() + "@" + OSMField;
+        logOSMError(query.lastError().databaseText(),OSMField,nodeIndex,sql);
+    }
+    else
+    {
+        //Add the UUID to the list
+        UUIDList.append(OSMField + "," + strRecordUUID);
+    }
+}
+
+void mainClass::processOSM(QString OSMField, QString OSMFile, QList< TfieldDef> parentkeys, QSqlDatabase db)
+{
+    QString filePath = "";
+    for (int idx=0; idx < OSMFiles.count(); idx++)
+    {
+        if (OSMFiles[idx].baseName == OSMFile)
+        {
+            filePath = OSMFiles[idx].fileName;
+            break;
+        }
+
+    }
+    if (filePath != "")
+    {
+        QDomDocument doc("OSMDocument");
+        QFile file(filePath);
+        if (!file.open(QIODevice::ReadOnly))
+        {
+            log("Cannot open OSM file \"" + OSMFile + "\"");
+            exit(2);
+        }
+        if (!doc.setContent(&file))
+        {
+            file.close();
+            log("Cannot parse OSM file \"" + OSMFile + "\"");
+            exit(2);
+        }
+        file.close();
+        QDomNodeList nodes = doc.elementsByTagName("node");
+        for (int inode=0; inode < nodes.count(); inode++)
+        {
+            QDomElement ENode = nodes.item(inode).toElement();
+            QDomNodeList tags = ENode.elementsByTagName("tag");
+            insertOSMData(OSMField, ENode, inode+1, tags, parentkeys, db);
+        }
+    }
+    else
+    {
+        log("OSM file \"" + OSMFile + "\" was not attached. Attach it and run the tool again");
+        exit(2);
+    }
+}
+
+void mainClass::processLoop(QJsonObject jsonData, QString loopTable, QString loopXMLRoot, QStringList loopItems, QList< TfieldDef> fields, QList< TfieldDef> parentkeys, QSqlDatabase db)
+{
+    QSqlQuery query(db);
+    for (int iItem = 0; iItem < loopItems.count(); iItem++)
+    {
+        QUuid recordUUID=QUuid::createUuid();
+        QString strRecordUUID=recordUUID.toString().replace("{","").replace("}","");
+
+        QString sql;
+        sql = "INSERT INTO " + loopTable  + " (";
+        for (int ikey = 0; ikey < parentkeys.count(); ikey++)
+        {
+            sql = sql + parentkeys[ikey].name + ",";
+        }
+        sql = sql + loopTable + ",";
+        for (int iField = 0; iField < fields.count(); iField++)
+        {
+            sql = sql + fields[iField].name + ",";
+        }
+        sql = sql + "rowuuid) VALUES (";
+        for (int ikey = 0; ikey < parentkeys.count(); ikey++)
+        {
+            sql = sql + "'" + parentkeys[ikey].value + "',";
+        }
+        sql = sql + "'" + loopItems[iItem] + "',";
+        for (int iField = 0; iField < fields.count(); iField++)
+        {
+            QString fieldValue;
+            QString xmlKey = loopXMLRoot + "/" + loopItems[iItem] + "/" + fields[iField].xmlCode;
+            fieldValue = jsonData.value(xmlKey).toString("");
+            if (fields[iField].type == "datetime")
+            {
+                if (fieldValue.indexOf(".") >= 0)
+                {
+                    QStringList parts;
+                    parts = fieldValue.split(".");
+                    fieldValue = parts[0];
+                    fieldValue = fieldValue.replace("T"," ");
+                    fieldValue = fieldValue.replace("Z","");
+                    if (fields[iField].ODKType == "time")
+                    {
+                        if (fieldValue.indexOf("-") < 0)
+                        {
+                            //Treat time as datetime by fixing date a date
+                            fieldValue = "2019-01-01 " + fieldValue;
+                        }
+                    }
+                }
+            }
+            sql = sql + "'" + fieldValue + "',";
+        }
+        sql = sql + "'" + strRecordUUID + "')";
+        if (!query.exec(sql))
+        {
+            SQLError = true; //An error occurred. This will trigger a rollback
+            if (SQLErrorNumber == "")
+                SQLErrorNumber = query.lastError().nativeErrorCode() + "&"  + query.lastError().databaseText() + "@" + loopTable;
+            logLoopError(query.lastError().databaseText(),loopTable,loopItems[iItem],sql);
+        }
+        else
+        {
+            //Add the UUID to the list
+            UUIDList.append(loopTable + "," + strRecordUUID);
+            for (int pos = 0; pos < fields.count(); pos++)
+            {
+                if (fields[pos].multiSelect == true)
+                {
+                    QString fieldValue;
+                    QString xmlKey = loopXMLRoot + "/" + loopItems[iItem] + "/" + fields[pos].xmlCode;
+                    fieldValue = jsonData.value(xmlKey).toString("");
+                    QStringList parts = fieldValue.split(" ",QString::SkipEmptyParts);
+                    for (int ipart = 0; ipart < parts.count(); ipart++)
+                    {
+                        recordUUID=QUuid::createUuid();
+                        strRecordUUID=recordUUID.toString().replace("{","").replace("}","");
+                        sql = "INSERT INTO " + fields[pos].multiSelectTable + " (";
+                        for (int ikey = 0; ikey < parentkeys.count(); ikey++)
+                        {
+                            sql = sql + parentkeys[ikey].name + ",";
+                        }
+                        sql = sql + loopTable + "," + fields[pos].name + ",rowuuid) VALUES (";
+                        for (int ikey = 0; ikey < parentkeys.count(); ikey++)
+                        {
+                            sql = sql + "'" + parentkeys[ikey].value + "',";
+                        }
+                        sql = sql + "'" + loopItems[iItem] + "',";
+                        sql = sql + "'" + parts[ipart] + "',";
+                        sql = sql + "'" + strRecordUUID + "')";
+                        if (!query.exec(sql))
+                        {
+                            SQLError = true; //An error occurred. This will trigger a rollback
+                            if (SQLErrorNumber == "")
+                                SQLErrorNumber = query.lastError().nativeErrorCode() + "&"  + query.lastError().databaseText() + "@" + fields[pos].multiSelectTable;
+                            logLoopError(query.lastError().databaseText(),fields[pos].multiSelectTable,loopItems[iItem] + "-" + parts[ipart],sql);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, QList< TfieldDef> parentkeys)
 {
     QList< TfieldDef> keys;
     QList< TfieldDef> tkeys;
     QList< TtableKey> tableKeys;
     keys.append(parentkeys);
-
-    QVariantMap emptyMap;
-
     QList< TfieldDef> fields;
 
     bool sqlCreated;
     sqlCreated = false;
 
     QString tableCode;
-    bool tableSeparated;
     tableCode = table.toElement().attribute("mysqlcode");
 
     int recordIndex;
@@ -1011,8 +1317,17 @@ int mainClass::procTable(QSqlDatabase db,QVariantMap jsonData, QDomNode table, Q
     QString tableXMLCode;
     tableXMLCode = table.toElement().attribute("xmlcode");
 
-    QString parentTag;
-    parentTag = table.parentNode().toElement().tagName();
+    QString group;
+    group = table.toElement().attribute("group","false");
+
+    QString separated;
+    separated = table.toElement().attribute("separated","false");
+
+    QString osm;
+    osm = table.toElement().attribute("osm","false");
+
+    QString loop;
+    loop = table.toElement().attribute("loop","false");
 
     bool genSQL;
     genSQL = false;
@@ -1020,169 +1335,349 @@ int mainClass::procTable(QSqlDatabase db,QVariantMap jsonData, QDomNode table, Q
     QDomNode child;
     child = table.firstChild();
 
-    while (!child.isNull())
+    QVariantMap emptyMap;
+    if (osm == "true")
     {
-        if (child.toElement().nodeName() == "field")
+        QString OSMODKField;
+        OSMODKField = table.toElement().attribute("xmlcode","none");
+        QString OSMFile = jsonData.value(OSMODKField).toString("");
+        QString OSMField = table.toElement().attribute("mysqlcode","none");
+        if (OSMFile != "")
         {
-            //We not process referenced fields because they come as part of the key
-            if (child.toElement().attribute("reference") == "false")
-            {
-                TfieldDef field;
-                field.name = child.toElement().attribute("mysqlcode");
-                field.xmlCode = child.toElement().attribute("xmlcode");
-                field.type = child.toElement().attribute("xmlcode","varchar");
-                field.ODKType = child.toElement().attribute("odktype","text");
-                field.size = child.toElement().attribute("size","0").toInt();
-                field.decSize = child.toElement().attribute("decsize","0").toInt();
-
-                if (child.toElement().attribute("key").toStdString() == "true")
-                    field.key = true;
-                else
-                    field.key = false;
-                if (child.toElement().attribute("isMultiSelect","false") == "true")
-                {
-                    field.multiSelect = true;
-                    field.multiSelectTable = child.toElement().attribute("multiSelectTable","");
-                }
-                else
-                    field.multiSelect = false;
-
-                fields.append(field); //Append the field to the list of fields
-            }
-            genSQL = true;
+            processOSM(OSMField,OSMFile,keys,db);
         }
-        else
-        {
-            sqlCreated = true; //To control more than one child table
-            if ((tableXMLCode == "main") || (parentTag == "ODKImportXML"))
-            {
-                mainTable = tableCode;
-                QVariantMap map;
-                if (genSQL == true)
-                {
-                    if (tableXMLCode == "main")
-                        keys.append(createSQL(db,jsonData,tableCode,fields,keys,emptyMap,true));
-                    else
-                    {
-                        // if we are processing the first table and is not main, this means that a repeat of one was used
-                        // to store the cover data. Therefore the insert SQL must use both the information on root (jsonData)
-                        // and the information on the repeat of one (map)
-                        QVariantList result = jsonData[tableXMLCode].toList();
-                        foreach(QVariant record, result)
-                        {
-                            map = record.toMap();
-                            keys.append(createSQL(db,jsonData,tableCode,fields,keys,map,true));
-                        }
-                    }
-                    genSQL = false;
-                }
-                else
-                {
-                    if (tableXMLCode != "main") //If we are processing a sibling table and the main table is a repeat then we need to get map
-                    {
-                        QVariantList result = jsonData[tableXMLCode].toList();
-                        foreach(QVariant record, result)
-                        {
-                            map = record.toMap();
-                        }
-                    }
-                }
-                if (tableXMLCode == "main")
-                    procTable(db,jsonData,child,keys); //Recursive call of a table from main using a main table as root
-                else
-                    procTable(db,map,child,keys); // //Recursive call of a table from main using a main repeat as root
-            }
-            else
-            {
-                if (child.toElement().attribute("separated","false") == "true")
-                    tableSeparated = true;
-                else
-                    tableSeparated = false;
-
-                //If its not main then we need to get the json list of items
-
-                QVariantList result = jsonData[tableXMLCode].toList();
-                //We need to generate an SQL for each item
-                //tblIndex = 0;
-                recordIndex = 0;
-                foreach(QVariant record, result)
-                {
-                    recordIndex++;
-
-                    QVariantMap map = record.toMap();
-                    tkeys.clear();
-                    tkeys.append(keys);
-
-                    //Tries to find if this record already has a key allocated
-                    tkindex = -1;
-                    for (int pos = 0; pos <= tableKeys.count()-1;pos++)
-                    {
-                        if (tableKeys[pos].index == recordIndex)
-                            tkindex = pos;
-                    }
-
-                    if (tkindex == -1) //If no key allocated then insert it ad store the key for the record
-                    {
-                        tkeys.append(createSQL(db,map,tableCode,fields,tkeys,emptyMap,false));
-                        TtableKey tableKey;
-                        tableKey.index = recordIndex;
-                        tableKey.keys.append(tkeys);
-                        tableKeys.append(tableKey);
-                    }
-                    else //If found then
-                    {
-                        tkeys.clear();
-                        tkeys.append(tableKeys[tkindex].keys);
-                    }
-
-                    if (tableSeparated == false)
-                        procTable(db,map,child,tkeys); //Recursive call of a table from other table than main that is a real child and not a separation table
-                    else
-                        procTable(db,jsonData,child,tkeys); //Recursive call of a table from other table than main that is a separation table
-                }
-            }
-        }
-        child = child.nextSibling();
     }
-    //If the table does not have any subtables then insert the table
-    if (!sqlCreated)
+    if (loop == "true")
     {
-        if ((tableXMLCode == "main") || (table.parentNode().toElement().tagName() == "ODKImportXML"))
+        QString loopXMLRoot;
+        loopXMLRoot = table.toElement().attribute("xmlcode","none");
+        QString loopTable;
+        loopTable = table.toElement().attribute("mysqlcode","none");
+        QStringList loopItems = table.toElement().attribute("loopitems","").split(QChar(743),QString::SkipEmptyParts);
+        if (loopItems.count() > 0)
         {
-            mainTable = tableCode;
-            if (tableXMLCode == "main")
-                createSQL(db,jsonData,tableCode,fields,keys,emptyMap,true);
+            QDomNode fieldNode = table.firstChild();
+            QList< TfieldDef> loopFields;
+            while (!fieldNode.isNull())
+            {
+                if (fieldNode.toElement().attribute("xmlcode","NONE") != "NONE")
+                {
+                    TfieldDef aLoopField;
+                    aLoopField.xmlCode = fieldNode.toElement().attribute("xmlcode","");
+                    aLoopField.decSize = fieldNode.toElement().attribute("decsize","0").toInt();
+                    aLoopField.key = false;
+                    if (fieldNode.toElement().attribute("isMultiSelect","false") == "true")
+                    {
+                        aLoopField.multiSelect = true;
+                        aLoopField.multiSelectTable = fieldNode.toElement().attribute("multiSelectTable","");
+                    }
+                    else
+                        aLoopField.multiSelect = false;
+                    aLoopField.name = fieldNode.toElement().attribute("mysqlcode","");
+                    aLoopField.ODKType = fieldNode.toElement().attribute("odktype","");
+                    aLoopField.size = fieldNode.toElement().attribute("size",0).toInt();
+                    aLoopField.type = fieldNode.toElement().attribute("type","varchar");
+                    loopFields.append(aLoopField);
+                }
+                fieldNode = fieldNode.nextSibling();
+            }
+            processLoop(jsonData,loopTable,loopXMLRoot,loopItems,loopFields,keys,db);
+        }
+    }
+
+    if ((osm == "false") && (loop == "false"))
+    {
+        while (!child.isNull())
+        {
+            if (child.toElement().nodeName() == "field")
+            {
+                //We not process referenced fields because they come as part of the key
+                if (child.toElement().attribute("reference") == "false")
+                {
+                    TfieldDef field;
+                    field.name = child.toElement().attribute("mysqlcode");
+                    field.xmlCode = child.toElement().attribute("xmlcode");
+                    field.type = child.toElement().attribute("type","varchar");
+                    field.ODKType = child.toElement().attribute("odktype","text");
+                    field.size = child.toElement().attribute("size","0").toInt();
+                    field.decSize = child.toElement().attribute("decsize","0").toInt();
+
+                    if (child.toElement().attribute("key").toStdString() == "true")
+                        field.key = true;
+                    else
+                        field.key = false;
+                    if (child.toElement().attribute("isMultiSelect","false") == "true")
+                    {
+                        field.multiSelect = true;
+                        field.multiSelectTable = child.toElement().attribute("multiSelectTable","");
+                    }
+                    else
+                        field.multiSelect = false;
+
+                    fields.append(field); //Append the field to the list of fields
+                }
+                genSQL = true;
+            }
             else
             {
-                // if we are processing the first table and is not main, this means that a repeat of one was used
-                // to store the cover data. Therefore the insert SQL must use both the information on root (jsonData)
-                // and the information on the repeat of one (map)
-                QVariantList result = jsonData[tableXMLCode].toList();
-                foreach(QVariant record, result)
+                sqlCreated = true; //To control more than one child table
+                if ((tableXMLCode == "main") || (group == "true") || (separated == "true") || (osm == "true") || (loop == "true"))
                 {
-                    QVariantMap map = record.toMap();
-                    keys.append(createSQL(db,jsonData,tableCode,fields,keys,map,true));
+                    if (genSQL == true)
+                    {
+                        keys.append(createSQL(db,jsonData.toVariantMap(),tableCode,fields,keys,emptyMap,true));    //Change the variant map to an object later on!
+                        genSQL = false;
+                    }
+                    procTable2(db,jsonData,child,keys);
+                }
+                else
+                {
+                    QString tableXMLCode = table.toElement().attribute("xmlcode","");
+                    if (tableXMLCode != "")
+                    {
+                        QJsonArray JSONArray;
+                        JSONArray = jsonData.value(tableXMLCode).toArray();
+                        recordIndex = 0;
+                        for (int item = 0; item < JSONArray.count(); item++) //For each item in the array
+                        {
+                            QJsonObject JSONItem = JSONArray[item].toObject();
+                            recordIndex++;
+                            tkeys.clear();
+                            tkeys.append(keys);
+
+                            //Tries to find if this record already has a key allocated
+                            tkindex = -1;
+                            for (int pos = 0; pos <= tableKeys.count()-1;pos++)
+                            {
+                                if (tableKeys[pos].index == recordIndex)
+                                    tkindex = pos;
+                            }
+
+                            if (tkindex == -1) //If no key allocated then insert it ad store the key for the record
+                            {
+                                tkeys.append(createSQL(db,JSONItem.toVariantMap(),tableCode,fields,tkeys,emptyMap,false));
+                                TtableKey tableKey;
+                                tableKey.index = recordIndex;
+                                tableKey.keys.append(tkeys);
+                                tableKeys.append(tableKey);
+                            }
+                            else //If found then
+                            {
+                                tkeys.clear();
+                                tkeys.append(tableKeys[tkindex].keys);
+                            }
+                            procTable2(db,JSONItem,child,tkeys);
+                        }
+                    }
                 }
             }
+            child = child.nextSibling();
         }
-        else
+        if (!sqlCreated)
         {
-            //If its not main then we need to get the json list of items
-            QVariantList result = jsonData[tableXMLCode].toList();
-            //We need to generate an SQL for each item
-            //tblIndex = 0; //Set to zero so each item will start in 1
-            foreach(QVariant record, result)
-            {
-                QVariantMap map = record.toMap();
-                createSQL(db,map,tableCode,fields,keys,emptyMap,false);
-            }
+            createSQL(db,jsonData.toVariantMap(),tableCode,fields,keys,emptyMap,true);   //Change the variant map later in
         }
     }
     return 0;
 }
 
-//This process load a JSON file to a VariantMap using QJSON library
-int mainClass::processFile(QSqlDatabase db, QString json, QString manifest, QStringList procList)
+//Process a table in the manifest. This fuction is recursive
+//int mainClass::procTable(QSqlDatabase db,QVariantMap jsonData, QDomNode table, QList< TfieldDef> parentkeys)
+//{
+//    QList< TfieldDef> keys;
+//    QList< TfieldDef> tkeys;
+//    QList< TtableKey> tableKeys;
+//    keys.append(parentkeys);
+
+//    QVariantMap emptyMap;
+
+//    QList< TfieldDef> fields;
+
+//    bool sqlCreated;
+//    sqlCreated = false;
+
+//    QString tableCode;
+//    bool tableSeparated;
+//    tableCode = table.toElement().attribute("mysqlcode");
+
+//    int recordIndex;
+//    int tkindex;
+
+//    QString tableXMLCode;
+//    tableXMLCode = table.toElement().attribute("xmlcode");
+
+//    QString parentTag;
+//    parentTag = table.parentNode().toElement().tagName();
+
+//    bool genSQL;
+//    genSQL = false;
+
+//    QDomNode child;
+//    child = table.firstChild();
+
+//    while (!child.isNull())
+//    {
+//        if (child.toElement().nodeName() == "field")
+//        {
+//            //We not process referenced fields because they come as part of the key
+//            if (child.toElement().attribute("reference") == "false")
+//            {
+//                TfieldDef field;
+//                field.name = child.toElement().attribute("mysqlcode");
+//                field.xmlCode = child.toElement().attribute("xmlcode");
+//                field.type = child.toElement().attribute("type","varchar");
+//                field.ODKType = child.toElement().attribute("odktype","text");
+//                field.size = child.toElement().attribute("size","0").toInt();
+//                field.decSize = child.toElement().attribute("decsize","0").toInt();
+
+//                if (child.toElement().attribute("key").toStdString() == "true")
+//                    field.key = true;
+//                else
+//                    field.key = false;
+//                if (child.toElement().attribute("isMultiSelect","false") == "true")
+//                {
+//                    field.multiSelect = true;
+//                    field.multiSelectTable = child.toElement().attribute("multiSelectTable","");
+//                }
+//                else
+//                    field.multiSelect = false;
+
+//                fields.append(field); //Append the field to the list of fields
+//            }
+//            genSQL = true;
+//        }
+//        else
+//        {
+//            sqlCreated = true; //To control more than one child table
+//            if ((tableXMLCode == "main") || (parentTag == "ODKImportXML"))
+//            {
+//                mainTable = tableCode;
+////                QVariantMap map;
+//                if (genSQL == true)
+//                {
+//                    if (tableXMLCode == "main")
+//                        keys.append(createSQL(db,jsonData,tableCode,fields,keys,emptyMap,true));
+////                    else
+////                    {
+////                        // if we are processing the first table and is not main, this means that a repeat of one was used
+////                        // to store the cover data. Therefore the insert SQL must use both the information on root (jsonData)
+////                        // and the information on the repeat of one (map)
+////                        QVariantList result = jsonData[tableXMLCode].toList();
+////                        foreach(QVariant record, result)
+////                        {
+////                            map = record.toMap();
+////                            keys.append(createSQL(db,jsonData,tableCode,fields,keys,map,true));
+////                        }
+////                    }
+//                    genSQL = false;
+//                }
+////                else
+////                {
+////                    if (tableXMLCode != "main") //If we are processing a sibling table and the main table is a repeat then we need to get map
+////                    {
+////                        QVariantList result = jsonData[tableXMLCode].toList();
+////                        foreach(QVariant record, result)
+////                        {
+////                            map = record.toMap();
+////                        }
+////                    }
+////                }
+//                if (tableXMLCode == "main")
+//                    procTable(db,jsonData,child,keys); //Recursive call of a table from main using a main table as root
+////                else
+////                    procTable(db,map,child,keys); // //Recursive call of a table from main using a main repeat as root
+//            }
+//            else
+//            {
+//                if ((child.toElement().attribute("separated","false") == "true") || (child.toElement().attribute("group","false") == "true"))
+//                    tableSeparated = true;
+//                else
+//                    tableSeparated = false;
+
+//                //If its not main then we need to get the json list of items
+
+//                QVariantList result;
+//                result = jsonData[tableXMLCode].toList();
+//                //We need to generate an SQL for each item
+//                //tblIndex = 0;
+//                recordIndex = 0;
+//                foreach(QVariant record, result)
+//                {
+//                    recordIndex++;
+
+//                    QVariantMap map = record.toMap();
+//                    tkeys.clear();
+//                    tkeys.append(keys);
+
+//                    //Tries to find if this record already has a key allocated
+//                    tkindex = -1;
+//                    for (int pos = 0; pos <= tableKeys.count()-1;pos++)
+//                    {
+//                        if (tableKeys[pos].index == recordIndex)
+//                            tkindex = pos;
+//                    }
+
+//                    if (tkindex == -1) //If no key allocated then insert it ad store the key for the record
+//                    {
+//                        tkeys.append(createSQL(db,map,tableCode,fields,tkeys,emptyMap,false));
+//                        TtableKey tableKey;
+//                        tableKey.index = recordIndex;
+//                        tableKey.keys.append(tkeys);
+//                        tableKeys.append(tableKey);
+//                    }
+//                    else //If found then
+//                    {
+//                        tkeys.clear();
+//                        tkeys.append(tableKeys[tkindex].keys);
+//                    }
+
+//                    if (tableSeparated == false)
+//                        procTable(db,map,child,tkeys); //Recursive call of a table from other table than main that is a real child and not a separation table
+//                    else
+//                        procTable(db,jsonData,child,tkeys); //Recursive call of a table from other table than main that is a separation table
+//                }
+//            }
+//        }
+//        child = child.nextSibling();
+//    }
+//    //If the table does not have any subtables then insert the table
+//    if (!sqlCreated)
+//    {
+//        if ((tableXMLCode == "main") || (table.parentNode().toElement().tagName() == "ODKImportXML"))
+//        {
+//            mainTable = tableCode;
+//            if (tableXMLCode == "main")
+//                createSQL(db,jsonData,tableCode,fields,keys,emptyMap,true);
+//            else
+//            {
+//                // if we are processing the first table and is not main, this means that a repeat of one was used
+//                // to store the cover data. Therefore the insert SQL must use both the information on root (jsonData)
+//                // and the information on the repeat of one (map)
+//                QVariantList result = jsonData[tableXMLCode].toList();
+//                foreach(QVariant record, result)
+//                {
+//                    QVariantMap map = record.toMap();
+//                    keys.append(createSQL(db,jsonData,tableCode,fields,keys,map,true));
+//                }
+//            }
+//        }
+//        else
+//        {
+//            //If its not main then we need to get the json list of items
+//            QVariantList result = jsonData[tableXMLCode].toList();
+//            //We need to generate an SQL for each item
+//            //tblIndex = 0; //Set to zero so each item will start in 1
+//            foreach(QVariant record, result)
+//            {
+//                QVariantMap map = record.toMap();
+//                createSQL(db,map,tableCode,fields,keys,emptyMap,false);
+//            }
+//        }
+//    }
+//    return 0;
+//}
+
+int mainClass::processFile2(QSqlDatabase db, QString json, QString manifest, QStringList procList)
 {
     QFileInfo fi(json);
     //If the file hasn't been processed yet
@@ -1190,54 +1685,43 @@ int mainClass::processFile(QSqlDatabase db, QString json, QString manifest, QStr
     {
         fileID = fi.baseName();
 
-        QFile ijson(json);
-        if (!ijson.open(QIODevice::ReadOnly | QIODevice::Text))
+        QFile JSONFile(json);
+        if (!JSONFile.open(QIODevice::ReadOnly))
         {
-            log("Cannot open JSON file: " + json);
+            log("Cannot open" + json);
             return 1;
         }
+        QByteArray JSONData = JSONFile.readAll();
+        QJsonDocument JSONDocument;
+        JSONDocument = QJsonDocument::fromJson(JSONData);
+        QJsonObject firstObject = JSONDocument.object();
+        if (!firstObject.isEmpty())
+        {
 
-        QJson::Parser parser;
-        bool ok;
-        //Parse the JSON File into a QVariantMap
-        QVariantMap jsonData = parser.parse(&ijson, &ok).toMap();
-        if (!ok)
-        {
-            log("Error parsing JSON:" + json);
-            return 1;
-        }
-
-        //Opens the Manifest File
-        QDomDocument doc("mydocument");
-        QFile xmlfile(manifest);
-        if (!xmlfile.open(QIODevice::ReadOnly))
-        {
-            log("Error reading manifest file");
-            return 1;
-        }
-        if (!doc.setContent(&xmlfile))
-        {
-            log("Error reading manifest file");
+            //Opens the Manifest File
+            QDomDocument doc("mydocument");
+            QFile xmlfile(manifest);
+            if (!xmlfile.open(QIODevice::ReadOnly))
+            {
+                log("Error reading manifest file");
+                return 1;
+            }
+            if (!doc.setContent(&xmlfile))
+            {
+                log("Error reading manifest file");
+                xmlfile.close();
+                return 1;
+            }
             xmlfile.close();
-            return 1;
+
+            //Gets the first table of the file
+            QDomNode root;
+            root = doc.firstChild().nextSibling().firstChild();
+
+            //Process the table with no parent Keys
+            QList< TfieldDef> noParentKeys;
+            procTable2(db,firstObject,root,noParentKeys);
         }
-        xmlfile.close();
-
-        //Gets the first table of the file
-        QDomNode root;
-        root = doc.firstChild().nextSibling().firstChild();
-
-        //Process the table with no parent Keys
-        QList< TfieldDef> noParentKeys;
-        procTable(db,jsonData,root,noParentKeys);
-
-
-        /*QVariantList result = jsonData["BM/rpt_secg1_sheep"].toList();
-        foreach(QVariant record, result)
-        {
-            QVariantMap map = record.toMap();
-            log(map["BM/rpt_secg1_sheep/g1shp"].toString());
-        }*/
 
     }
     else
@@ -1247,3 +1731,70 @@ int mainClass::processFile(QSqlDatabase db, QString json, QString manifest, QStr
     }
     return 0;
 }
+
+//This process load a JSON file to a VariantMap using QJSON library
+//int mainClass::processFile(QSqlDatabase db, QString json, QString manifest, QStringList procList)
+//{
+//    QFileInfo fi(json);
+//    //If the file hasn't been processed yet
+//    if (procList.indexOf(fi.baseName()) < 0)
+//    {
+//        fileID = fi.baseName();
+
+//        QFile ijson(json);
+//        if (!ijson.open(QIODevice::ReadOnly | QIODevice::Text))
+//        {
+//            log("Cannot open JSON file: " + json);
+//            return 1;
+//        }
+
+//        QJson::Parser parser;
+//        bool ok;
+//        //Parse the JSON File into a QVariantMap
+//        QVariantMap jsonData = parser.parse(&ijson, &ok).toMap();
+//        if (!ok)
+//        {
+//            log("Error parsing JSON:" + json);
+//            return 1;
+//        }
+
+//        //Opens the Manifest File
+//        QDomDocument doc("mydocument");
+//        QFile xmlfile(manifest);
+//        if (!xmlfile.open(QIODevice::ReadOnly))
+//        {
+//            log("Error reading manifest file");
+//            return 1;
+//        }
+//        if (!doc.setContent(&xmlfile))
+//        {
+//            log("Error reading manifest file");
+//            xmlfile.close();
+//            return 1;
+//        }
+//        xmlfile.close();
+
+//        //Gets the first table of the file
+//        QDomNode root;
+//        root = doc.firstChild().nextSibling().firstChild();
+
+//        //Process the table with no parent Keys
+//        QList< TfieldDef> noParentKeys;
+//        procTable(db,jsonData,root,noParentKeys);
+
+
+//        /*QVariantList result = jsonData["BM/rpt_secg1_sheep"].toList();
+//        foreach(QVariant record, result)
+//        {
+//            QVariantMap map = record.toMap();
+//            log(map["BM/rpt_secg1_sheep/g1shp"].toString());
+//        }*/
+
+//    }
+//    else
+//    {
+//        log("File " + json + " has been already processed. Skipped");
+//        return 1;
+//    }
+//    return 0;
+//}

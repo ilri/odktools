@@ -8,13 +8,12 @@ QT       += core xml sql
 
 QT       -= gui
 
-TARGET = odktomysql
+TARGET = jxformtomysql
 CONFIG   += console
 CONFIG   -= app_bundle
 
 TEMPLATE = app
 
-include(../3rdparty/QtXlsxWriter/src/xlsx/qtxlsx.pri)
 INCLUDEPATH += ../3rdparty
 LIBS += -lquazip5 -lcsv
 
