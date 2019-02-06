@@ -1250,7 +1250,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "time")
     {
-        result.type = "datetime";
+        result.type = "time";
     }
     if (ODKFieldType == "datetime")
     {
