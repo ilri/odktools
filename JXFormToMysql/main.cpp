@@ -36,6 +36,7 @@ License along with JXFormToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QRegularExpression>
 
 //*******************************************Global variables***********************************************
 bool debug;
@@ -57,6 +58,9 @@ QStringList CSVSQLs;
 int numColumns;
 int numColumnsInData;
 QStringList duplicatedTables;
+bool includeGroups;
+bool justCheck;
+QStringList requiredFiles;
 
 
 //********************************************Global structures****************************************
@@ -189,6 +193,21 @@ QList<TduplicatedField> duplicatedFields;
 
 //***************************************Processes********************************************
 
+void addRequiredFile(QString fileName)
+{
+    bool found = false;
+    for (int pos = 0; pos < requiredFiles.count(); pos++)
+    {
+        if (requiredFiles[pos] == fileName)
+        {
+            found = true;
+            break;
+        }
+    }
+    if (!found)
+        requiredFiles.append(fileName.toLower().simplified());
+}
+
 //Checks wether a field already exist in a table
 void checkFieldName(TtableDef table, QString fieldName)
 {
@@ -247,6 +266,19 @@ int isSelect(QString variableType)
     if (varType == "rank")
         return 4;
     return 0;
+}
+
+bool isNote(QString variableType)
+{
+    QString varType;
+    varType = variableType.toLower().trimmed();
+    if (varType == "add note prompt")
+        return true;
+    if (varType == "note")
+        return true;
+    if (varType == "q note")
+        return true;
+    return false;
 }
 
 bool isCalculate(QString variableType)
@@ -1459,9 +1491,8 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "percentage")
     {
-        result.type = "decimal";
-        result.size = 10;
-        result.decSize = 3;
+        result.type = "int";
+        result.size = 9;
     }
     if (ODKFieldType == "phone number")
     {
@@ -1611,6 +1642,14 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "xml-external")
     {
         result.size = 120;
+    }
+    if ((ODKFieldType == "geoshape") || (ODKFieldType == "q geoshape"))
+    {
+        result.type = "text";
+    }
+    if ((ODKFieldType == "geotrace") || (ODKFieldType == "q geotrace"))
+    {
+        result.type = "text";
     }
     return result;
 }
@@ -1800,15 +1839,10 @@ void addToStack(QString groupOrRepeat, QString type)
 QString fixField(QString source)
 {
     QString res;
-    res = source;
-    res = res.replace("'","");
-    res = res.replace('\"',"");
-    res = res.replace(";","");
+    res = source;    
     res = res.replace("-","_");
-    res = res.replace(",","");
-    res = res.replace(" ","");
-    res = res.replace(".","_");    
-    res = res.replace(":","_");
+    QRegularExpression re("[^.a-zA-Z0-9\\$\\_]");
+    res = res.replace(re,"");
     res = res.trimmed().simplified().toLower();
     return res;
 }
@@ -1933,18 +1967,23 @@ QList <TlngLkpDesc > getLabels(QJsonValue labelValue)
     return labels;
 }
 
-void checkSelectValue(QString variableName, QList<TlkpValue> values, QString value)
+bool checkSelectValue(QString variableName, QList<TlkpValue> values, QString value, bool report=true)
 {
     for (int idx = 0; idx < values.count(); idx++)
     {
         if (values[idx].code.toLower().trimmed() == value.toLower().trimmed())
         {
-            TduplicatedSelectValue duplicated;
-            duplicated.variableName = variableName;
-            duplicated.selectValue = value.toLower().trimmed();
-            duplicatedSelectValues.append(duplicated);
+            if (report)
+            {
+                TduplicatedSelectValue duplicated;
+                duplicated.variableName = variableName;
+                duplicated.selectValue = value.toLower().trimmed();
+                duplicatedSelectValues.append(duplicated);
+            }
+            return true;
         }
     }
+    return false;
 }
 
 // This return the values of a select that uses an external xml file.
@@ -1955,6 +1994,7 @@ QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, 
     QString codeColumn;
     codeColumn = "name";
     QStringList descColumns;
+    result = 0;
     descColumns << "label";
     descColumns << "label::" + getDefLanguage().toLower().trimmed();
     for (int lng = 0; lng < languages.count(); lng++)
@@ -1964,6 +2004,7 @@ QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, 
     }
     QString xmlFile;
     xmlFile = dir.absolutePath() + dir.separator() + fileName;
+    addRequiredFile(fileName);
     if (QFile::exists(xmlFile))
     {
         QDomDocument xmlDocument;
@@ -1971,14 +2012,14 @@ QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, 
         if (!file.open(QIODevice::ReadOnly))
         {
             log("Cannot open XML resource file: "+ xmlFile);
-            exit(21);
+            result = 21;
         }
 
         if (!xmlDocument.setContent(&file))
         {
             log("Cannot parse XML resource file: "+ xmlFile);
             file.close();
-            exit(21);
+            result = 21;
         }
         file.close();
         QDomNodeList items;
@@ -2014,8 +2055,9 @@ QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, 
                                 }
                                 else
                                 {
-                                    log("Language " + parts[1] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
-                                    exit(4);
+                                    if (!justCheck)
+                                        log("Language " + parts[1] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
+                                    result = 4;
                                 }
                             }
                             else
@@ -2032,37 +2074,42 @@ QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, 
                 }
                 else
                 {
-                    log("Unable to find the column called name in the XML file \"" + fileName + "\". Is this a valid XML resource");
-                    exit(12);
+                    if (!justCheck)
+                        log("Unable to find the column called name in the XML file \"" + fileName + "\". Is this a valid XML resource");
+                    result = 12;
                 }
             }
             if (hasOrOther)
             {
-                checkSelectValue(variableName,res,"other");
-                TlkpValue value;
-                value.code = "other";
-                for (int lng = 0; lng < languages.count(); lng++)
+                bool duplicated = checkSelectValue(variableName,res,"other",false);
+                if (!duplicated)
                 {
-                    TlngLkpDesc desc;
-                    desc.langCode = languages[lng].code;
-                    desc.desc = "Other";
-                    value.desc.append(desc);
+                    TlkpValue value;
+                    value.code = "other";
+                    for (int lng = 0; lng < languages.count(); lng++)
+                    {
+                        TlngLkpDesc desc;
+                        desc.langCode = languages[lng].code;
+                        desc.desc = "Other";
+                        value.desc.append(desc);
+                    }
+                    res.append(value);
                 }
-                res.append(value);
             }
         }
         else
         {
-            log("Unable to retreive items from the XML file \"" + fileName + "\". Is this a valid XML resource");
-            exit(12);
+            if (!justCheck)
+                log("Unable to retreive items from the XML file \"" + fileName + "\". Is this a valid XML resource");
+            result = 12;
         }
     }
     else
-    {
-        log("There is no XML file for \"" + fileName + "\". Did you add it when you ran JXFormToMySQL?");
-        exit(13);
+    {        
+        if (!justCheck)
+            log("There is no XML file for \"" + fileName + "\". Did you add it when you ran JXFormToMySQL?");
+        result = 13;
     }
-    result = 0;
     return res;
 }
 
@@ -2074,6 +2121,7 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
     QString codeColumn;
     codeColumn = "name";
     QStringList descColumns;
+    result = 0;
     descColumns << "label";
     descColumns << "label::" + getDefLanguage().toLower().trimmed();
     for (int lng = 0; lng < languages.count(); lng++)
@@ -2084,6 +2132,7 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
 
     QString sqliteFile;
     //There should be an sqlite version of such file in the temporary directory
+    addRequiredFile(fileName);
     sqliteFile = dir.absolutePath() + dir.separator() + fileName.replace(".csv","") + ".sqlite";
     if (QFile::exists(sqliteFile))
     {
@@ -2129,8 +2178,9 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
                                     }
                                     else
                                     {
-                                        log("Language " + parts[1] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
-                                        exit(4);
+                                        if (!justCheck)
+                                            log("Language " + parts[1] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
+                                        result = 4;
                                     }
                                 }
                                 else
@@ -2147,46 +2197,51 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
                     }
                     else
                     {
-                        log("The file " + fileName + "is not a valid ODK resource file");
-                        exit(20);
+                        if (!justCheck)
+                            log("The file " + fileName + "is not a valid ODK resource file");
+                        result = 20;
                     }
                 }
                 if (hasOrOther)
                 {
-                    checkSelectValue(variableName,res,"other");
-                    TlkpValue value;
-                    value.code = "other";
-                    for (int lng = 0; lng < languages.count(); lng++)
+                    bool duplicated = checkSelectValue(variableName,res,"other",false);
+                    if (!duplicated)
                     {
-                        TlngLkpDesc desc;
-                        desc.langCode = languages[lng].code;
-                        desc.desc = "Other";
-                        value.desc.append(desc);
+                        TlkpValue value;
+                        value.code = "other";
+                        for (int lng = 0; lng < languages.count(); lng++)
+                        {
+                            TlngLkpDesc desc;
+                            desc.langCode = languages[lng].code;
+                            desc.desc = "Other";
+                            value.desc.append(desc);
+                        }
+                        res.append(value);
                     }
-                    res.append(value);
                 }
                 result = 0;
                 return res;
             }
             else
             {
-                log("Unable to retreive data for search \"" + fileName + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
-                exit(12);
+                if (!justCheck)
+                    log("Unable to retreive data for search \"" + fileName + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
+                result = 12;
             }
         }
         else
         {
-            log("Cannot create SQLite database " + sqliteFile);
+            if (!justCheck)
+                log("Cannot create SQLite database " + sqliteFile);
             result = 1;
-            return res;
         }
     }
     else
-    {
-        log("There is no SQLite file for search \"" + fileName + "\". Did you add it as CSV when you ran JXFormToMySQL?");
-        exit(13);
+    {        
+        if (!justCheck)
+            log("There is no SQLite file for file \"" + fileName + "\". Did you add it as CSV when you ran JXFormToMySQL?");
+        result = 13;
     }
-    result = 0;
     return res;
 }
 
@@ -2199,7 +2254,8 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
     QList<TlkpValue> res;
     QString codeColumn;
     codeColumn = "";
-    QList<TlngLkpDesc> descColumns;
+    result = 0;
+    QList<TlngLkpDesc> descColumns;    
     for (int nrow = 0; nrow < choices.count(); nrow++)
     {
         QJsonValue JSONValue = choices.at(nrow);
@@ -2218,6 +2274,7 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
         file = file.left(pos);
         QString sqliteFile;
         //There should be an sqlite version of such file in the temporary directory
+        addRequiredFile(file + ".csv");
         sqliteFile = dir.absolutePath() + dir.separator() + file + ".sqlite";
         if (QFile::exists(sqliteFile))
         {
@@ -2263,38 +2320,42 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
                     }
                     if (hasOrOther)
                     {
-                        checkSelectValue(variableName,res,"other");
-                        TlkpValue value;
-                        value.code = "other";
-                        for (int lng = 0; lng < languages.count(); lng++)
+                        bool duplicated = checkSelectValue(variableName,res,"other",false);
+                        if (!duplicated)
                         {
-                            TlngLkpDesc desc;
-                            desc.langCode = languages[lng].code;
-                            desc.desc = "Other";
-                            value.desc.append(desc);
+                            TlkpValue value;
+                            value.code = "other";
+                            for (int lng = 0; lng < languages.count(); lng++)
+                            {
+                                TlngLkpDesc desc;
+                                desc.langCode = languages[lng].code;
+                                desc.desc = "Other";
+                                value.desc.append(desc);
+                            }
+                            res.append(value);
                         }
-                        res.append(value);
                     }
                     result = 0;
-                    return res;
                 }
                 else
                 {
-                    log("Unable to retreive data for search \"" + file + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
-                    exit(12);
+                    if (!justCheck)
+                        log("Unable to retreive data for search \"" + file + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
+                    result = 12;
                 }
             }
             else
             {
-                log("Cannot create SQLite database " + sqliteFile);
+                if (!justCheck)
+                    log("Cannot create SQLite database " + sqliteFile);
                 result = 1;
-                return res;
             }
         }
         else
-        {
-            log("There is no SQLite file for search \"" + file + "\". Did you add it as CSV when you ran JXFormToMySQL?");
-            exit(13);
+        {            
+            if (!justCheck)
+                log("There is no SQLite file for search \"" + file + "\". Did you add it as CSV when you ran JXFormToMySQL?");
+            result = 13;
         }
     }
     else
@@ -2303,10 +2364,8 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
             log("Cannot locate the code column for the search select \"" + variableName + "\"");
         if (descColumns.count() == 0)
             log("Cannot locate a description column for the search select \"" + variableName + "\"");
-        exit(16);
+        result = 16;
     }
-
-    result = 0;
     return res;
 }
 
@@ -2326,17 +2385,20 @@ QList<TlkpValue> getSelectValues(QString variableName, QJsonArray choices, bool 
     }
     if (hasOther)
     {
-        checkSelectValue(variableName,res,"other");
-        TlkpValue value;
-        value.code = "other";
-        for (int lng = 0; lng < languages.count(); lng++)
+        bool duplicated = checkSelectValue(variableName,res,"other",false);
+        if (!duplicated)
         {
-            TlngLkpDesc desc;
-            desc.langCode = languages[lng].code;
-            desc.desc = "Other";
-            value.desc.append(desc);
+            TlkpValue value;
+            value.code = "other";
+            for (int lng = 0; lng < languages.count(); lng++)
+            {
+                TlngLkpDesc desc;
+                desc.langCode = languages[lng].code;
+                desc.desc = "Other";
+                value.desc.append(desc);
+            }
+            res.append(value);
         }
-        res.append(value);
     }
 
     return res;
@@ -2548,11 +2610,13 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
     if (tables[tblIndex].isLoop)
         tableType = "loop";
 
+    if (isNote(variableType))
+        return; //Don't store notes
+
     if (isSelect(variableType) == 0)
     {
         TfieldDef aField;
-        aField.name = fixField(variableName.toLower());
-        checkFieldName(tables[tblIndex],aField.name);
+        aField.name = fixField(variableName.toLower());        
         TfieldMap vartype = mapODKFieldTypeToMySQL(variableType);
         aField.selectSource = "NONE";
         aField.selectListName = "NONE";
@@ -2571,6 +2635,34 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
         }
         else
             aField.key = false;
+
+        if (isCalculate(variableType))
+        {
+            if (fieldObject.keys().indexOf("bind") >= 0)
+            {
+                QString calculation;
+                calculation = fieldObject.value("bind").toObject().value("calculate").toString();
+                if (!calculation.isNull())
+                {
+                    calculation = calculation.toLower().simplified();
+                    if (calculation.indexOf("pulldata") >= 0)
+                    {
+                        int temp;
+                        temp = calculation.indexOf(",");
+                        calculation = calculation.left(temp);
+                        temp = calculation.indexOf("(");
+                        calculation = calculation.right(calculation.length()-temp-1);
+                        calculation.replace("'","");
+                        calculation = calculation + ".csv";
+                        addRequiredFile(calculation);
+                    }
+                }
+
+            }
+        }
+
+        checkFieldName(tables[tblIndex],aField.name);
+
         if (!isCalculate(variableType))
         {
             aField.rTable = "";
@@ -2630,8 +2722,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             bool fromSearchCSV;
             fromSearchCSV = false;
             if (fieldObject.keys().indexOf("control") >= 0)
-            {
-                QString variableApperance;
+            {               
                 variableApperance = fieldObject.value("control").toObject().value("appearance").toString("").toLower().trimmed();
                 if (variableApperance != "")
                 {
@@ -2649,16 +2740,22 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     int result;
                     values.append(getSelectValuesFromCSV2(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir,database,""));
                     if (result != 0)
-                        exit(19);
+                    {                        
+                        if (!justCheck)
+                            exit(result);
+                    }
                 }
                 else                    
                 {
                     QString fileName;
                     fileName = fieldObject.value("itemset").toString("").toLower().trimmed();
                     int result;
-                    getSelectValuesFromXML(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir);
+                    values.append(getSelectValuesFromXML(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir));
                     if (result != 0)
-                        exit(19);
+                    {
+                        if (!justCheck)
+                            exit(result);
+                    }
                 }
             }
             else
@@ -2670,7 +2767,12 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     int result;
                     values.append(getSelectValuesFromCSV(variableApperance,fieldObject.value("choices").toArray(),fixField(variableName),selectHasOrOther(variableType),result,dir,database));
                     if (result != 0)
-                        exit(19);
+                    {
+                        if (result == 16)
+                            exit(result);
+                        if (!justCheck)
+                            exit(result);
+                    }
                 }
             }
         }
@@ -2693,7 +2795,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             TfieldDef aField;
             aField.selectSource = "NONE";
             aField.name = fixField(variableName.toLower());
-            checkFieldName(tables[tblIndex],aField.name);
+
             aField.odktype = variableType;
             aField.selectListName = "NONE";
             aField.calculateWithSelect = false;
@@ -2718,6 +2820,9 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             }
             else
                 aField.key = false;
+
+            checkFieldName(tables[tblIndex],aField.name);
+
             aField.isMultiSelect = false;
             aField.multiSelectTable = "";
             aField.formula = "";
@@ -3475,7 +3580,7 @@ void parseJSONObject(QJsonObject JSONObject, QString mainTable, QString mainFiel
 //            log("*3* Begin processing group: " + JSONObject.value("name").toString() + "***");
             hasChildren = true;            
             ignoreGroup = checkIgnoreGroup(JSONObject.value("children").toArray());
-            if (!ignoreGroup)
+            if (!ignoreGroup && includeGroups)
                 parseTable(JSONObject,"group");
             addToStack(JSONObject.value("name").toString(),"group");
         }
@@ -3524,7 +3629,7 @@ void parseJSONObject(QJsonObject JSONObject, QString mainTable, QString mainFiel
             }
             if (JSONObject.value("type") == "group")
             {
-                if (!ignoreGroup)
+                if (!ignoreGroup && includeGroups)
                     removeRepeat();
                 removeFromStack();
 //                log("*-3* End processing group: " + JSONObject.value("name").toString() + "***");
@@ -3711,10 +3816,13 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                 break;
             }
         }
-        if (mainFieldIndex == -1)
+        if (!justCheck)
         {
-            log("The primary key field does not exists or is inside a repeat");
-            exit(10);
+            if (mainFieldIndex == -1)
+            {
+                log("The primary key field does not exists or is inside a repeat");
+                exit(10);
+            }
         }
         QStringList invalidKeyTypes;
         invalidKeyTypes << "acknowledge";
@@ -3758,14 +3866,14 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         invalidKeyTypes << "video";
         invalidKeyTypes << "Xml-external";
 
-        if (invalidKeyTypes.indexOf(surveyVariables[mainFieldIndex].object.value("type").toString()) >= 0)
+        if (!justCheck)
         {
-            log("The type of the primary key field is invalid");
-            exit(18);
+            if (invalidKeyTypes.indexOf(surveyVariables[mainFieldIndex].object.value("type").toString()) >= 0)
+            {
+                log("The type of the primary key field is invalid");
+                exit(18);
+            }
         }
-        QString primaryKeyXMLCode = surveyVariables[mainFieldIndex].fullName;
-        QJsonObject primaryKeyObject = surveyVariables[mainFieldIndex].object;
-
 
         QStringList ODKLanguages;
         getLanguages(firstObject, ODKLanguages);
@@ -3773,30 +3881,33 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         //Check if we have indicated the proper amount of languages
         if ((ODKLanguages.count() > 1) && (languages.count() == 1))
         {
-            if (outputType == "h")
-                log("This ODK has multiple languages but not other languages where specified with the -l parameter.");
-            else
+            if (!justCheck)
             {
-                QDomDocument XMLResult;
-                XMLResult = QDomDocument("XMLResult");
-                QDomElement XMLRoot;
-                XMLRoot = XMLResult.createElement("XMLResult");
-                XMLResult.appendChild(XMLRoot);
-                QDomElement eLanguages;
-                eLanguages = XMLResult.createElement("languages");
-                for (int pos = 0; pos <= ODKLanguages.count()-1;pos++)
+                if (outputType == "h")
+                    log("This ODK has multiple languages but not other languages where specified with the -l parameter.");
+                else
                 {
-                    QDomElement eLanguage;
-                    eLanguage = XMLResult.createElement("language");
-                    QDomText vSepFile;
-                    vSepFile = XMLResult.createTextNode(ODKLanguages[pos]);
-                    eLanguage.appendChild(vSepFile);
-                    eLanguages.appendChild(eLanguage);
+                    QDomDocument XMLResult;
+                    XMLResult = QDomDocument("XMLResult");
+                    QDomElement XMLRoot;
+                    XMLRoot = XMLResult.createElement("XMLResult");
+                    XMLResult.appendChild(XMLRoot);
+                    QDomElement eLanguages;
+                    eLanguages = XMLResult.createElement("languages");
+                    for (int pos = 0; pos <= ODKLanguages.count()-1;pos++)
+                    {
+                        QDomElement eLanguage;
+                        eLanguage = XMLResult.createElement("language");
+                        QDomText vSepFile;
+                        vSepFile = XMLResult.createTextNode(ODKLanguages[pos]);
+                        eLanguage.appendChild(vSepFile);
+                        eLanguages.appendChild(eLanguage);
+                    }
+                    XMLRoot.appendChild(eLanguages);
+                    log(XMLResult.toString());
                 }
-                XMLRoot.appendChild(eLanguages);
-                log(XMLResult.toString());
+                exit(3);
             }
-            exit(3);
         }
         //Check that each language is properly coded
         bool languageNotFound;
@@ -3814,7 +3925,8 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                 if (outputType == "h")
                 {
                     languageNotFound = true;
-                    log("Language " + ODKLanguages[lng] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
+                    if (!justCheck)
+                        log("Language " + ODKLanguages[lng] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
                 }
                 else
                 {
@@ -3830,9 +3942,12 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         XMLRoot.appendChild(eLanguages);
         if (languageNotFound)
         {
-            if (outputType == "m")
-                log(XMLResult.toString());
-            exit(4);
+            if (!justCheck)
+            {
+                if (outputType == "m")
+                    log(XMLResult.toString());
+                exit(4);
+            }
         }
         int lang;
         //Creating the main table
@@ -3983,7 +4098,30 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
 
         tables.append(maintable);
         addToRepeat(mainTable);
-        parseField(primaryKeyObject,mainTable, mainField, dir, database,primaryKeyXMLCode);
+        if (!justCheck)
+        {
+            QString primaryKeyXMLCode = surveyVariables[mainFieldIndex].fullName;
+            QJsonObject primaryKeyObject = surveyVariables[mainFieldIndex].object;
+            parseField(primaryKeyObject,mainTable, mainField, dir, database,primaryKeyXMLCode);
+        }
+        else
+        {
+            QJsonObject testing_object;
+            testing_object.insert("type",QJsonValue("text"));
+            testing_object.insert("name",QJsonValue("_dummy"));
+            if (ODKLanguages.count() == 1)
+                testing_object.insert("label",QJsonValue("Dummy"));
+            else
+            {
+                QJsonObject language_object;
+                for (int lng = 0; lng < ODKLanguages.count(); lng++)
+                {
+                    language_object.insert(ODKLanguages[lng],QJsonValue("Dummy"));
+                }
+                testing_object.insert("label",language_object);
+            }
+            parseField(testing_object,mainTable, mainField, dir, database,"none");
+        }
         primaryKeyAdded = true;        
         parseJSONObject(firstObject, mainTable, mainField, dir, database);       
         if (duplicatedTables.count() > 0)
@@ -4445,7 +4583,8 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> yesNoStringArg("y","yesnostring","Yes and No strings in the default language in the format \"String|String\". This will allow the tool to identify Yes/No lookup tables and exclude them. This is not case sensitive. For example, if the default language is Spanish this value should be indicated as \"Si|No\". If empty English \"Yes|No\" will be assumed",false,"Yes|No","string");
     TCLAP::ValueArg<std::string> tempDirArg("e","tempdirectory","Temporary directory. ./tmp by default",false,"./tmp","string");
     TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");
-
+    TCLAP::SwitchArg groupsSwitch("G","includegroups","Include groups as tables", cmd, false);
+    TCLAP::SwitchArg justCheckSwitch("K","justCheck","Just check of main inconsistencies and report back", cmd, false);
     TCLAP::UnlabeledMultiArg<std::string> suppFiles("supportFile", "support files", false, "string");
 
     debug = false;
@@ -4493,6 +4632,8 @@ int main(int argc, char *argv[])
         }
     }
 
+    includeGroups = groupsSwitch.getValue();
+    justCheck = justCheckSwitch.getValue();
     //Getting the variables from the command
     QString input = QString::fromUtf8(inputArg.getValue().c_str());
     QString ddl = QString::fromUtf8(ddlArg.getValue().c_str());
@@ -4689,17 +4830,47 @@ int main(int argc, char *argv[])
         }
         appendUUIDs();
         //log("Checking tables");
-        if (checkTables(sepOutFile) != 0) //Check the tables to see if they have less than 60 related fields. If so a separation file is created
+        if (!justCheck)
         {
-            exit(2); //If a table has more than 60 related field then exit
+            if (checkTables(sepOutFile) != 0) //Check the tables to see if they have less than 60 related fields. If so a separation file is created
+            {
+                exit(2); //If a table has more than 60 related field then exit
+            }
         }
 
         //log("Generating output files");
-        generateOutputFiles(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
+        if (!justCheck)
+            generateOutputFiles(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
     }
     else
         return returnValue;
     if (outputType == "h")
         log("Done without errors");
+    if (justCheck)
+    {
+        if (requiredFiles.count() > 0)
+        {
+            if (outputType == "h")
+            {
+                log("Required files:" + requiredFiles.join(","));
+            }
+            else
+            {
+                QDomDocument XMLResult;
+                XMLResult = QDomDocument("XMLResult");
+                QDomElement XMLRoot;
+                XMLRoot = XMLResult.createElement("XMLResult");
+                XMLResult.appendChild(XMLRoot);
+                for (int item = 0; item < requiredFiles.count(); item++)
+                {
+                    QDomElement eDuplicatedItem;
+                    eDuplicatedItem = XMLResult.createElement("missingFile");
+                    eDuplicatedItem.setAttribute("fileName",requiredFiles[item]);
+                    XMLRoot.appendChild(eDuplicatedItem);
+                }
+                log(XMLResult.toString());
+            }
+        }
+    }
     return 0;
 }
