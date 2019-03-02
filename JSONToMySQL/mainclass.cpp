@@ -1456,7 +1456,10 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
         }
         if (!sqlCreated)
         {
-            createSQL(db,jsonData.toVariantMap(),tableCode,fields,keys,emptyMap,true);   //Change the variant map later in
+            if ((tableXMLCode == "main") || (group == "true") || (separated == "true") || (osm == "true") || (loop == "true"))
+                createSQL(db,jsonData.toVariantMap(),tableCode,fields,keys,emptyMap,true);   //Change the variant map later in
+            else
+                createSQL(db,jsonData.toVariantMap(),tableCode,fields,keys,emptyMap,false);   //Change the variant map later in
         }
     }
     return 0;
