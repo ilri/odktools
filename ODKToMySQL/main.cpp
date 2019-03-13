@@ -176,7 +176,7 @@ int convertCSVToSQLite(QString fileName, QDir tempDirectory, QSqlDatabase databa
     if (CSVColumError)
     {
         log("The CSV \"" + fileName + "\" has invalid characters. Only : and _ are allowed");
-        exit(14);
+        return 14;
     }
 
     QFileInfo fi(fileName);
@@ -270,14 +270,6 @@ struct fieldDef
   QString selectListName; //The list name of the select
 };
 typedef fieldDef TfieldDef;
-
-struct ODKGroupingDef
-{
-  QString varibleType; //Type
-  QString varibleName; //Name
-  bool isRepeat;
-};
-typedef ODKGroupingDef TODKGroupingDef;
 
 //Language structure
 struct langDef
@@ -1663,7 +1655,8 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QXlsx::Workshee
                 else
                 {
                     log("Unable to retreive data for search \"" + file + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
-                    exit(12);
+                    result = 12;
+                    return res;
                 }
             }
             else
@@ -1676,7 +1669,8 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QXlsx::Workshee
         else
         {
             log("There is no SQLite file for search \"" + file + "\". Did you add it as CSV when you ran ODKToMySQL?");            
-            exit(13);
+            result = 13;
+            return res;
         }
     }
     else
@@ -1685,7 +1679,7 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QXlsx::Workshee
             log("Cannot locate the code column for the search select \"" + listName + "\"");
         if (descColumns.count() == 0)
             log("Cannot locate a description column for the search select \"" + listName + "\"");
-        exit(16);
+        result = 10;
         return res;
     }
 
@@ -1870,174 +1864,13 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
     }
     else
     {
-        //Processing Key field
-        QString variableType;
-        QString variableName;
-        int nrow;
-        QXlsx::CellReference ref;
-        QXlsx::Cell *cell;
-        QXlsx::Worksheet *excelSheet = (QXlsx::Worksheet*)xlsx.sheet("survey");
-        // Pass thorogh all rows collecting their names
-        QList<TODKGroupingDef > embedding_array;
-        QStringList variable_array;
-        int columnType;
-        columnType = -1;
-        int columnName;
-        columnName = -1;
-        int ncols;
-        int columnAppearance;
-        columnAppearance = -1;
-        int columnCalculation;
-        columnCalculation = -1;
-
-        for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
-        {
-            ref.setRow(1);
-            ref.setColumn(ncols);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
-            {
-                if (cell->value().toString().toLower().indexOf("type") >= 0)
-                {
-                    columnType = ncols;
-                }
-                if (cell->value().toString().toLower().indexOf("name") >= 0)
-                {
-                    columnName = ncols;
-                }
-                if (cell->value().toString().toLower().indexOf("appearance") >= 0)
-                {
-                    columnAppearance = ncols;
-                }
-                if (cell->value().toString().toLower().indexOf("calculation") >= 0)
-                {
-                    columnCalculation = ncols;
-                }
-            }
-        }
-        if ((columnType == -1) || (columnName == -1))
-        {
-            log("Cannot find type or name column in the ODK. Is this an ODK file?");
-            return 1;
-        }
-
-        for (nrow = 2; nrow <= excelSheet->dimension().lastRow(); nrow++)
-        {
-            ref.setRow(nrow);
-            ref.setColumn(columnType);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
-                variableType = cell->value().toString().toLower().trimmed();
-            else
-                variableType = "note";
-            ref.setColumn(columnName);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
-                variableName = cell->value().toString().toLower().trimmed();
-            else
-                variableName = "";
-            if (variableType == "begin group")
-            {
-                TODKGroupingDef aGroup;
-                aGroup.varibleName = variableName;
-                aGroup.varibleType = variableType;
-                aGroup.isRepeat = false;
-                embedding_array.append(aGroup);
-            }
-            if (variableType == "begin repeat")
-            {
-                TODKGroupingDef aGroup;
-                aGroup.varibleName = variableName;
-                aGroup.varibleType = variableType;
-                aGroup.isRepeat = true;
-                embedding_array.append(aGroup);
-            }
-
-            if (variableType == "end group")
-            {
-                TODKGroupingDef lastItem;
-                lastItem = embedding_array.last();
-                if (lastItem.varibleType == "begin group")
-                    embedding_array.removeLast();
-                else
-                    log("Error in closing group!!!");
-            }
-            if (variableType == "end repeat")
-            {
-                TODKGroupingDef lastItem;
-                lastItem = embedding_array.last();
-                if (lastItem.varibleType  == "begin repeat")
-                    embedding_array.removeLast();
-                else
-                    log("Error inc losing repeat!!!");
-
-            }
-            if ((variableType != "begin group") && (variableType != "begin repeat") && (variableType != "end group") && (variableType != "end repeat"))
-            {
-                if (variableName != "")
-                {
-                QString varPath;
-                for (int nitem = 0; nitem <= embedding_array.count()-1; nitem++)
-                    if (embedding_array[nitem].isRepeat == true)
-                        varPath = varPath + embedding_array[nitem].varibleName  + "/";
-//                log(varPath + variableName);
-                variable_array.append(varPath + variableName);
-                }
-            }
-        }
-        if (variable_array.indexOf(mainField) < 0)
-        {
-            log("The primary key field does not exists or is inside a repeat");
-            exit(10);
-        }
-        QStringList temp;
-        temp = variable_array;
-        QStringList duplicated;
-        for (int aVar = 0; aVar <= temp.count()-1; aVar++)
-        {
-            if (variable_array.count(temp[aVar]) != 1)
-            {
-                if (duplicated.indexOf(temp[aVar]) < 0)
-                    duplicated.append(temp[aVar]);
-            }
-        }
-        if (duplicated.length() > 0)
-        {
-            if (outputType == "h")
-            {
-                log("The ODK has the following variables duplicated within the same repeat or outside a repeat");
-                for (int dp=0; dp <= duplicated.count()-1; dp++)
-                {
-                    log(duplicated[dp]);
-                }
-            }
-            else
-            {
-                QDomDocument XMLResult;
-                XMLResult = QDomDocument("XMLResult");
-                QDomElement XMLRoot;
-                XMLRoot = XMLResult.createElement("XMLResult");
-                XMLResult.appendChild(XMLRoot);
-                QDomElement eDuplicates;
-                eDuplicates = XMLResult.createElement("duplicated");
-                for (int pos = 0; pos <= duplicated.count()-1;pos++)
-                {
-                    QDomElement eDuplicate;
-                    eDuplicate = XMLResult.createElement("variable");
-                    QDomText vDuplicatedVar;
-                    vDuplicatedVar = XMLResult.createTextNode(duplicated[pos]);
-                    eDuplicate.appendChild(vDuplicatedVar);
-                    eDuplicates.appendChild(eDuplicate);
-                }
-                XMLRoot.appendChild(eDuplicates);
-                log(XMLResult.toString());
-            }
-            exit(17);
-        }
         //Processing languages
-        QStringList ODKLanguages;               
-        QXlsx::CellReference langRef;        
-        excelSheet = (QXlsx::Worksheet*)xlsx.sheet("settings");
+        QStringList ODKLanguages;
+        int ncols;
+        QXlsx::CellReference ref;
+        QXlsx::CellReference langRef;
+        QXlsx::Cell *cell;
+        QXlsx::Worksheet *excelSheet = (QXlsx::Worksheet*)xlsx.sheet("settings");
         bool hasDefaultLanguage = false;
         for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
         {
@@ -2114,7 +1947,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                 XMLRoot.appendChild(eLanguages);
                 log(XMLResult.toString());
             }
-            exit(3);
+            return 3;
         }
 
         bool languageNotFound;
@@ -2216,10 +2049,51 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
             if ((languages[ncols].idxInChoices == -1) || (languages[ncols].idxInSurvey == -1))
             {
                 log("Language " + languages[ncols].desc + " is not present in the labels of the sheets choices or Survey");
-                exit(5);
+                return 5;
             }
         }
+        //Processing survey structure
+        excelSheet = (QXlsx::Worksheet*)xlsx.sheet("survey");
+        //Getting the Survey column
+        int columnType;
+        columnType = -1;
+        int columnName;
+        columnName = -1;
+        int columnAppearance;
+        columnAppearance = -1;
+        int columnCalculation;
+        columnCalculation = -1;
 
+        for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
+        {
+            ref.setRow(1);
+            ref.setColumn(ncols);
+            cell = excelSheet->cellAt(ref);
+            if (cell != 0)
+            {
+                if (cell->value().toString().toLower().indexOf("type") >= 0)
+                {
+                    columnType = ncols;
+                }
+                if (cell->value().toString().toLower().indexOf("name") >= 0)
+                {
+                    columnName = ncols;
+                }
+                if (cell->value().toString().toLower().indexOf("appearance") >= 0)
+                {
+                    columnAppearance = ncols;
+                }
+                if (cell->value().toString().toLower().indexOf("calculation") >= 0)
+                {
+                    columnCalculation = ncols;
+                }
+            }
+        }
+        if ((columnType == -1) || (columnName == -1))
+        {
+            log("Cannot find type or name column in the ODK. Is this an ODK file?");
+            return 1;
+        }
         QXlsx::Worksheet *choicesSheet = (QXlsx::Worksheet*)xlsx.sheet("choices");
         int columnListName;
         columnListName = -1;
@@ -2345,90 +2219,23 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         foriginID.isMultiSelect = false;
         maintable.fields.append(foriginID);
 
-        //Append the Submmited by field to the main table
-        TfieldDef f_submitted_by;
-        f_submitted_by.name = "_submitted_by";
-        for (lang = 0; lang <= languages.count()-1;lang++)
-        {
-            TlngLkpDesc langDesc;
-            langDesc.langCode = languages[lang].code;
-            langDesc.desc = "Submitted by";
-            f_submitted_by.desc.append(langDesc);
-        }
-        f_submitted_by.type = "varchar";
-        f_submitted_by.size = 120;
-        f_submitted_by.decSize = 0;
-        f_submitted_by.rField = "";
-        f_submitted_by.rTable = "";
-        f_submitted_by.key = false;
-        f_submitted_by.isMultiSelect = false;
-        f_submitted_by.xmlCode = "_submitted_by";
-        f_submitted_by.odktype = "text";
-        f_submitted_by.selectSource = "NONE";
-        f_submitted_by.selectListName = "NONE";
-        maintable.fields.append(f_submitted_by);
-
-        //Append the Submmited date field to the main table
-        TfieldDef f_submitted_date;
-        f_submitted_date.name = "_submitted_date";
-        for (lang = 0; lang <= languages.count()-1;lang++)
-        {
-            TlngLkpDesc langDesc;
-            langDesc.langCode = languages[lang].code;
-            langDesc.desc = "Submitted date";
-            f_submitted_date.desc.append(langDesc);
-        }
-        f_submitted_date.type = "datetime";
-        f_submitted_date.size = 120;
-        f_submitted_date.decSize = 0;
-        f_submitted_date.rField = "";
-        f_submitted_date.rTable = "";
-        f_submitted_date.key = false;
-        f_submitted_date.isMultiSelect = false;
-        f_submitted_date.xmlCode = "_submitted_date";
-        f_submitted_date.odktype = "datetime";
-        f_submitted_date.selectSource = "NONE";
-        f_submitted_date.selectListName = "NONE";
-        maintable.fields.append(f_submitted_date);
-
-        //Append the generic GPS field to the main table
-        TfieldDef f_geopoint;
-        f_geopoint.name = "_geopoint";
-        for (lang = 0; lang <= languages.count()-1;lang++)
-        {
-            TlngLkpDesc langDesc;
-            langDesc.langCode = languages[lang].code;
-            langDesc.desc = "GPS point";
-            f_geopoint.desc.append(langDesc);
-        }
-        f_geopoint.type = "varchar";
-        f_geopoint.size = 120;
-        f_geopoint.decSize = 0;
-        f_geopoint.rField = "";
-        f_geopoint.rTable = "";
-        f_geopoint.key = false;
-        f_geopoint.isMultiSelect = false;
-        f_geopoint.xmlCode = "_geopoint";
-        f_geopoint.odktype = "geopoint";
-        f_geopoint.selectSource = "NONE";
-        f_geopoint.selectListName = "NONE";
-        maintable.fields.append(f_geopoint);
-
         tables.append(maintable);
         addToRepeat(mainTable);
 
-
-        //Processing survey structure
-        excelSheet = (QXlsx::Worksheet*)xlsx.sheet("survey");
+        //Processing variables
+        QString variableType;
+        QString variableName;
         QString variableApperance;
         QString variableCalculation;
         QString tableName;
         int tblIndex;
+        int nrow;
+
         bool mainFieldFound;
         mainFieldFound = false;
+
         bool mainFieldinMainTable;
         mainFieldinMainTable = false;
-
 
         for (nrow = 2; nrow <= excelSheet->dimension().lastRow(); nrow++)
         {
@@ -3082,12 +2889,12 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         if (!mainFieldFound)
         {
             log("ERROR!: The main variable \"" + mainField + "\" was not found in the ODK. Please indicate a correct main variable");
-            exit(10);
+            return 10;
         }
         if (!mainFieldinMainTable)
         {
             log("ERROR!: The main variable \"" + mainField + "\" is not in the main table \"" + mainTable + "\". Please indicate a correct main variable.");
-            exit(11);
+            return 11;
         }
     }
     return 0;
@@ -3335,7 +3142,7 @@ QDomElement getTableXML(QDomDocument doc, TtableDef table)
         notmove = false;
         if (table.fields[pos].key == false)
         {
-            if ((table.fields[pos].name == "surveyid") || (table.fields[pos].name == "originid") || (table.fields[pos].name == "rowuuid") || (table.fields[pos].name == "_submitted_by") || (table.fields[pos].name == "_submitted_date") || (table.fields[pos].name == "_geopoint"))
+            if ((table.fields[pos].name == "surveyid") || (table.fields[pos].name == "originid") || (table.fields[pos].name == "rowuuid"))
                 notmove = true;
             if (table.fields[pos].key == true)
                 notmove = true;
@@ -3450,7 +3257,7 @@ int checkLookupTables()
     {
         if (outputType == "m")
             log(XMLResult.toString());
-        exit(9);
+        return 9;
     }
     return 0;
 }
@@ -3547,7 +3354,7 @@ int checkTables(QString sepOutFile)
             XMLRoot.appendChild(eSepFile);
             log(XMLResult.toString());
         }
-        exit(2);
+        return 2;
     }
     else
         return 0;
@@ -3690,7 +3497,7 @@ int main(int argc, char *argv[])
     QString yesNoString = QString::fromUtf8(yesNoStringArg.getValue().c_str());
     QString tempDirectory = QString::fromUtf8(tempDirArg.getValue().c_str());
     outputType = QString::fromUtf8(outputTypeArg.getValue().c_str());
-    mainVar = mainVar.trimmed().toLower();
+
     QDir currdir(".");
     QDir dir;
     if (!dir.exists(tempDirectory))
@@ -3817,24 +3624,24 @@ int main(int argc, char *argv[])
     othLanguages = lang.split(",",QString::SkipEmptyParts);
     for (int lng = 0; lng < othLanguages.count(); lng++)
         if (addLanguage(othLanguages[lng].replace("'",""),false) != 0)
-            exit(6);
+            return 6;
     
     if (isDefaultLanguage("English") == false)
     {
         if (yesNoString == "")
         {
             log("English is not the default language. You need to specify Yes and No values with the -y parameter in " + getDefLanguage());
-            exit(7);
+            return 7;
         }
         if (yesNoString.indexOf("|") == -1)
         {
             log("Malformed yes|no language string1");
-            exit(8);
+            return 8;
         }
         if (yesNoString.length() == 1)
         {
             log("Malformed yes|no language string2");
-            exit(8);
+            return 8;
         }
         strYes = yesNoString.split("|",QString::SkipEmptyParts)[0];
         strNo = yesNoString.split("|",QString::SkipEmptyParts)[1];
@@ -3864,10 +3671,10 @@ int main(int argc, char *argv[])
         //log("Checking tables");
         if (checkTables(sepOutFile) != 0) //Check the tables to see if they have less than 60 related fields. If so a separation file is created
         {
-            exit(2); //If a table has more than 60 related field then exit
+            return 2; //If a table has more than 60 related field then exit
         }
         if (checkLookupTables() != 0)
-            exit(9);
+            return 9;
         //log("Generating SQL scripts");
         genSQL(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
     }
