@@ -14,8 +14,13 @@ CONFIG   -= app_bundle
 
 TEMPLATE = app
 
+#unix:INCLUDEPATH += ../3rdparty /usr/local/include /usr/include
+#unix:LIBS += -L/lib64 -L/usr/lib64 -L/usr/local/lib -lquazip5 -lcsv
+
+unix:INCLUDEPATH += ../3rdparty
+unix:LIBS += -lquazip5 -lcsv
+
+
 include(../3rdparty/QtXlsxWriter/src/xlsx/qtxlsx.pri)
-INCLUDEPATH += ../3rdparty
-LIBS += -lquazip5 -lcsv
 
 SOURCES += main.cpp
