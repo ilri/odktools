@@ -1292,6 +1292,11 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
     QString tableCode;
     tableCode = table.toElement().attribute("mysqlcode");
 
+//    if (tableCode == "crop_repeat")
+//    {
+//        log(tableCode);
+//    }
+
     int recordIndex;
     int tkindex;
 
@@ -1409,7 +1414,9 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
                         keys.append(createSQL(db,jsonData.toVariantMap(),tableCode,fields,keys,emptyMap,true));    //Change the variant map to an object later on!
                         genSQL = false;
                     }
-                    procTable2(db,jsonData,child,keys);
+                    QJsonArray children = jsonData.value(child.toElement().attribute("xmlcode")).toArray();
+                    for (int chld = 0; chld < children.count(); chld++)
+                        procTable2(db,children.at(chld).toObject(),child,keys);
                 }
                 else
                 {
