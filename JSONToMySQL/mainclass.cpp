@@ -802,48 +802,18 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
             insValue.multiSelectTable = fields[pos].multiSelectTable;
 
             //sqlHeader = sqlHeader + fields[pos].name + ",";
-            if (mainTable == table)
-            {
-                if (fields[pos].name == "surveyid")
-                {
-                  //sqlValues = sqlValues + "'" + fileID + "',";
-                  fieldValue = fileID;
-                }
-                else
-                {
-                    if (fields[pos].name == "originid")
-                    {
-                        //sqlValues = sqlValues + "'ODKTOOLS',";
-                        fieldValue = "ODKTOOLS";
-                    }
-                    else
-                    {
-                        fieldValue = fixString(jsonData[fields[pos].xmlCode].toString());                        
-                        if (fieldValue.isEmpty())
-                        {
-                            // This happens when the cover information is stored in a repeat of one
-                            // so part of the information for the main table must be searched in jsonData
-                            // and part in jsonData2
-                            fieldValue = fixString(jsonData2[fields[pos].xmlCode].toString());
-                        }
-                        //sqlValues = sqlValues + "'" + fieldValue + "',";
-                    }
-                }
-            }
-            else
-            {
-                variantValue =  jsonData[fields[pos].xmlCode];
-                fieldValue = fixString(QString::fromUtf8(variantValue.toByteArray()));
-                if (fieldValue.isEmpty())
-                {
-                    // This happens when the cover information is stored in a repeat of one
-                    // so part of the information for the main table must be searched in jsonData
-                    // and part in jsonData2
-                    variantValue = jsonData2[fields[pos].xmlCode];
-                    fieldValue = fixString(QString::fromUtf8(variantValue.toByteArray()));
-                }
+            variantValue =  jsonData[fields[pos].xmlCode];
+            fieldValue = fixString(QString::fromUtf8(variantValue.toByteArray()));
 
-                //sqlValues = sqlValues + "'" + fixString(fieldValue) + "',";
+            if (fields[pos].name == "originid")
+            {
+                //sqlValues = sqlValues + "'ODKTOOLS',";
+                fieldValue = "ODKTOOLS 2.0";
+            }
+            if (fields[pos].name == "surveyid")
+            {
+              //sqlValues = sqlValues + "'" + fileID + "',";
+              fieldValue = fileID;
             }
             if (fields[pos].type == "datetime")
             {
