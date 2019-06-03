@@ -96,6 +96,7 @@ void mainClass::run()
 
     {
         QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL");
+        QSqlDatabase imported_db = QSqlDatabase::addDatabase("QSQLITE");
         db.setHostName(host);
         db.setPort(port.toInt());
         db.setDatabaseName(schema);
@@ -114,41 +115,31 @@ void mainClass::run()
             }
             QTextStream UUIDout(&UUIDFile); //Stream to the processing file
 
-            QStringList procList;
-            QFile file(input);
-            if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+            imported_db.setDatabaseName(input);
+            if (imported_db.open())
             {
-                QTextStream in(&file);
-                while (!in.atEnd())
+                QSqlQuery query(imported_db);
+                QString sql;
+                sql = "CREATE TABLE submissions (submission_id VARCHAR(64) PRIMARY KEY)";
+                if (!query.exec(sql))
                 {
-                    QString line = in.readLine();
-                    procList.append(line);
-                }
-                file.close();
-            }
-            if (!QFile(input).exists())
-            {
-                //The file is new so write from start
-                if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-                {
-                    log("Cannot create processing file");
-                    returnCode = 1;
-                    db.close();
-                    emit finished();
+                    if (query.lastError().databaseText().indexOf("already exists") < 0)
+                    {
+                        log("Cannot create processing table: " + query.lastError().databaseText());
+                        returnCode = 1;
+                        db.close();
+                        emit finished();
+                    }
                 }
             }
             else
             {
-                //The file exists so append at the end
-                if (!file.open(QIODevice::Append | QIODevice::Text))
-                {
-                    log("Cannot create processing file");
-                    returnCode = 1;
-                    db.close();
-                    emit finished();
-                }
+                log("Cannot create processing sqlite file");
+                returnCode = 1;
+                db.close();
+                emit finished();
             }
-            QTextStream out(&file); //Stream to the processing file
+
             QDir mapDir(mapOutputDir);
             if (!mapDir.exists())
             {
@@ -157,6 +148,7 @@ void mainClass::run()
                     log("Output map directory does not exist and cannot be created");
                     returnCode = 1;
                     db.close();
+                    imported_db.close();
                     emit finished();
                 }
             }
@@ -172,6 +164,7 @@ void mainClass::run()
                         log("Cannot create log file");
                         returnCode = 1;
                         db.close();
+                        imported_db.close();
                         emit finished();
                     }
                     logStream.setDevice(&logFile);
@@ -184,6 +177,7 @@ void mainClass::run()
                         log("Cannot create log file");
                         returnCode = 1;
                         db.close();
+                        imported_db.close();
                         emit finished();
                     }
                     logStream.setDevice(&logFile);
@@ -203,8 +197,8 @@ void mainClass::run()
             {
                 log("Database does not support transactions");
                 db.close();
-                returnCode = 1;
-                db.close();
+                imported_db.close();
+                returnCode = 1;                
                 emit finished();
             }
 
@@ -221,6 +215,7 @@ void mainClass::run()
                     log("Cannot create sqlFile file");
                     returnCode = 1;
                     db.close();
+                    imported_db.close();
                     emit finished();
                 }
                 sqlStream.setDevice(&sqlFile);
@@ -229,11 +224,12 @@ void mainClass::run()
             SQLError = false;
             SQLErrorNumber = "";
             int processError;
-            processError = processFile2(db,json,manifest,procList);
+            processError = processFile2(db,json,manifest,imported_db);
             if (processError == 1)
             {
                 //This will happen if the file is already processes or an error ocurred
                 db.close();
+                imported_db.close();
                 returnCode = 1;
                 emit finished();
             }
@@ -264,6 +260,7 @@ void mainClass::run()
                         else
                         {
                             db.close();
+                            imported_db.close();
                             returnCode = 1;
                             emit finished();
                         }
@@ -272,7 +269,9 @@ void mainClass::run()
 
                 if (!db.rollback())
                 {
+                    log("Error: Rolling back was not possible. Please check the database");
                     db.close();
+                    imported_db.close();
                     returnCode = 1;
                     emit finished();
                 }
@@ -286,8 +285,25 @@ void mainClass::run()
                 UUIDFile.close();
 
                 QFileInfo fi(json);
-                out << fi.baseName() + "\n";
-                file.close();
+                // Inserting into the submission database
+                QString sql;
+                QSqlQuery query(imported_db);
+                sql = "INSERT INTO submissions VALUES ('" + fi.baseName() + "')";
+                if (!query.exec(sql))
+                {
+                    log("Error: Cannot store the submission in the submission database. Rolling back");
+                    if (!db.rollback())
+                    {
+                        log("Error: Cannot store the submission in the submission database. Rolling back was not possible. Please check the database");
+                        db.close();
+                        imported_db.close();
+                        returnCode = 1;
+                        emit finished();
+                    }
+                    db.close();
+                    imported_db.close();
+                }
+
                 if (outputType == "h")
                 {
                     logFile.close();
@@ -303,6 +319,7 @@ void mainClass::run()
                     log("Warning: Commit did not succed. Please check the database");
                     log(QString::number(db.lastError().number()));
                     db.close();
+                    imported_db.close();
                     returnCode = 1;
                     emit finished();
                 }
@@ -323,6 +340,7 @@ void mainClass::run()
             }
 
             db.close();
+            imported_db.close();
         }
         else
         {
@@ -1442,56 +1460,67 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
     return 0;
 }
 
-int mainClass::processFile2(QSqlDatabase db, QString json, QString manifest, QStringList procList)
+int mainClass::processFile2(QSqlDatabase db, QString json, QString manifest, QSqlDatabase submissions_db)
 {
     QFileInfo fi(json);
     //If the file hasn't been processed yet
-    if (procList.indexOf(fi.baseName()) < 0)
+    QSqlQuery query(submissions_db);
+    QString sql;
+    sql = "SELECT count(submission_id ) FROM submissions WHERE submission_id ='" + fi.baseName() + "'";
+    if (query.exec(sql))
     {
-        fileID = fi.baseName();
-
-        QFile JSONFile(json);
-        if (!JSONFile.open(QIODevice::ReadOnly))
+        if (query.value(0).toInt() == 0)
         {
-            log("Cannot open" + json);
+            fileID = fi.baseName();
+
+            QFile JSONFile(json);
+            if (!JSONFile.open(QIODevice::ReadOnly))
+            {
+                log("Cannot open" + json);
+                return 1;
+            }
+            QByteArray JSONData = JSONFile.readAll();
+            QJsonDocument JSONDocument;
+            JSONDocument = QJsonDocument::fromJson(JSONData);
+            QJsonObject firstObject = JSONDocument.object();
+            if (!firstObject.isEmpty())
+            {
+
+                //Opens the Manifest File
+                QDomDocument doc("mydocument");
+                QFile xmlfile(manifest);
+                if (!xmlfile.open(QIODevice::ReadOnly))
+                {
+                    log("Error reading manifest file");
+                    return 1;
+                }
+                if (!doc.setContent(&xmlfile))
+                {
+                    log("Error reading manifest file");
+                    xmlfile.close();
+                    return 1;
+                }
+                xmlfile.close();
+
+                //Gets the first table of the file
+                QDomNode root;
+                root = doc.firstChild().nextSibling().firstChild();
+
+                //Process the table with no parent Keys
+                QList< TfieldDef> noParentKeys;
+                procTable2(db,firstObject,root,noParentKeys);
+            }
+
+        }
+        else
+        {
+            log("File " + json + " has been already processed. Skipped");
             return 1;
         }
-        QByteArray JSONData = JSONFile.readAll();
-        QJsonDocument JSONDocument;
-        JSONDocument = QJsonDocument::fromJson(JSONData);
-        QJsonObject firstObject = JSONDocument.object();
-        if (!firstObject.isEmpty())
-        {
-
-            //Opens the Manifest File
-            QDomDocument doc("mydocument");
-            QFile xmlfile(manifest);
-            if (!xmlfile.open(QIODevice::ReadOnly))
-            {
-                log("Error reading manifest file");
-                return 1;
-            }
-            if (!doc.setContent(&xmlfile))
-            {
-                log("Error reading manifest file");
-                xmlfile.close();
-                return 1;
-            }
-            xmlfile.close();
-
-            //Gets the first table of the file
-            QDomNode root;
-            root = doc.firstChild().nextSibling().firstChild();
-
-            //Process the table with no parent Keys
-            QList< TfieldDef> noParentKeys;
-            procTable2(db,firstObject,root,noParentKeys);
-        }
-
     }
     else
     {
-        log("File " + json + " has been already processed. Skipped");
+        log("Error while quering for submission " + json + ". Skipping it");
         return 1;
     }
     return 0;

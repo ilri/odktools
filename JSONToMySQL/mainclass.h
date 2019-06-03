@@ -111,7 +111,7 @@ private:
     int procTable(QSqlDatabase db, QVariantMap jsonData, QDomNode table, QList< TfieldDef> parentkeys);
     int procTable2(QSqlDatabase db, QJsonObject jsonData, QDomNode table, QList< TfieldDef> parentkeys);
     int processFile(QSqlDatabase db, QString json, QString manifest, QStringList procList);
-    int processFile2(QSqlDatabase db, QString json, QString manifest, QStringList procList);
+    int processFile2(QSqlDatabase db, QString json, QString manifest, QSqlDatabase submissions_db);
     void storeRecord(QStringList parentUUIDS, QString recordUUID);
     void storeRecord(QString parentUUID, QString recordUUID);
     void findElementsWithAttribute(const QDomElement& elem, const QString& attr, const QString& attvalue, QList<QDomElement> &foundElements);

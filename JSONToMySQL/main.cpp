@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> passArg("p","password","MySQL Password",true,"","string");
     TCLAP::ValueArg<std::string> schemaArg("s","schema","MySQL Schema",true,"","string");
     TCLAP::ValueArg<std::string> outputArg("o","output","Output Log file",false,"./output.csv","string");
-    TCLAP::ValueArg<std::string> inputArg("i","imported","Imported file. Store the files names properly imported. Also used to skip repeated files",false,"./imported.log","string");
+    TCLAP::ValueArg<std::string> inputArg("i","imported","Imported file. Store the files names properly imported. Also used to skip repeated files",false,"./imported.sqlite","string");
     TCLAP::ValueArg<std::string> JSArg("J","javascript","Custom Before Insert JavaScript",false,"","string");
     TCLAP::SwitchArg overwriteSwitch("w","overwrite","Overwrite the log file", cmd, false);
     TCLAP::SwitchArg oputSQLSwitch("S","outputSQL","Output each insert SQL to ./inputfile.json.sql", cmd, false);
