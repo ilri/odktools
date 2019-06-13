@@ -37,6 +37,7 @@ License along with JXFormToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QRegularExpression>
+#include <QUuid>
 
 //*******************************************Global variables***********************************************
 bool debug;
@@ -1985,14 +1986,13 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
         idx++;
         sql = sql + "CREATE UNIQUE INDEX rowuuid" + QString::number(idx) + " ON " + prefix + tables[pos].name.toLower() + "(rowuuid);\n";
 
-        // Append UUIDs triggers to the file but only for those
-        // That are lookups. The other tables will have an UUID
-        // when data in inserted using JSONToMySQL
-        if (tables[pos].islookup == true)
-            sql = sql + "CREATE TRIGGER uudi_" + prefix+ tables[pos].name.toLower() + " BEFORE INSERT ON " + prefix + tables[pos].name.toLower() + " FOR EACH ROW SET new.rowuuid = uuid();\n\n";
-        else
-            sql = sql + "\n";
+        QUuid triggerUUID=QUuid::createUuid();
+        QString strTriggerUUID=triggerUUID.toString().replace("{","").replace("}","").replace("-","_");
 
+        // Append UUIDs triggers to the file but only if the UUID is null or if it is not an uuid
+        sql = sql + "delimiter $$\n\n";
+        sql = sql + "CREATE TRIGGER T" + strTriggerUUID + " BEFORE INSERT ON " + tables[pos].name + " FOR EACH ROW BEGIN IF (new.rowuuid IS NULL) THEN SET new.rowuuid = uuid(); ELSE IF (new.rowuuid NOT REGEXP '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}') THEN SET new.rowuuid = uuid(); END IF; END IF; END;$$\n";
+        sql = sql + "delimiter ;\n\n";
         sqlCreateStrm << sql; //Add the triggers to the SQL DDL file
 
         //Create the inserts of the lookup tables values into the insert SQL
