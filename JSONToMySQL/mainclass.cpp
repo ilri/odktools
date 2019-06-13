@@ -95,8 +95,8 @@ void mainClass::run()
     }
 
     {
-        QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL");
-        QSqlDatabase imported_db = QSqlDatabase::addDatabase("QSQLITE");
+        QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL","repository");
+        QSqlDatabase imported_db = QSqlDatabase::addDatabase("QSQLITE","submissions");
         db.setHostName(host);
         db.setPort(port.toInt());
         db.setDatabaseName(schema);
@@ -225,13 +225,14 @@ void mainClass::run()
             SQLErrorNumber = "";
             int processError;
             processError = processFile2(db,json,manifest,imported_db);
-            if (processError == 1)
+            if (processError == 2)
             {
                 //This will happen if the file is already processes or an error ocurred
                 db.close();
                 imported_db.close();
                 returnCode = 1;
                 emit finished();
+                return;
             }
             if ((SQLError) || (processError == 1))
             {
@@ -1469,6 +1470,7 @@ int mainClass::processFile2(QSqlDatabase db, QString json, QString manifest, QSq
     sql = "SELECT count(submission_id ) FROM submissions WHERE submission_id ='" + fi.baseName() + "'";
     if (query.exec(sql))
     {
+        query.first();
         if (query.value(0).toInt() == 0)
         {
             fileID = fi.baseName();
@@ -1515,13 +1517,13 @@ int mainClass::processFile2(QSqlDatabase db, QString json, QString manifest, QSq
         else
         {
             log("File " + json + " has been already processed. Skipped");
-            return 1;
+            return 2;
         }
     }
     else
     {
         log("Error while quering for submission " + json + ". Skipping it");
-        return 1;
+        return 2;
     }
     return 0;
 }
