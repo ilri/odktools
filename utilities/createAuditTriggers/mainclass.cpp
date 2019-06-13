@@ -97,7 +97,7 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
                 {
                     while (query2.next())
                     {
-                        TriggerData << "IF OLD." + query2.value(0).toString() + " <> NEW." + query2.value(0).toString() + " THEN INSERT INTO audit_log(audit_date,audit_action,audit_user,audit_table,audit_column,audit_key,audit_oldvalue,audit_newvalue) VALUES (ts,'UPDATE',@current_user,'" + query.value(0).toString() + "','" + query2.value(0).toString() + "'," + mykeyData + ",OLD." + query2.value(0).toString() + ",NEW." + query2.value(0).toString() + ");";
+                        TriggerData << "IF OLD." + query2.value(0).toString() + " <> NEW." + query2.value(0).toString() + " THEN INSERT INTO audit_log(audit_date,audit_action,audit_user,audit_table,audit_column,audit_key,audit_oldvalue,audit_newvalue) VALUES (ts,'UPDATE',@odktools_current_user,'" + query.value(0).toString() + "','" + query2.value(0).toString() + "'," + mykeyData + ",OLD." + query2.value(0).toString() + ",NEW." + query2.value(0).toString() + ");";
                         TriggerData << "END IF;";
                     }
                 }
@@ -116,8 +116,9 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
                 TriggerData << "AFTER INSERT ON " + query.value(0).toString();
                 TriggerData << "FOR EACH ROW BEGIN";
                 TriggerData << "DECLARE ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP();";
-                TriggerData << "DECLARE us VARCHAR(120) DEFAULT USER();";
                 TriggerData << "";
+                TriggerData << "IF @odktools_ignore_insert IS NULL THEN ";
+
 
                 mykeyData = "NEW.rowuuid";
                 QString myNoKeyData;
@@ -135,8 +136,8 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
                 else
                     myNoKeyData = "''";
 
-                TriggerData << "INSERT INTO audit_log(audit_date,audit_action,audit_user,audit_table,audit_key,audit_insdeldata) VALUES (ts,'INSERT',@current_user,'" + query.value(0).toString() + "'," + mykeyData + "," + myNoKeyData + ");";
-
+                TriggerData << "INSERT INTO audit_log(audit_date,audit_action,audit_user,audit_table,audit_key,audit_insdeldata) VALUES (ts,'INSERT',@odktools_current_user,'" + query.value(0).toString() + "'," + mykeyData + "," + myNoKeyData + ");";
+                TriggerData << "END IF;";
                 TriggerData << "";
                 TriggerData << "END$$";
                 TriggerData << "DELIMITER ;";
@@ -170,7 +171,7 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
                     myNoKeyData = "''";
 
 
-                TriggerData << "INSERT INTO audit_log(audit_date,audit_action,audit_user,audit_table,audit_key,audit_insdeldata) VALUES (ts,'DELETE',@current_user,'" + query.value(0).toString() + "'," + mykeyData + "," + myNoKeyData + ");";
+                TriggerData << "INSERT INTO audit_log(audit_date,audit_action,audit_user,audit_table,audit_key,audit_insdeldata) VALUES (ts,'DELETE',@odktools_current_user,'" + query.value(0).toString() + "'," + mykeyData + "," + myNoKeyData + ");";
 
                 TriggerData << "";
                 TriggerData << "END$$";
