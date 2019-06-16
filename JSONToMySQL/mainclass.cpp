@@ -477,71 +477,8 @@ void mainClass::logOSMError(QString errorMessage, QString table, int nodeIndex, 
 }
 
 //This procedure creates log entries into the log file. It used the dictionary tables to retrive a more understanable message.
-void mainClass::logError(QSqlDatabase db,QString errorMessage, QString table, int rowNumber,QVariantMap jsonData,QList< TfieldDef> fields, QString execSQL)
-{
-    int idx;
-    idx = errorMessage.indexOf("CONSTRAINT");
-    if (idx >= 0)
-    {
-        int idx2;
-        idx2 = errorMessage.indexOf("FOREIGN KEY");
-        QString cntr;
-        cntr = errorMessage.mid(idx+11,idx2-(idx+11));
-        cntr = cntr.replace("`","");
-        cntr = cntr.simplified();
-
-        QSqlQuery query(db);
-        QString sql;
-        QString field;
-        sql = "SELECT error_msg,error_notes,clm_cod FROM dict_relinfo WHERE cnt_name = '" + cntr + "'";
-        if (query.exec(sql))
-        {
-            if (query.first())
-            {
-                errorMessage = query.value(0).toString();
-                field = query.value(2).toString();
-                if (outputType == "h")
-                {
-                    if (getXMLCodeFromField(fields,field) != "Unknown")
-                        logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t" + getXMLCodeFromField(fields,field) + "\t" + errorMessage + "\tValue not found = " + jsonData[getXMLCodeFromField(fields,field)].toString() + "\t" + execSQL + "\n";
-                    else
-                        logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
-                }
-                else
-                {
-                    QDomElement eError;
-                    eError = xmlLog.createElement("error");
-                    if (getXMLCodeFromField(fields,field) != "Unknown")
-                    {
-                        eError.setAttribute("FileUUID",fileID);
-                        eError.setAttribute("Table",table);
-                        eError.setAttribute("RowInJSON",QString::number(rowNumber));
-                        eError.setAttribute("JSONVariable",getXMLCodeFromField(fields,field));
-                        eError.setAttribute("Error",errorMessage);
-                        eError.setAttribute("Notes","Value not found = " + jsonData[getXMLCodeFromField(fields,field)].toString());
-                        QDomText sqlExecuted;
-                        sqlExecuted = xmlLog.createTextNode(execSQL);
-                        eError.appendChild(sqlExecuted);
-                        eErrors.appendChild(eError);
-                    }
-                    else
-                    {
-                        eError.setAttribute("FileUUID",fileID);
-                        eError.setAttribute("Table",table);
-                        eError.setAttribute("RowInJSON",QString::number(rowNumber));
-                        eError.setAttribute("JSONVariable","");
-                        eError.setAttribute("Error",errorMessage);
-                        eError.setAttribute("Notes","");
-                        QDomText sqlExecuted;
-                        sqlExecuted = xmlLog.createTextNode(execSQL);
-                        eError.appendChild(sqlExecuted);
-                        eErrors.appendChild(eError);
-                    }
-                }
-                return;
-            }
-        }
-    }
+void mainClass::logError(QString errorMessage, QString table, int rowNumber, QString execSQL)
+{    
     if (outputType == "h")
         logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
     else
@@ -561,50 +498,8 @@ void mainClass::logError(QSqlDatabase db,QString errorMessage, QString table, in
     }
 }
 
-void mainClass::logErrorMSel(QSqlDatabase db,QString errorMessage, QString table, int rowNumber,QString value, QString execSQL)
+void mainClass::logErrorMSel(QString errorMessage, QString table, int rowNumber, QString execSQL)
 {
-    int idx;
-    idx = errorMessage.indexOf("CONSTRAINT");
-    if (idx >= 0)
-    {
-        int idx2;
-        idx2 = errorMessage.indexOf("FOREIGN KEY");
-        QString cntr;
-        cntr = errorMessage.mid(idx+11,idx2-(idx+11));
-        cntr = cntr.replace("`","");
-        cntr = cntr.simplified();
-
-        QSqlQuery query(db);
-        QString sql;
-        QString field;
-        sql = "SELECT error_msg,error_notes,clm_cod FROM dict_relinfo WHERE cnt_name = '" + cntr + "'";
-        if (query.exec(sql))
-        {
-            if (query.first())
-            {
-                errorMessage = query.value(0).toString();
-                field = query.value(2).toString();
-                if (outputType == "h")
-                    logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t" + field + "\t" + errorMessage + "\tValue not found = " + value + "\t" + execSQL + "\n";
-                else
-                {
-                    QDomElement eError;
-                    eError = xmlLog.createElement("error");
-                    eError.setAttribute("FileUUID",fileID);
-                    eError.setAttribute("Table",table);
-                    eError.setAttribute("RowInJSON",QString::number(rowNumber));
-                    eError.setAttribute("JSONVariable",field);
-                    eError.setAttribute("Error",errorMessage);
-                    eError.setAttribute("Notes","Value not found = " + value);
-                    QDomText sqlExecuted;
-                    sqlExecuted = xmlLog.createTextNode(execSQL);
-                    eError.appendChild(sqlExecuted);
-                    eErrors.appendChild(eError);
-                }
-                return;
-            }
-        }
-    }
     if (outputType == "h")
         logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
     else
@@ -915,12 +810,13 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
     hasSomethingToInsert = true;
     if (hasSomethingToInsert) //There are other values besides keys to insert
     {
+        query.exec("SET @odktools_ignore_insert = 1");
         if (!query.exec(sql))
         {
             SQLError = true; //An error occurred. This will trigger a rollback
             if (SQLErrorNumber == "")
                 SQLErrorNumber = query.lastError().nativeErrorCode() + "&"  + query.lastError().databaseText() + "@" + table;
-            logError(db,query.lastError().databaseText(),table,tblIndex,jsonData,fields,sql); //Write the error to the log
+            logError(query.lastError().databaseText(),table,tblIndex,sql); //Write the error to the log
         }
         else
         {
@@ -1006,13 +902,13 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                 {
                     sqlStream << sql + ";\n";
                 }
-
+                query.exec("SET @odktools_ignore_insert = 1");
                 if (!query.exec(sql))
                 {
                   SQLError = true; //An error occurred. This will trigger a rollback
                   if (SQLErrorNumber == "")
                     SQLErrorNumber = query.lastError().nativeErrorCode() + "&" + query.lastError().databaseText() + "@" + mSelectTableName;
-                  logErrorMSel(db,query.lastError().databaseText(),mSelectTableName,tblIndex,mSelectValues[nvalue],sql); //Write the error to the log
+                  logErrorMSel(query.lastError().databaseText(),mSelectTableName,tblIndex,sql); //Write the error to the log
                 }
                 else
                 {
@@ -1108,6 +1004,7 @@ void mainClass::insertOSMData(QString OSMField, QDomElement node, int nodeIndex,
     }
     sql = sql + "'" + strRecordUUID + "')";
     QSqlQuery query(db);
+    query.exec("SET @odktools_ignore_insert = 1");
     if (!query.exec(sql))
     {
         SQLError = true; //An error occurred. This will trigger a rollback
@@ -1217,6 +1114,7 @@ void mainClass::processLoop(QJsonObject jsonData, QString loopTable, QString loo
             sql = sql + "'" + fieldValue + "',";
         }
         sql = sql + "'" + strRecordUUID + "')";
+        query.exec("SET @odktools_ignore_insert = 1");
         if (!query.exec(sql))
         {
             SQLError = true; //An error occurred. This will trigger a rollback
@@ -1253,6 +1151,7 @@ void mainClass::processLoop(QJsonObject jsonData, QString loopTable, QString loo
                         sql = sql + "'" + loopItems[iItem] + "',";
                         sql = sql + "'" + parts[ipart] + "',";
                         sql = sql + "'" + strRecordUUID + "')";
+                        query.exec("SET @odktools_ignore_insert = 1");
                         if (!query.exec(sql))
                         {
                             SQLError = true; //An error occurred. This will trigger a rollback
