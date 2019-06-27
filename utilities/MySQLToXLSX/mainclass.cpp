@@ -65,7 +65,7 @@ void mainClass::getFieldData(QString table, QString field, QString &desc, QStrin
 const char *mainClass::getSheetDescription(QString name)
 {
     QString truncated;
-    truncated = name.left(28);
+    truncated = name.left(25);
     truncated = truncated.replace("[","");
     truncated = truncated.replace("]","");
     truncated = truncated.replace(":","");
