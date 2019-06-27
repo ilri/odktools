@@ -958,7 +958,7 @@ QString  mainClass::fixField(QString source)
     res = res.replace(",","");
     res = res.replace(" ","");
     res = res.replace(".","_");
-    res = res.replace(":","_");
+    res = res.replace(":","");
     res = res.trimmed().simplified().toLower();
     return res;
 }
@@ -1004,7 +1004,7 @@ void mainClass::insertOSMData(QString OSMField, QDomElement node, int nodeIndex,
     }
     sql = sql + "'" + strRecordUUID + "')";
     QSqlQuery query(db);
-    query.exec("SET @odktools_ignore_insert = 1");
+    query.exec("SET @odktools_ignore_insert = 1");    
     if (!query.exec(sql))
     {
         SQLError = true; //An error occurred. This will trigger a rollback
@@ -1020,7 +1020,7 @@ void mainClass::insertOSMData(QString OSMField, QDomElement node, int nodeIndex,
 }
 
 void mainClass::processOSM(QString OSMField, QString OSMFile, QList< TfieldDef> parentkeys, QSqlDatabase db)
-{
+{    
     QString filePath = "";
     for (int idx=0; idx < OSMFiles.count(); idx++)
     {
@@ -1180,11 +1180,6 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
     QString tableCode;
     tableCode = table.toElement().attribute("mysqlcode");
 
-//    if (tableCode == "crop_repeat")
-//    {
-//        log(tableCode);
-//    }
-
     int recordIndex;
     int tkindex;
 
@@ -1193,9 +1188,6 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
 
     QString group;
     group = table.toElement().attribute("group","false");
-
-    QString separated;
-    separated = table.toElement().attribute("separated","false");
 
     QString osm;
     osm = table.toElement().attribute("osm","false");
@@ -1211,7 +1203,7 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
 
     QVariantMap emptyMap;
     if (osm == "true")
-    {
+    {        
         QString OSMODKField;
         OSMODKField = table.toElement().attribute("xmlcode","none");
         QString OSMFile = jsonData.value(OSMODKField).toString("");
@@ -1219,6 +1211,7 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
         if (OSMFile != "")
         {
             processOSM(OSMField,OSMFile,keys,db);
+            return 0;
         }
     }
     if (loop == "true")
@@ -1256,6 +1249,7 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
                 fieldNode = fieldNode.nextSibling();
             }
             processLoop(jsonData,loopTable,loopXMLRoot,loopItems,loopFields,keys,db);
+            return 0;
         }
     }
 
@@ -1295,16 +1289,23 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
             else
             {
                 sqlCreated = true; //To control more than one child table
-                if ((tableXMLCode == "main") || (group == "true") || (separated == "true") || (osm == "true") || (loop == "true"))
+                if ((tableXMLCode == "main") || (group == "true") || (osm == "true") || (loop == "true"))
                 {
                     if (genSQL == true)
                     {
                         keys.append(createSQL(db,jsonData.toVariantMap(),tableCode,fields,keys,emptyMap,true));    //Change the variant map to an object later on!
                         genSQL = false;
                     }
-                    QJsonArray children = jsonData.value(child.toElement().attribute("xmlcode")).toArray();
-                    for (int chld = 0; chld < children.count(); chld++)
-                        procTable2(db,children.at(chld).toObject(),child,keys);
+                    if ((osm == false) && (loop == false))
+                    {
+                        QJsonArray children = jsonData.value(child.toElement().attribute("xmlcode")).toArray();
+                        for (int chld = 0; chld < children.count(); chld++)
+                            procTable2(db,children.at(chld).toObject(),child,keys);
+                    }
+                    else
+                    {
+                        procTable2(db,jsonData,child,keys);
+                    }
                 }
                 else
                 {
@@ -1351,7 +1352,7 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
         }
         if (!sqlCreated)
         {
-            if ((tableXMLCode == "main") || (group == "true") || (separated == "true") || (osm == "true") || (loop == "true"))
+            if ((tableXMLCode == "main") || (group == "true") || (osm == "true") || (loop == "true"))
                 createSQL(db,jsonData.toVariantMap(),tableCode,fields,keys,emptyMap,true);   //Change the variant map later in
             else
                 createSQL(db,jsonData.toVariantMap(),tableCode,fields,keys,emptyMap,false);   //Change the variant map later in
