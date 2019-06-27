@@ -59,7 +59,6 @@ QStringList CSVSQLs;
 int numColumns;
 int numColumnsInData;
 QStringList duplicatedTables;
-bool includeGroups;
 bool justCheck;
 QStringList requiredFiles;
 
@@ -67,6 +66,14 @@ QStringList requiredFiles;
 //********************************************Global structures****************************************
 
 //Structure that holds the description of each lkpvalue separated by language
+
+struct tblwitherror
+{
+    QString name;
+    int num_selects;
+};
+typedef tblwitherror Ttblwitherror;
+
 struct lngDesc
 {
     QString langCode;
@@ -161,7 +168,7 @@ struct tableDef
   QList<TlkpValue> lkpValues; //List of lookup values
   int pos; //Global position of the table
   bool islookup; //Whether the table is a lookup table
-  bool isSeparated; //Whether the table has been separated
+  bool isOneToOne; //Whether the table has been separated
   QString xmlCode; //The table XML code /xx/xx/xx/xx
   QString xmlFullPath; //The table XML code /xx/xx/xx/xx
   QString parentTable; //The parent of the table
@@ -195,12 +202,14 @@ QList<TduplicatedField> duplicatedFields;
 QStringList invalidFieldNames;
 QStringList invalidFields;
 
+QList <QJsonObject > readOnlyCalculates;
+
 //***************************************Processes********************************************
 
 void isFieldValid(QString field)
-{
+{    
     for (int pos = 0; pos < invalidFieldNames.count(); pos++)
-    {
+    {        
         if (invalidFieldNames[pos] == field.trimmed().simplified().toUpper())
         {
             bool found = false;
@@ -1609,8 +1618,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 tables[pos].tableElement.setAttribute("mysqlcode",prefix + tables[pos].name.toLower());
                 tables[pos].tableElement.setAttribute("xmlcode",tables[pos].xmlCode);
                 tables[pos].tableElement.setAttribute("parent",tables[pos].parentTable);
-                if (tables[pos].isSeparated == true)
-                    tables[pos].tableElement.setAttribute("separated","true");
+                if (tables[pos].isOneToOne == true)
+                    tables[pos].tableElement.setAttribute("onetoone","true");
                 if (tables[pos].isLoop)
                 {
                     tables[pos].tableElement.setAttribute("loop","true");
@@ -2075,15 +2084,26 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
 TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
 {
     TfieldMap result;
-    result.type = "varchar";
+    result.type = "text";
     result.size = 255;
     result.decSize = 0;
+
+    if (ODKFieldType == "text")
+    {
+        result.type = "text";
+    }
+    if (ODKFieldType == "calculate")
+    {
+        result.type = "text";
+    }
     if (ODKFieldType == "acknowledge")
     {
+        result.type = "varchar";
         result.size = 2;
     }
     if (ODKFieldType == "add acknowledge prompt")
     {
+        result.type = "varchar";
         result.size = 2;
     }
     if (ODKFieldType == "add date prompt")
@@ -2111,15 +2131,17 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "add location prompt")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 50;
     }
     if (ODKFieldType == "audio")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 20;
     }
     if (ODKFieldType == "audit")
     {
-        result.size = 120;
+        result.type = "text";
     }
     if (ODKFieldType == "date")
     {
@@ -2145,15 +2167,17 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "device id")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 30;
     }
     if (ODKFieldType == "deviceid")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 30;
     }
     if (ODKFieldType == "email")
     {
-        result.size = 120;
+        result.type = "text";
     }
     if (ODKFieldType == "end")
     {
@@ -2165,15 +2189,18 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "file")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 20;
     }
     if (ODKFieldType == "geopoint")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 50;
     }
     if (ODKFieldType == "get device id")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 30;
     }
     if (ODKFieldType == "get end time")
     {
@@ -2181,11 +2208,13 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "get phone number")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 15;
     }
     if (ODKFieldType == "get sim id")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 30;
     }
     if (ODKFieldType == "get start time")
     {
@@ -2193,7 +2222,8 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "get subscriber id")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 30;
     }
     if (ODKFieldType == "get today")
     {
@@ -2201,7 +2231,8 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "gps")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 50;
     }
     if (ODKFieldType == "int")
     {
@@ -2215,7 +2246,8 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "location")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 50;
     }
     if (ODKFieldType == "number of days in last month")
     {
@@ -2239,23 +2271,28 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "phone number")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 15;
     }
     if (ODKFieldType == "phonenumber")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 15;
     }
     if (ODKFieldType == "photo")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 20;
     }
     if (ODKFieldType == "q acknowledge")
     {
+        result.type = "varchar";
         result.size = 2;
     }
     if (ODKFieldType == "q audio")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 20;
     }
     if (ODKFieldType == "q date")
     {
@@ -2277,11 +2314,13 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "q geopoint")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 50;
     }
     if (ODKFieldType == "q image")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 20;
     }
     if (ODKFieldType == "q int")
     {
@@ -2290,19 +2329,22 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "q location")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 50;
     }
     if (ODKFieldType == "q picture")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 20;
     }
     if (ODKFieldType == "q string")
     {
-        result.size = 120;
+        result.type = "text";
     }
     if (ODKFieldType == "q video")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 20;
     }
     if (ODKFieldType == "range")
     {
@@ -2312,11 +2354,13 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "sim id")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 30;
     }
     if (ODKFieldType == "simserial")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 30;
     }
     if (ODKFieldType == "start")
     {
@@ -2328,15 +2372,17 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "string")
     {
-       result.size = 120;
+       result.type = "text";
     }
     if (ODKFieldType == "subscriber id")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 30;
     }
     if (ODKFieldType == "subscriberid")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 30;
     }
     if (ODKFieldType == "time")
     {
@@ -2348,43 +2394,50 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "trigger")
     {
+        result.type = "varchar";
         result.size = 2;
     }
     if (ODKFieldType == "uri:deviceid")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 30;
     }
     if (ODKFieldType == "uri:email")
     {
-        result.size = 120;
+        result.type = "text";
     }
     if (ODKFieldType == "uri:phonenumber")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 30;
     }
     if (ODKFieldType == "uri:simserial")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 30;
     }
     if (ODKFieldType == "uri:subscriberid")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 30;
     }
     if (ODKFieldType == "uri:username")
     {
-        result.size = 120;
+        result.type = "text";
     }
     if (ODKFieldType == "username")
     {
-        result.size = 120;
+       result.type = "text";
     }
     if (ODKFieldType == "video")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 20;
     }
     if (ODKFieldType == "xml-external")
     {
-        result.size = 120;
+        result.type = "varchar";
+        result.size = 20;
     }
     if ((ODKFieldType == "geoshape") || (ODKFieldType == "q geoshape"))
     {
@@ -3256,7 +3309,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
                     }
                     lkpTable.pos = -1;
                     lkpTable.islookup = true;
-                    lkpTable.isSeparated = false;
+                    lkpTable.isOneToOne = false;
                     lkpTable.lkpValues.append(values);
                     //Creates the field for code in the lookup
                     TfieldDef lkpCode;
@@ -3320,7 +3373,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
         aField.selectSource = "NONE";
         aField.selectListName = "NONE";
         aField.odktype = "NONE";
-        aField.type = "varchar";
+        aField.type = "text";
         aField.size = 255;
         aField.decSize = 0;
         aField.calculateWithSelect = false;
@@ -3373,7 +3426,14 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
         if (fixField(variableName) == fixField(mainField.toLower()))
         {
             if (!primaryKeyAdded)
+            {
+                if (aField.type == "text")
+                {
+                    aField.type = "varchar";
+                    aField.size = 255;
+                }
                 aField.key = true;
+            }
             else
                 return;
         }
@@ -3385,7 +3445,12 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             if (fieldObject.keys().indexOf("bind") >= 0)
             {
                 QString calculation;
-                calculation = fieldObject.value("bind").toObject().value("calculate").toString();
+                calculation = fieldObject.value("bind").toObject().value("calculate").toString();                
+                if (fieldObject.value("bind").toObject().value("readonly").toString() == "true()")
+                {
+                    readOnlyCalculates.append(fieldObject);
+                    return;
+                }
                 if (!calculation.isNull())
                 {
                     calculation = calculation.toLower().simplified();
@@ -3614,7 +3679,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         }
                         lkpTable.pos = -1;
                         lkpTable.islookup = true;
-                        lkpTable.isSeparated = false;
+                        lkpTable.isOneToOne = false;
                         lkpTable.lkpValues.append(values);
                         //Creates the field for code in the lookup
                         TfieldDef lkpCode;
@@ -3820,7 +3885,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     }
                     lkpTable.pos = -1;
                     lkpTable.islookup = true;
-                    lkpTable.isSeparated = false;                    
+                    lkpTable.isOneToOne = false;
                     //Creates the field for code in the lookup
                     TfieldDef lkpCode;
                     lkpCode.name = fixField(variableName.toLower()) + "_cod";
@@ -3977,7 +4042,7 @@ void getJSONRootVariables(QJsonObject JSONObject, QList <TsurveyVariableDef> &su
 }
 
 //Coverts group, repeat, loop and osm types into tables
-void parseTable(QJsonObject tableObject, QString tableType)
+void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = false)
 {
     QString tableName;
     tableName = getTopRepeat();
@@ -3995,7 +4060,7 @@ void parseTable(QJsonObject tableObject, QString tableType)
     aTable.desc.append(getLabels(labelValue));
     aTable.pos = tableIndex;
     aTable.islookup = false;
-    aTable.isSeparated = false;
+    aTable.isOneToOne = repeatOfOne;
     if (getVariableStack(true) == "")
     {
         aTable.xmlCode = variableName;
@@ -4036,7 +4101,7 @@ void parseTable(QJsonObject tableObject, QString tableType)
     if (tableType == "group")
         aTable.isGroup = true;
 
-    if (tableType == "repeat")
+    if ((tableType == "repeat") && (repeatOfOne == false))
     {
         //Add the extra row ID Key field to this table
         TfieldDef keyField;
@@ -4123,7 +4188,7 @@ void parseTable(QJsonObject tableObject, QString tableType)
                     }
                     lkpTable.pos = -1;
                     lkpTable.islookup = true;
-                    lkpTable.isSeparated = false;
+                    lkpTable.isOneToOne = false;
                     lkpTable.lkpValues.append(values);
                     //Creates the field for code in the lookup
                     TfieldDef lkpCode;
@@ -4280,20 +4345,17 @@ void parseTable(QJsonObject tableObject, QString tableType)
         addToRepeat(variableName);
 }
 
-//Checks whether a group has variables or is just a control group (a group that only contains other groups or repeats)
-bool checkIgnoreGroup(QJsonArray children)
+bool isRepeatOfOne(QString repeat_control)
 {
-    bool ignore = true;
-    for (int child =0; child < children.count(); child++ )
+    for (int pos = 0; pos < readOnlyCalculates.count(); pos++)
     {
-        if (children[child].isObject())
+        if (readOnlyCalculates[pos].value("name").toString() == repeat_control)
         {
-            QJsonObject a_child = children[child].toObject();
-            if ((a_child.value("type").toString("") != "repeat") && (a_child.value("type").toString("") != "group") && (a_child.value("type").toString("") != "loop"))
-                ignore = false;
+            if (readOnlyCalculates[pos].value("bind").toObject().value("calculate").toString() == "1")
+                return true;
         }
     }
-    return ignore;
+    return false;
 }
 
 //Reads a JSON object and converts it according to its type
@@ -4304,8 +4366,7 @@ void parseJSONObject(QJsonObject JSONObject, QString mainTable, QString mainFiel
     if (JSONObject.keys().indexOf("type") >= 0)
     {
         bool hasChildren = false;
-        bool isOSM = false;
-        bool ignoreGroup = false;
+        bool isOSM = false;        
         if (JSONObject.value("type").toString() == "survey")
         {
 //            log("*1* Begin processing survey: " + JSONObject.value("name").toString() + "***");
@@ -4315,17 +4376,16 @@ void parseJSONObject(QJsonObject JSONObject, QString mainTable, QString mainFiel
         {
 //            log("*2* Begin processing repeat: " + JSONObject.value("name").toString() + "***");
             hasChildren = true;
-            parseTable(JSONObject,"repeat");
+            QString repeat_control = JSONObject.value("control").toObject().value("jr:count").toString().replace("$","").replace("{","").replace("}","");
+            bool repeatOfOne = isRepeatOfOne(repeat_control);
+            parseTable(JSONObject,"repeat",repeatOfOne);
             addToStack(JSONObject.value("name").toString(),"repeat");
 
         }
         if (JSONObject.value("type").toString() == "group")
         {
 //            log("*3* Begin processing group: " + JSONObject.value("name").toString() + "***");
-            hasChildren = true;            
-            ignoreGroup = checkIgnoreGroup(JSONObject.value("children").toArray());
-            if (!ignoreGroup && includeGroups)
-                parseTable(JSONObject,"group");
+            hasChildren = true;                        
             addToStack(JSONObject.value("name").toString(),"group");
         }
         if (JSONObject.value("type").toString() == "loop")
@@ -4372,9 +4432,7 @@ void parseJSONObject(QJsonObject JSONObject, QString mainTable, QString mainFiel
 //                log("*-2* End processing repeat: " + JSONObject.value("name").toString() + "***");
             }
             if (JSONObject.value("type") == "group")
-            {
-                if (!ignoreGroup && includeGroups)
-                    removeRepeat();
+            {                
                 removeFromStack();
 //                log("*-3* End processing group: " + JSONObject.value("name").toString() + "***");
             }
@@ -4712,7 +4770,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
 
         maintable.pos = tableIndex;
         maintable.islookup = false;
-        maintable.isSeparated = false;
+        maintable.isOneToOne = false;
         maintable.xmlCode = "main";
         maintable.parentTable = "NULL";
 
@@ -4914,334 +4972,54 @@ int getFieldIndex(TtableDef table, QString fieldName)
     return -1;
 }
 
-void moveMultiSelectToTable(QString msTable, QString fromTable, QString toTable)
-{
-    for (int pos = 0; pos < tables.count(); pos++)
-    {
-        if (tables[pos].name == msTable)
-        {
-            for (int clm = 0; clm < tables[pos].fields.count(); clm++)
-            {
-                if (tables[pos].fields[clm].rTable == fromTable)
-                    tables[pos].fields[clm].rTable = toTable;
-            }
-        }
-    }
-}
-
-bool separationSectionFound(QList<sepSection> sections, QString name)
-{
-    for (int pos = 0; pos <= sections.count()-1; pos++)
-    {
-        if (sections[pos].name == name)
-            return true;
-    }
-    return false;
-}
-
-// Separate a table into different subtables.
-// This because MySQL cant handle a maximum of 64 reference tables or a row structure of more than 65,535 bytes.
-
-// We put a cap of 60 fiels in a table.
-// Basically it is ridiculous to have a table with more the 60 columns and consider it normalized.
-// We force the user to think and come with common (normalized) groups of data
-int separateTable(TtableDef &table, QDomNode groups)
-{
-    //log("separateTable");
-    QList<TsepSection> sections;
-    int pos;
-    int pos2;
-    QString grpName;
-    QString grpDesc;
-    QDomNode temp;
-    QDomNode field;
-    temp = groups;
-    //Get all the different sections
-    bool mainFound;
-    mainFound = false;
-
-    while (!temp.isNull())
-    {
-        grpName = temp.toElement().attribute("name","unknown");
-        grpDesc = temp.toElement().attribute("description","unknown");
-        if (grpName == "main")
-            mainFound = true;        
-        if (separationSectionFound(sections,grpName) == false)
-        {
-            TsepSection aSection;
-            aSection.name = grpName;
-            aSection.desc = grpDesc;
-            sections.append(aSection);
-        }
-            else
-        {
-            log("ERROR!: " + grpName + " is repated. Cannot continue with separation");
-            return 1;
-        }
-        temp = temp.nextSibling();
-    }
-    if (!mainFound)
-    {
-        log("ERROR!: Main group for table " + table.name + " is not present. Cannot continue");
-        return 1;
-    }
-    temp = groups;
-    int fieldIndex;
-    QString fieldName;
-    QList <TfieldDef> keys;
-    //Add the keys of a table to a list
-    for (pos2 = 0; pos2 <= table.fields.count()-1;pos2++)
-    {
-        if (table.fields[pos2].key == true)
-        {
-            TfieldDef keyfield;
-            keyfield.name = table.fields[pos2].name;
-            keyfield.selectSource = "NONE";
-            keyfield.selectListName = "NONE";
-            keyfield.desc.append(table.fields[pos2].desc);
-            keyfield.key =true;
-            keyfield.type = table.fields[pos2].type;
-            keyfield.size = table.fields[pos2].size;
-            keyfield.decSize = table.fields[pos2].decSize;
-            keyfield.rTable = "";
-            keyfield.rField = "";
-            keys.append(keyfield);
-        }
-    }
-    for (pos = 0; pos <= sections.count()-1;pos++)
-    {
-        if (sections[pos].name != "main")
-        {
-            tableIndex++;
-            TtableDef ntable;
-            ntable.isLoop = false;
-            ntable.isOSM = false;
-            ntable.isGroup = false;
-            ntable.name = table.name + "_" + sections[pos].name;
-
-            for (int lang = 0; lang < languages.count()-1; lang++)
-            {
-                TlngLkpDesc langDesc;
-                langDesc.langCode = languages[lang].code;
-                if (sections[pos].desc == "unknown")
-                    langDesc.desc = "Subsection " + sections[pos].name + " of " + table.name + " - Edit this description";
-                else
-                    langDesc.desc = sections[pos].desc;
-                ntable.desc.append(langDesc);
-            }
-            ntable.xmlCode = table.xmlCode;
-            ntable.pos = tableIndex;
-            ntable.islookup = false;
-            ntable.isSeparated = true;
-            ntable.parentTable = table.name;
-            for (pos2 = 0; pos2 <= keys.count()-1;pos2++)
-            {
-                TfieldDef keyfield;
-                keyfield = keys[pos2];
-                //A secondary group will be linked to the main
-                keyfield.selectSource = "NONE";
-                keyfield.selectListName = "NONE";
-                keyfield.isMultiSelect = false;
-                keyfield.rTable = table.name;
-                keyfield.rField = keys[pos2].name;
-                ntable.fields.append(keyfield);
-            }
-
-            //Then add the fields of the section
-            field = temp.firstChild();
-            while (!field.isNull())
-            {
-                fieldName = field.toElement().attribute("name","unknown");
-                fieldIndex = getFieldIndex(table,fieldName);
-                if (fieldIndex >= 0)
-                {
-                    if (table.fields[fieldIndex].key == false)
-                    {
-                        ntable.fields.append(table.fields[fieldIndex]); //Add the field to the new table
-                        //If the field that we are moving is a isMultiSelect then that multiselect table needs to link this new table
-                        if (table.fields[fieldIndex].isMultiSelect == true)
-                        {
-                            moveMultiSelectToTable(table.fields[fieldIndex].multiSelectTable,table.name,ntable.name);
-                        }
-                        table.fields.removeAt(fieldIndex); //Removes the field from main
-                    }
-                }
-                field = field.nextSibling();
-            }
-            tables.append(ntable);
-        }
-        temp = temp.nextSibling();
-    }
-
-    //We move here all multi-select tables to be last in position thus no referencia problem would occur;
-    int maxTableCount;
-    maxTableCount = tables.count() + 1;
-    for (pos = 0; pos < tables.count();pos++)
-    {
-        if (tables[pos].name.indexOf("_msel_") >= 0)
-        {
-            tables[pos].pos = maxTableCount;
-            maxTableCount++;
-        }
-    }
-
-    return 0;
-}
-
-//Checks which table has more than 60 references or more than 100 fields. Those with more than 60 or 100 fields gets separated
-int separeteTables(QString sepFile)
-{    
-    QDomDocument doc("mydocument");
-    QFile xmlfile(sepFile);
-    if (!xmlfile.open(QIODevice::ReadOnly))
-    {
-        log("Error reading separation file");
-        return 1;
-    }
-    if (!doc.setContent(&xmlfile))
-    {
-        log("Error reading separation file");
-        xmlfile.close();
-        return 1;
-    }
-    xmlfile.close();
-    QDomNode table;
-    QDomNode groups;
-    QString tableName;
-    table = doc.firstChild().nextSibling().firstChild();
-    int tblIndex;
-    while (!table.isNull())
-    {
-        tableName = table.toElement().attribute("name","!unknow");
-        tblIndex = getTableIndex(tableName);
-        if (tblIndex >= 0)
-        {
-            groups = table.firstChild();
-            //log("Separating table: " + tables[tblIndex].name);
-            if (separateTable(tables[tblIndex],groups) == 1)
-            {
-                return 1;
-            }            
-        }
-        table = table.nextSibling();
-    }
-    return 0;
-}
-
-// This function construct a XML <table> node with all fields in one group called allfields.
-// the node then is appended to the XML Separation file
-QDomElement getTableXML(QDomDocument doc, TtableDef table)
-{
-    QDomElement tnode;
-    QDomElement gnode;
-    tnode = doc.createElement("table");
-    tnode.setAttribute("name",table.name);
-    gnode = doc.createElement("group");
-    gnode.setAttribute("name","main");
-    gnode.setAttribute("description",fixString(getDescForLanguage(table.desc,getLanguageCode(getDefLanguage()))));
-    bool notmove;
-    for (int pos = 0; pos <= table.fields.count()-1;pos++)
-    {
-        notmove = false;
-        if (table.fields[pos].key == false)
-        {
-            if ((table.fields[pos].name == "surveyid") || (table.fields[pos].name == "originid") || (table.fields[pos].name == "rowuuid") || (table.fields[pos].name == "_submitted_by") || (table.fields[pos].name == "_submitted_date") || (table.fields[pos].name == "_geopoint"))
-                notmove = true;
-            if (table.fields[pos].key == true)
-                notmove = true;
-            QDomElement fnode;
-            fnode = doc.createElement("field");
-            fnode.setAttribute("name",table.fields[pos].name);
-            fnode.setAttribute("xmlcode",table.fields[pos].xmlCode);
-            fnode.setAttribute("description",fixString(getDescForLanguage(table.fields[pos].desc,getLanguageCode(getDefLanguage()))));
-            if (notmove)
-                fnode.setAttribute("notmove","true");
-            else
-                fnode.setAttribute("notmove","false");
-            gnode.appendChild(fnode);
-        }
-    }
-    tnode.appendChild(gnode);
-    return tnode;
-}
-
-// This function check the tables. If the table has more than 60 relationships creates a separation file using UUID as file name
-// The separation file then can be used as an input parameter to separate the tables into sections
-int checkTables(QString sepOutFile)
+bool checkTables2()
 {
     int pos;
     int pos2;
-    int rfcount;
     int tmax;
     tmax = tables.count();
-    bool error;
-    error = false;
-    QDomDocument outputdoc;
-    outputdoc = QDomDocument("ODKSeparationFile");
-    QDomElement root;
-    root = outputdoc.createElement("ODKSeparationXML");
-    root.setAttribute("version", "1.0");
-    outputdoc.appendChild(root);
-    int count;
-    count = 0;
-    int fcount;
+    int rfcount;
+    int select_count;
+    QList <Ttblwitherror > tables_with_error;
     for (pos = 0; pos <= tmax-1;pos++)
     {
         rfcount = 0;
-        fcount = 0;
+        select_count = 0;
         for (pos2 = 0; pos2 <= tables[pos].fields.count()-1;pos2++)
         {
             if (!tables[pos].fields[pos2].rTable.isEmpty())
+            {
+                if (isRelatedTableLookUp(tables[pos].fields[pos2].rTable))
+                    select_count = select_count + 1;
                 rfcount++;
-            fcount++;
+            }
         }
-        if ((rfcount > 60) || (fcount >= 100))
+        if (rfcount > 64)
         {
-            root.appendChild(getTableXML(outputdoc,tables[pos]));
-            count++;
-            error = true;
+            Ttblwitherror aTable;
+            aTable.name = tables[pos].name;
+            aTable.num_selects = select_count + (rfcount - select_count);
+            tables_with_error.append(aTable);
         }
     }
-    if (error)
+    if (tables_with_error.count() > 0)
     {
-        QUuid id;
-        id = QUuid::createUuid();
-        QString fname;
-        fname = id.toString();
-        fname = fname.replace("{","");
-        fname = fname.replace("}","");
-        fname = fname.right(12);
-        QFile file;
-        if (sepOutFile == "")
-            file.setFileName(fname + ".xml");
-        else
-            file.setFileName(sepOutFile);
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text))
-        {
-            QTextStream out(&file);
-            out.setCodec("UTF-8");
-            outputdoc.save(out,1,QDomNode::EncodingFromTextStream);
-            file.close();
-        }
-        else
-        {
-            log("Cannot create separation file");
-            return 1;
-        }
-
-        QString sepFileName;
-        if (sepOutFile == "")
-        {
-            QDir dir(".");
-            sepFileName = dir.absolutePath() + dir.separator() + fname + ".xml";
-        }
-        else
-        {
-            QDir dir;
-            sepFileName = dir.absoluteFilePath(sepOutFile);
-        }
         if (outputType == "h")
-            log("The separation file: " + sepFileName + " has been created use. Edit it and use it as an input.");
+        {
+            log("The following tables have more than 64 selects:");
+            for (pos = 0; pos < tables_with_error.count(); pos++)
+            {
+                log(tables_with_error[pos].name + " with " + QString::number(tables_with_error[pos].num_selects) + " selects.");
+            }
+            log("");
+            log("Some notes on this restriction and how to correct it:");
+            log("We tent to organize our ODK forms in sections with questions around a topic. For example: \"livestock inputs\" or \"crops sales\".\n");
+            log("These sections have type = \"begin/end group\". We also organize questions that must be repeated in sections with type = \"begin/end repeat.\"\n");
+            log("ODK Tools store repeats as separate tables (like different Excel sheets) however groups are not. ODK tools store all items (questions, notes, calculations, etc.) outside repeats into a table called \"maintable\". Thus \"maintable\" usually end up with several items and if your ODK form have many selects then the \"maintable\" could potentially have more than 64 selects. ODK Tools can only handle 64 selects per table.\n");
+            log("You can bypass this restriction by creating groups of items inside repeats BUT WITH repeat_count = 1. A repeat with repeat_count = 1 will behave in the same way as a group but ODKTools will create a new table for it to store all its items. Eventually if you export the data to Excel your items will be organized in different sheets each representing a table.\n");
+            log("Please edit your ODK XLS/XLSX file, group several items inside repeats with repeat_count = 1 and run this process again.");
+            return true;
+        }
         else
         {
             QDomDocument XMLResult;
@@ -5249,18 +5027,19 @@ int checkTables(QString sepOutFile)
             QDomElement XMLRoot;
             XMLRoot = XMLResult.createElement("XMLResult");
             XMLResult.appendChild(XMLRoot);
-            QDomElement eSepFile;
-            eSepFile = XMLResult.createElement("sepfile");
-            QDomText vSepFile;
-            vSepFile = XMLResult.createTextNode(sepFileName);
-            eSepFile.appendChild(vSepFile);
-            XMLRoot.appendChild(eSepFile);
+            for (pos = 0; pos < tables_with_error.count(); pos++)
+            {
+                QDomElement eTable;
+                eTable = XMLResult.createElement("table");
+                eTable.setAttribute("name",tables_with_error[pos].name);
+                eTable.setAttribute("selects",tables_with_error[pos].num_selects);
+                XMLRoot.appendChild(eTable);
+            }
             log(XMLResult.toString());
+            return true;
         }
-        exit(2);
     }
-    else
-        return 0;
+    return false;
 }
 
 //Returns the index of a language by its code
@@ -5318,16 +5097,13 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> insertXMLArg("I","xmlinsert","Output lookup values in XML format. Default ./insert.xml",false,"./insert.xml","string");
     TCLAP::ValueArg<std::string> metadataArg("m","outputmetadata","Output metadata file. Default ./metadata.sql",false,"./metadata.sql","string");
     TCLAP::ValueArg<std::string> impxmlArg("f","outputxml","Output xml manifest file. Default ./manifest.xml",false,"./manifest.xml","string");
-    TCLAP::ValueArg<std::string> prefixArg("p","prefix","Prefix for each table. _ is added to the prefix. Default no prefix",false,"","string");
-    TCLAP::ValueArg<std::string> sepArg("s","separationfile","Separation file to use",false,"","string");
-    TCLAP::ValueArg<std::string> sepOutputArg("S","separationoutputfile","Separation file to writen if required. By default a auto generated file will be created",false,"","string");
+    TCLAP::ValueArg<std::string> prefixArg("p","prefix","Prefix for each table. _ is added to the prefix. Default no prefix",false,"","string");    
     TCLAP::ValueArg<std::string> langArg("l","otherlanguages","Other languages. For example: (en)English,(es)Español. Required if ODK form has multiple languages",false,"","string");
     TCLAP::ValueArg<std::string> defLangArg("d","deflanguage","Default language. For example: (en)English. If not indicated then English will be asumed",false,"(en)English","string");
     TCLAP::ValueArg<std::string> transFileArg("T","translationfile","Output translation file",false,"./iso639.sql","string");
     TCLAP::ValueArg<std::string> yesNoStringArg("y","yesnostring","Yes and No strings in the default language in the format \"String|String\". This will allow the tool to identify Yes/No lookup tables and exclude them. This is not case sensitive. For example, if the default language is Spanish this value should be indicated as \"Si|No\". If empty English \"Yes|No\" will be assumed",false,"Yes|No","string");
     TCLAP::ValueArg<std::string> tempDirArg("e","tempdirectory","Temporary directory. ./tmp by default",false,"./tmp","string");
-    TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");
-    TCLAP::SwitchArg groupsSwitch("G","includegroups","Include groups as tables", cmd, false);
+    TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");    
     TCLAP::SwitchArg justCheckSwitch("K","justCheck","Just check of main inconsistencies and report back", cmd, false);
     TCLAP::UnlabeledMultiArg<std::string> suppFiles("supportFile", "support files", false, "string");
 
@@ -5348,15 +5124,13 @@ int main(int argc, char *argv[])
     cmd.add(insertXMLArg);
     cmd.add(metadataArg);
     cmd.add(impxmlArg);
-    cmd.add(prefixArg);
-    cmd.add(sepArg);
+    cmd.add(prefixArg);    
     cmd.add(langArg);
     cmd.add(defLangArg);
     cmd.add(transFileArg);
     cmd.add(yesNoStringArg);
     cmd.add(tempDirArg);
-    cmd.add(outputTypeArg);
-    cmd.add(sepOutputArg);
+    cmd.add(outputTypeArg);    
     cmd.add(suppFiles);
 
     //Parsing the command lines
@@ -5375,8 +5149,7 @@ int main(int argc, char *argv[])
             return 1;
         }
     }
-
-    includeGroups = groupsSwitch.getValue();
+    loadInvalidFieldNames();
     justCheck = justCheckSwitch.getValue();
     //Getting the variables from the command
     QString input = QString::fromUtf8(inputArg.getValue().c_str());
@@ -5389,8 +5162,6 @@ int main(int argc, char *argv[])
     QString xmlCreateFile = QString::fromUtf8(XMLCreateArg.getValue().c_str());
     QString mTable = QString::fromUtf8(tableArg.getValue().c_str());
     QString mainVar = QString::fromUtf8(mainVarArg.getValue().c_str());
-    QString sepFile = QString::fromUtf8(sepArg.getValue().c_str());
-    QString sepOutFile = QString::fromUtf8(sepOutputArg.getValue().c_str());
     QString lang = QString::fromUtf8(langArg.getValue().c_str());
     QString defLang = QString::fromUtf8(defLangArg.getValue().c_str());
     QString transFile = QString::fromUtf8(transFileArg.getValue().c_str());
@@ -5561,28 +5332,11 @@ int main(int argc, char *argv[])
     returnValue = processJSON(input,mTable.trimmed(),mainVar.trimmed(),dir,dblite);
     if (returnValue == 0)
     {
-        //dumpTablesForDebug();
-        if (sepFile != "") //If we have a separation file
+        if (checkTables2() == true)
         {
-            //log("Separating tables");
-            QFile file(sepFile);
-            if (file.exists())
-            {
-                if (separeteTables(sepFile) == 1) //Separate the tables using the file
-                    return 1;
-            }
+            exit(2);
         }
-        appendUUIDs();
-        //log("Checking tables");
-        if (!justCheck)
-        {
-            if (checkTables(sepOutFile) != 0) //Check the tables to see if they have less than 60 related fields. If so a separation file is created
-            {
-                exit(2); //If a table has more than 60 related field then exit
-            }
-        }
-
-        //log("Generating output files");
+        appendUUIDs();        
         if (!justCheck)
             generateOutputFiles(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
     }
