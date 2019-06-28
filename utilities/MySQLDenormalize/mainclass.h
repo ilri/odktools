@@ -33,7 +33,9 @@ License along with MySQLDenormalize.  If not, see <http://www.gnu.org/licenses/l
 #include <mongocxx/collection.hpp>
 #include <mongocxx/stdx.hpp>
 #include <mongocxx/uri.hpp>
+#include <boost/property_tree/ptree.hpp>
 
+namespace pt = boost::property_tree;
 
 struct tableDef
 {
@@ -75,11 +77,13 @@ private:
     //QList<TfieldDef> getDataByRowUUID(QString tableToSearch, QString UUIDToSearch);
     void processMapFile(mongocxx::collection collection, QString fileName);
     void parseMapFile(QList<TUUIDDef> dataList, QDomNode node, QJsonObject &json, QString currentTable, QJsonObject &parent);
+    void parseMapFileWithBoost(QList <TUUIDDef> dataList, QDomNode node, pt::ptree &json, QString currentTable, pt::ptree &parent);
     void parseDataToMongo(mongocxx::collection collection, QString table, QString fileName);
     QList<TfieldDef> getDataByRowUUID2(mongocxx::collection collection, QString tableToSearch, QString UUIDToSearch);
     //QList<TfieldDef> getDataByRowUUID3(QSqlDatabase db, QString tableToSearch, QString UUIDToSearch);
     QList<TfieldDef> getDataByRowUUID4(QList<TUUIDDef> dataList, QString tableToSearch, QString UUIDToSearch);
     void getAllUUIDs(QDomNode node, QStringList &UUIDs);
+    void remove_msels(QDomNode node);
     QString host;
     QString port;
     QString user;
