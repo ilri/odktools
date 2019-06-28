@@ -1258,7 +1258,7 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
         while (!child.isNull())
         {
             if (child.toElement().nodeName() == "field")
-            {
+            {                
                 //We not process referenced fields because they come as part of the key
                 if (child.toElement().attribute("reference") == "false")
                 {
@@ -1355,7 +1355,19 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
             if ((tableXMLCode == "main") || (group == "true") || (osm == "true") || (loop == "true"))
                 createSQL(db,jsonData.toVariantMap(),tableCode,fields,keys,emptyMap,true);   //Change the variant map later in
             else
-                createSQL(db,jsonData.toVariantMap(),tableCode,fields,keys,emptyMap,false);   //Change the variant map later in
+            {
+                QString tableXMLCode = table.toElement().attribute("xmlcode","");
+                if (tableXMLCode != "")
+                {
+                    QJsonArray JSONArray;
+                    JSONArray = jsonData.value(tableXMLCode).toArray();
+                    for (int item = 0; item < JSONArray.count(); item++) //For each item in the array
+                    {
+                        QJsonObject JSONItem = JSONArray[item].toObject();
+                        createSQL(db,JSONItem.toVariantMap(),tableCode,fields,keys,emptyMap,false);
+                    }
+                }
+            }
         }
     }
     return 0;
