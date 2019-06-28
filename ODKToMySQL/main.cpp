@@ -53,6 +53,15 @@ struct tblwitherror
     int num_selects;
 };
 typedef tblwitherror Ttblwitherror;
+QStringList duplicatedTables;
+
+struct duplicatedField
+{
+    QString table;
+    QStringList fields;
+};
+typedef duplicatedField TduplicatedField;
+QList<TduplicatedField> duplicatedFields;
 
 void isFieldValid(QString field)
 {
@@ -1063,6 +1072,113 @@ typedef tableDef TtableDef;
 
 QList<TtableDef> tables; //List of tables
 
+
+void checkTableName(QString tableName)
+{
+    for (int pos = 0; pos < tables.count(); pos++)
+    {
+        if (tables[pos].name == tableName)
+        {
+            duplicatedTables.append(tableName);
+        }
+    }
+}
+
+//Checks wether a field already exist in a table
+void checkFieldName(TtableDef table, QString fieldName)
+{
+    for (int pos = 0; pos < table.fields.count(); pos++)
+    {
+        if (table.fields[pos].name == fieldName)
+        {
+            int idx;
+            idx = -1;
+            for (int pos2 = 0; pos2 < duplicatedFields.count(); pos2++)
+            {
+                if (duplicatedFields[pos2].table == table.name)
+                {
+                    idx = pos2;
+                    break;
+                }
+            }
+            if (idx == -1)
+            {
+                TduplicatedField duplicated;
+                duplicated.table = table.name;
+                duplicated.fields.append(fieldName);
+                duplicatedFields.append(duplicated);
+            }
+            else
+            {
+                duplicatedFields[idx].fields.append(fieldName);
+            }
+        }
+    }
+}
+
+void reportDuplicatedTables()
+{
+    QDomDocument XMLResult;
+    XMLResult = QDomDocument("XMLResult");
+    QDomElement XMLRoot;
+    XMLRoot = XMLResult.createElement("XMLResult");
+    XMLResult.appendChild(XMLRoot);
+    if (outputType != "m")
+    {
+        log("The following tables have the same name: ");
+    }
+    for (int pos = 0; pos < duplicatedTables.count(); pos++)
+    {
+        if (outputType != "m")
+        {
+            log("\tTable: " + duplicatedTables[pos]);
+        }
+        QDomElement eDuplicatedItem;
+        eDuplicatedItem = XMLResult.createElement("duplicatedItem");
+        eDuplicatedItem.setAttribute("tableName",duplicatedTables[pos]);
+        XMLRoot.appendChild(eDuplicatedItem);
+    }
+    if (outputType == "m")
+        log(XMLResult.toString());
+}
+
+void reportDuplicatedFields()
+{
+    QDomDocument XMLResult;
+    XMLResult = QDomDocument("XMLResult");
+    QDomElement XMLRoot;
+    XMLRoot = XMLResult.createElement("XMLResult");
+    XMLResult.appendChild(XMLRoot);
+    if (outputType != "m")
+    {
+        log("The following tables have duplicated fields: ");
+    }
+    for (int pos = 0; pos < duplicatedFields.count(); pos++)
+    {
+        if (outputType != "m")
+        {
+            log("\tTable: " + duplicatedFields[pos].table);
+        }
+        QDomElement eDuplicatedTable;
+        eDuplicatedTable = XMLResult.createElement("duplicatedTable");
+        eDuplicatedTable.setAttribute("tableName",duplicatedFields[pos].table);
+        for (int pos2 = 0; pos2 < duplicatedFields[pos].fields.count(); pos2++)
+        {
+            if (outputType != "m")
+            {
+                log("\t\tField: " + duplicatedFields[pos].fields[pos2]);
+            }
+            QDomElement eDuplicatedField;
+            eDuplicatedField = XMLResult.createElement("duplicatedField");
+            eDuplicatedField.setAttribute("fieldName",duplicatedFields[pos].fields[pos2]);
+            eDuplicatedTable.appendChild(eDuplicatedField);
+        }
+        XMLRoot.appendChild(eDuplicatedTable);
+    }
+    if (outputType == "m")
+        log(XMLResult.toString());
+}
+
 // This function return the XML create element of a table.
 // Used to produce the XML create file so a table can be a child of another table
 QDomElement getTableCreateElement(QString table)
@@ -2001,7 +2117,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "geopoint")
     {
         result.type = "varchar";
-        result.size = 50;
+        result.size = 80;
     }
     if (ODKFieldType == "calculate")
     {
@@ -3107,6 +3223,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                     tableIndex = tableIndex + 1;
                     TtableDef aTable;
                     aTable.name = fixField(variableName.toLower());
+                    checkTableName(aTable.name);
 
                     for (int lng = 0; lng < languages.count();lng++)
                     {
@@ -3289,6 +3406,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                                 aField.desc.append(fieldDesc);
                             }
                         }
+                        checkFieldName(tables[tblIndex],aField.name);
                         tables[tblIndex].fields.append(aField);
                     }
                     else
@@ -3449,6 +3567,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                                 aField.rTable = "";
                                 aField.rField = "";
                             }
+                            checkFieldName(tables[tblIndex],aField.name);
                             tables[tblIndex].fields.append(aField);
 
                             //We add here the has other field
@@ -3474,6 +3593,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                                 oField.rTable = "";
                                 oField.size = 120;
                                 oField.type = "varchar";
+                                checkFieldName(tables[tblIndex],oField.name);
                                 tables[tblIndex].fields.append(oField);
                             }
                         }                        
@@ -3674,6 +3794,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                                 aField.isMultiSelect = false;
                                 aField.multiSelectTable = "";
                             }
+                            checkFieldName(tables[tblIndex],aField.name);
                             tables[tblIndex].fields.append(aField); //Appends the multi select varchar field to the list
 
                             //We add here the has other field
@@ -3699,6 +3820,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                                 oField.rTable = "";
                                 oField.size = 120;
                                 oField.type = "varchar";
+                                checkFieldName(tables[tblIndex],oField.name);
                                 tables[tblIndex].fields.append(oField);
                             }
 
@@ -4315,9 +4437,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> insertXMLArg("I","xmlinsert","Output lookup values in XML format. Default ./insert.xml",false,"./insert.xml","string");
     TCLAP::ValueArg<std::string> metadataArg("m","outputmetadata","Output metadata file. Default ./metadata.sql",false,"./metadata.sql","string");
     TCLAP::ValueArg<std::string> impxmlArg("f","outputxml","Output xml manifest file. Default ./manifest.xml",false,"./manifest.xml","string");
-    TCLAP::ValueArg<std::string> prefixArg("p","prefix","Prefix for each table. _ is added to the prefix. Default no prefix",false,"","string");
-    TCLAP::ValueArg<std::string> sepArg("s","separationfile","Separation file to use",false,"","string");
-    TCLAP::ValueArg<std::string> sepOutputArg("S","separationoutputfile","Separation file to writen if required. By default a auto generated file will be created",false,"","string");
+    TCLAP::ValueArg<std::string> prefixArg("p","prefix","Prefix for each table. _ is added to the prefix. Default no prefix",false,"","string");    
     TCLAP::ValueArg<std::string> langArg("l","otherlanguages","Other languages. For example: (en)English,(es)Español. Required if ODK form has multiple languages",false,"","string");
     TCLAP::ValueArg<std::string> defLangArg("d","deflanguage","Default language. For example: (en)English. If not indicated then English will be asumed",false,"(en)English","string");
     TCLAP::ValueArg<std::string> transFileArg("T","translationfile","Output translation file",false,"./iso639.sql","string");
@@ -4344,15 +4464,13 @@ int main(int argc, char *argv[])
     cmd.add(insertXMLArg);
     cmd.add(metadataArg);
     cmd.add(impxmlArg);
-    cmd.add(prefixArg);
-    cmd.add(sepArg);
+    cmd.add(prefixArg);    
     cmd.add(langArg);
     cmd.add(defLangArg);
     cmd.add(transFileArg);
     cmd.add(yesNoStringArg);
     cmd.add(tempDirArg);
-    cmd.add(outputTypeArg);
-    cmd.add(sepOutputArg);
+    cmd.add(outputTypeArg);    
     cmd.add(suppFiles);
 
     //Parsing the command lines
@@ -4383,8 +4501,6 @@ int main(int argc, char *argv[])
     QString xmlCreateFile = QString::fromUtf8(XMLCreateArg.getValue().c_str());
     QString mTable = QString::fromUtf8(tableArg.getValue().c_str());
     QString mainVar = QString::fromUtf8(mainVarArg.getValue().c_str());
-    QString sepFile = QString::fromUtf8(sepArg.getValue().c_str());
-    QString sepOutFile = QString::fromUtf8(sepOutputArg.getValue().c_str());
     QString lang = QString::fromUtf8(langArg.getValue().c_str());
     QString defLang = QString::fromUtf8(defLangArg.getValue().c_str());
     QString transFile = QString::fromUtf8(transFileArg.getValue().c_str());
@@ -4552,25 +4668,23 @@ int main(int argc, char *argv[])
     returnValue = processXLSX(input,mTable.trimmed(),mainVar.trimmed(),dir,dblite);
     if (returnValue == 0)
     {
-//        //dumpTablesForDebug();
-//        if (sepFile != "") //If we have a separation file
-//        {
-//            //log("Separating tables");
-//            QFile file(sepFile);
-//            if (file.exists())
-//            {
-//                if (separeteTables(sepFile) == 1) //Separate the tables using the file  //TODO: If separation happens then we need to move multi-select tables to the end of the list
-//                    return 1;
-//            }
-//        }
-        appendUUIDs();
-        //log("Checking tables");
-        if (checkTables2()) //Check the tables to see if they have less than 60 related fields. If so a separation file is created
+        if (duplicatedTables.count() > 0)
         {
-            return 2; //If a table has more than 60 related field then exit
+            reportDuplicatedTables();
+            exit(22);
+        }
+        if (duplicatedFields.count() > 0)
+        {
+            reportDuplicatedFields();
+            exit(23);
+        }
+        appendUUIDs();        
+        if (checkTables2()) //Check the tables to see if they have less than 64 related fields
+        {
+            exit(2); //If a table has more than 60 related field then exit
         }
         if (checkLookupTables() != 0)
-            return 9;
+            exit(9);
         //log("Generating SQL scripts");
         if (!justCheck)
             genSQL(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
@@ -4604,7 +4718,7 @@ int main(int argc, char *argv[])
             }
             log(XMLResult.toString());
         }
-        return 16;
+        exit(24);
     }
 
     if (outputType == "h")
