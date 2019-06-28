@@ -2132,7 +2132,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "add location prompt")
     {
         result.type = "varchar";
-        result.size = 50;
+        result.size = 80;
     }
     if (ODKFieldType == "audio")
     {
@@ -2195,7 +2195,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "geopoint")
     {
         result.type = "varchar";
-        result.size = 50;
+        result.size = 80;
     }
     if (ODKFieldType == "get device id")
     {
@@ -2232,7 +2232,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "gps")
     {
         result.type = "varchar";
-        result.size = 50;
+        result.size = 80;
     }
     if (ODKFieldType == "int")
     {
@@ -2247,7 +2247,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "location")
     {
         result.type = "varchar";
-        result.size = 50;
+        result.size = 80;
     }
     if (ODKFieldType == "number of days in last month")
     {
@@ -2315,7 +2315,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "q geopoint")
     {
         result.type = "varchar";
-        result.size = 50;
+        result.size = 80;
     }
     if (ODKFieldType == "q image")
     {
@@ -2330,7 +2330,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "q location")
     {
         result.type = "varchar";
-        result.size = 50;
+        result.size = 80;
     }
     if (ODKFieldType == "q picture")
     {
