@@ -33,7 +33,11 @@ License along with XMLToJSON.  If not, see <http://www.gnu.org/licenses/lgpl-3.0
 #include <QStringList>
 #include <unistd.h>
 #include <stdio.h>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/foreach.hpp>
 
+namespace pt = boost::property_tree;
 
 QString mainTag;
 
@@ -42,6 +46,120 @@ void log(QString message)
     QString temp;
     temp = message + "\n";
     printf("%s",temp.toUtf8().data());
+}
+
+pt::ptree processNodeBoost(QStringList repeatArray,bool group,QDomNode node,pt::ptree &json)
+{
+    QDomNode start;
+    start = node.firstChild();
+    QStringList tagsArray;
+    pt::ptree groupArray; //QJsonArray groupArray;
+
+    while (!start.isNull())
+    {
+        //This will get the parent tags of the item to them form the name no the key in the JSON
+        if (tagsArray.length() == 0)
+        {
+            QDomNode parent;
+            parent= start.parentNode();
+            while (!parent.isNull())
+            {
+                if ((parent.toElement().tagName() != "") && (mainTag != parent.toElement().tagName()))
+                    tagsArray.prepend(parent.toElement().tagName()); //Preend them so we have the correct order
+                parent = parent.parentNode();
+            }
+        }
+
+        //If this tag does not have children (is not a repeat or a group)
+        if (start.firstChildElement().isNull() == true)
+        {
+            if (!start.firstChild().nodeValue().isNull())
+            {
+                //Forms the key name using / as separator
+                QString varName;
+                if (tagsArray.length() >= 1)
+                    varName = tagsArray.join("/") + "/" + start.toElement().tagName();
+                else
+                    varName = start.toElement().tagName();
+                //If we are not processing a group then add the single var otherwise create an array for the group
+                if (group == false)
+                    json.put(varName.toStdString(),start.firstChild().nodeValue().toStdString()); //json[varName] = start.firstChild().nodeValue();
+                else
+                {
+                    pt::ptree ajvar; //QJsonObject ajvar;
+                    ajvar.put(varName.toStdString(),start.firstChild().nodeValue().toStdString()); //ajvar[varName] = start.firstChild().nodeValue();
+                    groupArray.push_front(std::make_pair("", ajvar));//groupArray.append(ajvar);
+                }
+            }
+        }
+        else
+        {
+            //This node has child. So is a group or a repeat
+            QString varName;
+            if (tagsArray.length() >= 1)
+                varName = tagsArray.join("/") + "/" + start.toElement().tagName();
+            else
+                varName = start.toElement().tagName();
+
+            if (repeatArray.indexOf(start.toElement().tagName()) >= 0)
+            {
+                //If its a repeat then enter into its content and store it in repContent
+                pt::ptree repContent;//QJsonObject repContent;
+                processNodeBoost(repeatArray,false,start,repContent);
+                //If the repeat tag is not in the JSON then create the key as an array and append the content
+                //otherwise then just append the content
+                pt::ptree::const_assoc_iterator it;
+                it = json.find(varName.toStdString());
+                if (it == json.not_found())//if (json[varName].isNull())
+                {
+                    pt::ptree repArray;//QJsonArray repArray;
+                    repArray.push_front(std::make_pair("", repContent));//repArray.append(repContent);
+                    json.put_child(varName.toStdString(),repArray);//json[varName] = repArray;
+                }
+                else
+                {
+                    pt::ptree repArray;//QJsonArray repArray;
+                    repArray = json.get_child(varName.toStdString());//repArray = json[varName].toArray();
+                    repArray.push_front(std::make_pair("", repContent));//repArray.append(repContent);
+                    json.put_child(varName.toStdString(),repArray); //json[varName] = repArray;
+                }
+            }
+            else
+            {
+                //If its a group then we need to extract the elements recursively because they don't generate an array
+                pt::ptree elems;//QJsonArray elems;
+                elems = processNodeBoost(repeatArray,true,start,json);
+                BOOST_FOREACH(boost::property_tree::ptree::value_type const&v, elems.get_child(""))
+                {
+                    QStringList keys;
+                    QStringList values;
+                    const boost::property_tree::ptree &subtree = v.second;
+                    BOOST_FOREACH(  boost::property_tree::ptree::value_type const&v2, subtree )
+                    {
+                        const std::string & key = v2.first;
+                        keys.append(QString::fromStdString(key));
+                        values.append(QString::fromStdString(v2.second.data()));
+                    }
+                    QString key;
+                    key = keys[0];
+                    json.put(key.toStdString(),values[0].toStdString());
+                }
+//                for (int pos = 0; pos <= elems.count()-1;pos++)
+//                {
+//                    QString key;
+//                    QStringList keys;
+//                    keys = elems[pos].toObject().keys();
+//                    key = keys[0];
+//                    json[key] = elems[pos].toObject().value(key).toString();
+//                }
+            }
+        }
+        start = start.nextSibling();
+    }
+    if (group)
+        return groupArray;
+    pt::ptree empty;
+    return empty;
 }
 
 QJsonArray processNode(QStringList repeatArray,bool group,QDomNode node,QJsonObject &json)
@@ -242,6 +360,10 @@ int main(int argc, char *argv[])
     processNode(repeatArray,false,root,JSONRoot);
     JSONRoot["_xform_id_string"] = root.attribute("id","");
 
+    //pt::ptree JSONRoot;
+    //processNodeBoost(repeatArray,false,root,JSONRoot);
+    //JSONRoot.put("_xform_id_string",root.attribute("id","").toStdString());
+
     if (withStdIn)
     {
         //Append any keys comming from stdin
@@ -250,6 +372,7 @@ int main(int argc, char *argv[])
         for (int n=0; n <= keys.count()-1; n++)
         {
             JSONRoot[keys[n]] = extRoot.value(keys[n]).toString();
+            //JSONRoot.put(keys[n].toStdString(),extRoot.value(keys[n]).toString().toStdString());
         }
     }
     QJsonDocument saveDoc(JSONRoot);
@@ -257,6 +380,7 @@ int main(int argc, char *argv[])
     //If no output file was given the print to stdout
     if (!jsonFile.isEmpty())
     {
+        //pt::write_json(jsonFile.toStdString(),JSONRoot);
         QFile saveFile(jsonFile);
         if (!saveFile.open(QIODevice::WriteOnly)) {
             log("Couldn't open output JSON file.");
@@ -268,6 +392,7 @@ int main(int argc, char *argv[])
     else
     {
         QTextStream out(stdout);
+        //out << QString::fromStdString(JSONRoot.data());
         out << saveDoc.toJson();
     }
 
