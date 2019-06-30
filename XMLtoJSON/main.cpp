@@ -134,20 +134,34 @@ pt::ptree processNodeBoost(QStringList repeatArray,bool group,QDomNode node,pt::
                 BOOST_FOREACH(boost::property_tree::ptree::value_type const&v, elems.get_child(""))
                 {
                     count++;
-                    const std::string key = v.first;
-                    const std::string value = v.second.data();
-                    json.put(key,value);
+//                    const std::string &key = v.first;
+//                    const std::string &value = v.second.data();
+//                    qDebug() << "**********************88";
+//                    qDebug() << QString::fromStdString(key);
+//                    qDebug() << "------------------------";
+//                    qDebug() << QString::fromStdString(value);
+//                    qDebug() << "**********************88";
+//                    json.put(key,value);
 
                       //QStringList keys;
 //                    QStringList values;
-//                    const boost::property_tree::ptree &subtree = v.second;
-//                    BOOST_FOREACH(  boost::property_tree::ptree::value_type const&v2, subtree )
-//                    {
-//                        const std::string & key = v2.first;
-//                        keys.append(QString::fromStdString(key));
-//                        values.append(QString::fromStdString(v2.second.data()));
-//                    }
-//                    QString key;
+
+                    const boost::property_tree::ptree &subtree = v.second;
+                    BOOST_FOREACH(  boost::property_tree::ptree::value_type const&v2, subtree )
+                    {
+                        const std::string & key = v2.first;
+                        const std::string & value = v2.second.data();
+                        //keys.append(QString::fromStdString(key));
+                        //values.append(QString::fromStdString(v2.second.data()));
+                        qDebug() << "**********************88";
+                        qDebug() << QString::fromStdString(key);
+                        qDebug() << "------------------------";
+                        qDebug() << QString::fromStdString(value);
+                        qDebug() << "**********************88";
+                        json.put(key,value);
+                    }
+
+                    //                    QString key;
 //                    key = keys[0];
 //                    json.put(key.toStdString(),values[0].toStdString());
                 }
@@ -375,14 +389,14 @@ int main(int argc, char *argv[])
     mainTag = root.tagName();
     //QString empty;
 
-    QJsonObject JSONRoot;
-    JSONRoot["_xform_id_string"] = root.attribute("id","");
-    processNode(repeatArray,false,root,JSONRoot);
+//    QJsonObject JSONRoot;
+//    JSONRoot["_xform_id_string"] = root.attribute("id","");
+//    processNode(repeatArray,false,root,JSONRoot);
 
 
-//    pt::ptree JSONRoot;
-//    JSONRoot.put("_xform_id_string",root.attribute("id","").toStdString());
-//    processNodeBoost(repeatArray,false,root,JSONRoot);
+    pt::ptree JSONRoot;
+    JSONRoot.put("_xform_id_string",root.attribute("id","").toStdString());
+    processNodeBoost(repeatArray,false,root,JSONRoot);
 
 
     if (withStdIn)
@@ -392,29 +406,29 @@ int main(int argc, char *argv[])
         keys = extRoot.keys();
         for (int n=0; n <= keys.count()-1; n++)
         {
-            JSONRoot[keys[n]] = extRoot.value(keys[n]).toString();
-            //JSONRoot.put(keys[n].toStdString(),extRoot.value(keys[n]).toString().toStdString());
+            //JSONRoot[keys[n]] = extRoot.value(keys[n]).toString();
+            JSONRoot.put(keys[n].toStdString(),extRoot.value(keys[n]).toString().toStdString());
         }
     }
-    QJsonDocument saveDoc(JSONRoot);
+    //QJsonDocument saveDoc(JSONRoot);
 
     //If no output file was given the print to stdout
     if (!jsonFile.isEmpty())
     {
-        //pt::write_json(jsonFile.toStdString(),JSONRoot);
-        QFile saveFile(jsonFile);
-        if (!saveFile.open(QIODevice::WriteOnly)) {
-            log("Couldn't open output JSON file.");
-            return 1;
-        }
-        saveFile.write(saveDoc.toJson());
-        saveFile.close();
+        pt::write_json(jsonFile.toStdString(),JSONRoot);
+//        QFile saveFile(jsonFile);
+//        if (!saveFile.open(QIODevice::WriteOnly)) {
+//            log("Couldn't open output JSON file.");
+//            return 1;
+//        }
+//        saveFile.write(saveDoc.toJson());
+//        saveFile.close();
     }
     else
     {
         QTextStream out(stdout);
-        //out << QString::fromStdString(JSONRoot.data());
-        out << saveDoc.toJson();
+        out << QString::fromStdString(JSONRoot.data());
+        //out << saveDoc.toJson();
     }
 
     return 0;
