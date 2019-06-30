@@ -4425,7 +4425,7 @@ int main(int argc, char *argv[])
     title = title + " * ODK XLSX file.                                                    * \n";
     title = title + " ********************************************************************* \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.1");
 
     TCLAP::ValueArg<std::string> inputArg("x","inputXLSX","Input ODK XLSX survey file",true,"","string");
     TCLAP::ValueArg<std::string> tableArg("t","mainTable","Name of the master table for the target schema. ODK surveys do not have a master table however this is neccesary to store ODK variables that are not inside a repeat. Please give a name for the master table for maintable, mainmodule, coverinformation, etc.",true,"","string");

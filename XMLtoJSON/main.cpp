@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
     title = title + " * to use software like FormShare or FormHub.                        * \n";
     title = title + " ********************************************************************* \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "2.0");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.1");
 
     TCLAP::ValueArg<std::string> xmlArg("i","xml","Input XML File",true,"","string");
     TCLAP::ValueArg<std::string> jsonArg("o","json","Input JSON File",false,"","string");

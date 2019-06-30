@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     title = title + " * exported due to the sensitivity of its information.                 * \n";
     title = title + " *********************************************************************** \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().data(), ' ', "1.0");
+    TCLAP::CmdLine cmd(title.toUtf8().data(), ' ', "1.1");
     //Required arguments
     TCLAP::ValueArg<std::string> hostArg("H","host","MySQL host. Default localhost",false,"localhost","string");
     TCLAP::ValueArg<std::string> portArg("P","port","MySQL port. Default 3306.",false,"3306","string");
