@@ -650,7 +650,7 @@ int main(int argc, char *argv[])
     title = title + " * losing data between versions.                                     * \n";
     title = title + " ********************************************************************* \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.1");
 
     TCLAP::ValueArg<std::string> aArg("a","inputa","Input create XML file A (later)",true,"","string");
     TCLAP::ValueArg<std::string> bArg("b","inputb","Input create XML file B (former)",true,"","string");

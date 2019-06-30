@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
     title = title + " * compareInsertXML.                                                 * \n";
     title = title + " ********************************************************************* \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.1");
 
     TCLAP::ValueArg<std::string> inputArg("i","input","Input insert XML file",true,"","string");
     TCLAP::ValueArg<std::string> outputArg("o","output","Output SQL file",false,"./insert.sql","string");

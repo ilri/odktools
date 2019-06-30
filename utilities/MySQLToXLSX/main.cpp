@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     title = title + " * exported due to the sensitivity of its information.                 * \n";
     title = title + " *********************************************************************** \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().data(), ' ', "1.0");
+    TCLAP::CmdLine cmd(title.toUtf8().data(), ' ', "1.1");
     //Required arguments
     TCLAP::ValueArg<std::string> hostArg("H","host","MySQL host. Default localhost",false,"localhost","string");
     TCLAP::ValueArg<std::string> portArg("P","port","MySQL port. Default 3306.",false,"3306","string");
@@ -45,7 +45,11 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> createArg("x","createxml","Input create XML file",true,"","string");
     TCLAP::ValueArg<std::string> outArg("o","output","Output XLSX file",true,"","string");
     TCLAP::ValueArg<std::string> tmpArg("T","tempdir","Temporary directory (./tmp by default)",false,"./tmp","string");
+    TCLAP::ValueArg<std::string> firstArg("f","firstsheetname","Name for the first sheet",false,"","string");
     TCLAP::SwitchArg remoteSwitch("i","includesensitive","Include sensitive information. False by default", cmd, false);
+    TCLAP::SwitchArg lookupSwitch("l","includelookups","Include lookup tables. False by default", cmd, false);
+    TCLAP::SwitchArg mselSwitch("m","includemultiselects","Include multi-select tables. False by default", cmd, false);
+
 
 
     cmd.add(hostArg);
@@ -56,12 +60,19 @@ int main(int argc, char *argv[])
     cmd.add(outArg);
     cmd.add(tmpArg);
     cmd.add(createArg);
+    cmd.add(firstArg);
     //Parsing the command lines
     cmd.parse( argc, argv );
 
     //Getting the variables from the command
     bool includeSensitive;
     includeSensitive = remoteSwitch.getValue();
+
+    bool includeLookUps;
+    includeLookUps = lookupSwitch.getValue();
+
+    bool includeMSels;
+    includeMSels = mselSwitch.getValue();
 
     QString host = QString::fromUtf8(hostArg.getValue().c_str());
     QString port = QString::fromUtf8(portArg.getValue().c_str());
@@ -71,9 +82,10 @@ int main(int argc, char *argv[])
     QString outputFile = QString::fromUtf8(outArg.getValue().c_str());
     QString tmpDir = QString::fromUtf8(tmpArg.getValue().c_str());
     QString createXML = QString::fromUtf8(createArg.getValue().c_str());
+    QString firstSheetName = QString::fromUtf8(firstArg.getValue().c_str());
 
     mainClass *task = new mainClass(&app);
-    task->setParameters(host,port,user,pass,schema,createXML,outputFile,includeSensitive,tmpDir);
+    task->setParameters(host,port,user,pass,schema,createXML,outputFile,includeSensitive,tmpDir, includeLookUps, includeMSels, firstSheetName);
     QObject::connect(task, SIGNAL(finished()), &app, SLOT(quit()));
     QTimer::singleShot(0, task, SLOT(run()));
     app.exec();

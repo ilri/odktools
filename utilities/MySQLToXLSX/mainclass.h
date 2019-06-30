@@ -28,7 +28,7 @@ class mainClass : public QObject
     Q_OBJECT
 public:
     explicit mainClass(QObject *parent = nullptr);
-    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool includeProtected, QString tempDir);
+    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool includeProtected, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName);
     int returnCode;
 signals:
     void finished();
@@ -54,6 +54,9 @@ private:
     QList<TtableDef> mainTables;
     QStringList tableNames;
     int letterIndex;
+    bool incLookups;
+    bool incmsels;
+    QString firstSheetName;
 };
 
 #endif // MAINCLASS_H

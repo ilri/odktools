@@ -35,7 +35,7 @@ License along with MySQLDenormalize.  If not, see <http://www.gnu.org/licenses/l
 #include <QJsonDocument>
 #include <QUuid>
 #include <boost/property_tree/xml_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
 #include <bsoncxx/builder/basic/array.hpp>
 #include <bsoncxx/builder/basic/document.hpp>
@@ -43,6 +43,7 @@ License along with MySQLDenormalize.  If not, see <http://www.gnu.org/licenses/l
 #include <bsoncxx/types.hpp>
 #include <mongocxx/options/find.hpp>
 #include <bsoncxx/stdx/string_view.hpp>
+#include <QDebug>
 
 #include <iostream>
 
@@ -59,7 +60,7 @@ void mainClass::log(QString message)
 {
     QString temp;
     temp = message + "\n";
-    printf(temp.toLocal8Bit().data());
+    printf("%s",temp.toLocal8Bit().data());
 }
 
 void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString table, QString mapDir, QString output, bool includeProtected, QString tempDir)
@@ -210,6 +211,141 @@ QList<TfieldDef> mainClass::getDataByRowUUID4(QList<TUUIDDef> dataList, QString 
 //    return records;
 //}
 
+void mainClass::parseMapFileWithBoost(QList <TUUIDDef> dataList, QDomNode node, pt::ptree &json, QString currentTable, pt::ptree &parent)
+{
+    QDomElement elem;
+    elem = node.toElement();
+    QString tableName;
+    QString UUID;
+    tableName = elem.attribute("table");
+    UUID = elem.attribute("uuid");
+    //Get the data for a UUID in a table and add it to the JSON object
+    QList<TfieldDef> records;
+    records = getDataByRowUUID4(dataList,tableName,UUID);
+    for (int pos = 0; pos <= records.count()-1; pos++)
+    {
+        json.put(records[pos].name.toStdString(), records[pos].value.toStdString()); //json[records[pos].name] = records[pos].value;
+    }
+    //If the current node has a child record then process the child
+    //by recursively call this process. The subtable is a JSON array
+    if (!node.firstChild().isNull())
+    {
+        elem = node.firstChild().toElement();
+        tableName = elem.attribute("table");
+        //json[tableName] = QJsonArray();
+        pt::ptree childObject; //QJsonObject childObject;
+        parseMapFileWithBoost(dataList,node.firstChild(),childObject,tableName,json);
+        pt::ptree array;
+        pt::ptree::const_assoc_iterator it;
+        it = json.find(tableName.toStdString());
+        if (it != json.not_found())
+            array = json.get_child(tableName.toStdString()); //QJsonArray array = json[tableName].toArray();
+        array.push_back(std::make_pair("", childObject)); //array.append(childObject);
+        json.put_child(tableName.toStdString(), array); //json[tableName] = array;
+
+    }
+    //If the current node has siblings.
+    if (!node.nextSibling().isNull())
+    {
+        QDomNode nextSibling;
+        nextSibling = node.nextSibling();
+        QString currTable;
+        currTable = currentTable;
+        //Go trhough each sibbling
+        while (!nextSibling.isNull())
+        {
+            elem = nextSibling.toElement();
+            tableName = elem.attribute("table");
+            UUID = elem.attribute("uuid");
+            //New siblings usually refer to records in the same table
+            //We only create an JSON Array if the table changes from
+            //one sibling to another
+            if (currTable != tableName)
+            {
+                //Each sibling table is stored as a JSON Array
+                pt::ptree array2;
+
+                pt::ptree::const_assoc_iterator it2;
+                it2= parent.find(tableName.toStdString());
+                if (it2 != parent.not_found())
+                    array2 = parent.get_child(tableName.toStdString()); //QJsonArray array2 = parent[tableName].toArray();
+                pt::ptree childObject2; //QJsonObject childObject2;
+                QList<TfieldDef> records2;
+                records2 = getDataByRowUUID4(dataList,tableName,UUID);
+                for (int pos = 0; pos <= records2.count()-1; pos++)
+                {
+                    childObject2.put(records2[pos].name.toStdString(),records2[pos].value.toStdString()); //childObject2[records2[pos].name] = records2[pos].value;
+                }
+                //If the sibling has a child then recursively call
+                //this function.
+                if (!nextSibling.firstChild().isNull())
+                {
+                    QString tableName2;
+                    QDomElement elem2;
+                    elem2 = nextSibling.firstChild().toElement();
+                    tableName2 = elem2.attribute("table");
+                    //childObject2[tableName2] = QJsonArray();
+                    pt::ptree childObject3; //QJsonObject childObject3;
+                    parseMapFileWithBoost(dataList,nextSibling.firstChild(),childObject3,currTable,childObject2);
+                    pt::ptree array3; //QJsonArray array3;
+
+                    pt::ptree::const_assoc_iterator it3;
+                    it3 = childObject2.find(tableName2.toStdString());
+                    if (it3 != childObject2.not_found())
+                        array3 = childObject2.get_child(tableName2.toStdString()); //childObject2[tableName2].toArray();
+                    array3.push_back(std::make_pair("", childObject3)); //array3.append(childObject3);
+                    childObject2.put_child(tableName2.toStdString(), array3); //childObject2[tableName2] = array3;
+                }
+                array2.push_back(std::make_pair("", childObject2)); //array2.append(childObject2);
+                parent.put_child(tableName.toStdString(), array2); //parent[tableName] = array2;
+                currTable = tableName;
+            }
+            else
+            {
+                //This happend when the sibling has the same table which
+                //means is a sibling record in a table
+                pt::ptree childObject2; //QJsonObject childObject2;
+                QList<TfieldDef> records2;
+                records2 = getDataByRowUUID4(dataList,tableName,UUID);
+                for (int pos = 0; pos <= records2.count()-1; pos++)
+                {
+                    childObject2.put(records2[pos].name.toStdString(), records2[pos].value.toStdString()); //childObject2[records2[pos].name] = records2[pos].value;
+                }
+                pt::ptree currArray;
+
+                pt::ptree::const_assoc_iterator it4;
+                it4 = parent.find(tableName.toStdString());
+                if (it4 != parent.not_found())
+                    currArray= parent.get_child(tableName.toStdString());  //QJsonArray currArray = parent[tableName].toArray();
+                //If the sibling has a child then recursively call
+                //this function.
+                if (!nextSibling.firstChild().isNull())
+                {
+                    QString tableName2;
+                    QDomElement elem2;
+                    elem2 = nextSibling.firstChild().toElement();
+                    tableName2 = elem2.attribute("table");
+                    //childObject2[tableName2] = QJsonArray();
+                    pt::ptree childObject3;//QJsonObject childObject3;
+                    parseMapFileWithBoost(dataList,nextSibling.firstChild(),childObject3,currTable,childObject2);
+                    pt::ptree array3;//QJsonArray array3;
+
+                    pt::ptree::const_assoc_iterator it5;
+                    it5 = childObject2.find(tableName2.toStdString());
+                    if (it5 != childObject2.not_found())
+                        array3 = childObject2.get_child(tableName2.toStdString()); //array3 = childObject2[tableName2].toArray();
+                    array3.push_back(std::make_pair("", childObject3)); //array3.append(childObject3);
+                    childObject2.put_child(tableName2.toStdString(), array3); //childObject2[tableName2] = array3;
+                }
+                currArray.push_back(std::make_pair("", childObject2)); //currArray.append(childObject2);
+                parent.put_child(tableName.toStdString(), currArray); //parent[tableName] = currArray;
+            }
+            nextSibling = nextSibling.nextSibling();
+        }
+    }
+}
+
+
 //This function parse a Map File and returs the data tree in JSON form
 //This is a recursive fuction
 //mongocxx::collection collection
@@ -343,6 +479,28 @@ void mainClass::getAllUUIDs(QDomNode node,QStringList &UUIDs)
     }
 }
 
+void mainClass::remove_msels(QDomNode node)
+{
+    while (!node.isNull())
+    {
+        QDomElement eSibling;
+        eSibling = node.toElement();
+        QString tableName;
+        tableName = eSibling.attribute("table","None");
+        if (tableName.indexOf("_msel_") >= 0)
+        {
+            QDomNode parent = node.parentNode();
+            node.parentNode().removeChild(node);
+            node = parent;
+        }
+        if (!node.firstChild().isNull())
+        {
+            remove_msels(node.firstChild());
+        }
+        node = node.nextSibling();
+    }
+}
+
 //This function receives a Map File and construct a JSON file with the data
 //The JSON file is stored in the ouput directy and has the same name
 //of the Map File
@@ -367,6 +525,7 @@ void mainClass::processMapFile(mongocxx::collection collection, QString fileName
     file.close();
     QDomNode root;
     root = doc.firstChild().nextSibling().firstChild();
+    remove_msels(root);
 
     //We here search in Mongo for the data of all UUDIDs and store the
     //data in an array called dataList. By doing this we only go once
@@ -379,7 +538,8 @@ void mainClass::processMapFile(mongocxx::collection collection, QString fileName
     {
         QStringList parts;
         parts = UUIDs[pos].split('~');
-        mongoQry = mongoQry + "{\"_tablename\":\"" + parts[0] + "\",\"rowuuid\":\"" + parts[1] + "\"},";
+        if (parts[0].indexOf("_msel_") < 0 )
+            mongoQry = mongoQry + "{\"_tablename\":\"" + parts[0] + "\",\"rowuuid\":\"" + parts[1] + "\"},";
     }
     mongoQry = mongoQry.left(mongoQry.length()-1);
     mongoQry = mongoQry + "]}";
@@ -388,6 +548,7 @@ void mainClass::processMapFile(mongocxx::collection collection, QString fileName
     bsoncxx::document::value bsondoc = bsoncxx::from_json(qry.view());
     auto cursor = collection.find(bsondoc.view());
     QList <TUUIDDef> dataList;
+    //qDebug() << "***********************77";
     for (const bsoncxx::document::view& doc : cursor)
     {
         TUUIDDef aTable;
@@ -401,6 +562,7 @@ void mainClass::processMapFile(mongocxx::collection collection, QString fileName
                 value = QString::fromUtf8(ele.get_utf8().value.data());
                 if ((key != "_tablename") && (key != "rowuuid"))
                 {
+                    //qDebug() << key;
                     TfieldDef aField;
                     aField.name = key;
                     aField.value = value;
@@ -417,28 +579,38 @@ void mainClass::processMapFile(mongocxx::collection collection, QString fileName
         }
         dataList.append(aTable);
     }
+    //exit(0);
     //Now that we have the data contruct the tree with the data
     //comming from the database
     QDomElement elem;
     elem = root.toElement();
     QString tableName;
     tableName = elem.attribute("table");
-    QJsonObject JSONRoot;
-    parseMapFile(dataList,root,JSONRoot,tableName,JSONRoot);
+
+    //QJsonObject JSONRoot;
+    //parseMapFile(dataList,root,JSONRoot,tableName,JSONRoot);
+
+    pt::ptree JSONRootBoost;
+    parseMapFileWithBoost(dataList,root,JSONRootBoost,tableName,JSONRootBoost);
+
 
     //Finally save the JSON document
-    QJsonDocument saveDoc(JSONRoot);
+    //QJsonDocument saveDoc(JSONRoot);
     QDir outputPath(output);
-    QString JSONFile;
-    JSONFile = outputPath.absolutePath() + mapPath.separator() + fileName + ".json";
+    //QString JSONFile;
+    //JSONFile = outputPath.absolutePath() + mapPath.separator() + fileName + ".json";
 
-    QFile saveFile(JSONFile);
-    if (!saveFile.open(QIODevice::WriteOnly)) {
-        log("Couldn't open output JSON file.");
-        return;
-    }
-    saveFile.write(saveDoc.toJson());
-    saveFile.close();
+    QString JSONFileBoost;
+    JSONFileBoost = outputPath.absolutePath() + mapPath.separator() + fileName + ".json";
+    pt::write_json(JSONFileBoost.toStdString(),JSONRootBoost);
+
+//    QFile saveFile(JSONFile);
+//    if (!saveFile.open(QIODevice::WriteOnly)) {
+//        log("Couldn't open output JSON file.");
+//        return;
+//    }
+//    saveFile.write(saveDoc.toJson());
+//    saveFile.close();
 }
 
 //This uses insert many
@@ -569,11 +741,12 @@ int mainClass::generateJSONs(QSqlDatabase db)
 {
     QString sql;
     sql = "SELECT table_name,column_name,REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE table_schema = '" + db.databaseName() + "' GROUP BY table_name,column_name,REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME";
-
+    log(sql);
     //Here we get the tables and their relationships from the schema
     QList <TtableDef> tables;
     QSqlQuery rels(db);
     rels.exec(sql);
+
     while (rels.next())
     {
         TtableDef aTable;
@@ -663,7 +836,7 @@ int mainClass::generateJSONs(QSqlDatabase db)
 
             //Select the Survey IDs that will be exported
             sql = "SELECT surveyid FROM " + table;
-            //sql = "SELECT surveyid FROM " + table + " WHERE surveyid = '9a1fab77-c7a7-4de7-8a87-faf4521d67b5'";
+            //sql = "SELECT surveyid FROM " + table + " WHERE surveyid = '1c481d25-205f-42f7-a9c0-68fffde211bb'";
             QStringList lstIds;
             QSqlQuery qryIds(db);
             qryIds.exec(sql);

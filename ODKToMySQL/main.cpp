@@ -43,13 +43,772 @@ License along with ODKToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl-3.
 bool debug;
 QString command;
 QString outputType;
+QStringList invalidFieldNames;
+QStringList invalidFields;
+bool justCheck;
+
+struct tblwitherror
+{
+    QString name;
+    int num_selects;
+};
+typedef tblwitherror Ttblwitherror;
+QStringList duplicatedTables;
+
+struct duplicatedField
+{
+    QString table;
+    QStringList fields;
+};
+typedef duplicatedField TduplicatedField;
+QList<TduplicatedField> duplicatedFields;
+
+void isFieldValid(QString field)
+{
+    for (int pos = 0; pos < invalidFieldNames.count(); pos++)
+    {
+        if (invalidFieldNames[pos] == field.trimmed().simplified().toUpper())
+        {
+            bool found = false;
+            for (int pos2 = 0; pos2 < invalidFields.count(); pos2++)
+            {
+                if (invalidFields[pos2] == field)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                invalidFields.append(field);
+            return;
+        }
+    }
+}
+
+void loadInvalidFieldNames()
+{
+    //This is the list of invalid column or table names
+    invalidFieldNames << "ACCESSIBLE";
+    invalidFieldNames << "ACCOUNT";
+    invalidFieldNames << "ACTION";
+    invalidFieldNames << "ACTIVE";
+    invalidFieldNames << "ADD";
+    invalidFieldNames << "ADMIN";
+    invalidFieldNames << "AFTER";
+    invalidFieldNames << "AGAINST";
+    invalidFieldNames << "AGGREGATE";
+    invalidFieldNames << "ALGORITHM";
+    invalidFieldNames << "ALL";
+    invalidFieldNames << "ALTER";
+    invalidFieldNames << "ALWAYS";
+    invalidFieldNames << "ANALYSE";
+    invalidFieldNames << "ANALYZE";
+    invalidFieldNames << "AND";
+    invalidFieldNames << "ANY";
+    invalidFieldNames << "AS";
+    invalidFieldNames << "ASC";
+    invalidFieldNames << "ASCII";
+    invalidFieldNames << "ASENSITIVE";
+    invalidFieldNames << "AT";
+    invalidFieldNames << "AUTOEXTEND_SIZE";
+    invalidFieldNames << "AUTO_INCREMENT";
+    invalidFieldNames << "AVG";
+    invalidFieldNames << "AVG_ROW_LENGTH";
+    invalidFieldNames << "BACKUP";
+    invalidFieldNames << "BEFORE";
+    invalidFieldNames << "BEGIN";
+    invalidFieldNames << "BETWEEN";
+    invalidFieldNames << "BIGINT";
+    invalidFieldNames << "BINARY";
+    invalidFieldNames << "BINLOG";
+    invalidFieldNames << "BIT";
+    invalidFieldNames << "BLOB";
+    invalidFieldNames << "BLOCK";
+    invalidFieldNames << "BOOL";
+    invalidFieldNames << "BOOLEAN";
+    invalidFieldNames << "BOTH";
+    invalidFieldNames << "BTREE";
+    invalidFieldNames << "BUCKETS";
+    invalidFieldNames << "BY";
+    invalidFieldNames << "BYTE";
+    invalidFieldNames << "CACHE";
+    invalidFieldNames << "CALL";
+    invalidFieldNames << "CASCADE";
+    invalidFieldNames << "CASCADED";
+    invalidFieldNames << "CASE";
+    invalidFieldNames << "CATALOG_NAME";
+    invalidFieldNames << "CHAIN";
+    invalidFieldNames << "CHANGE";
+    invalidFieldNames << "CHANGED";
+    invalidFieldNames << "CHANNEL";
+    invalidFieldNames << "CHAR";
+    invalidFieldNames << "CHARACTER";
+    invalidFieldNames << "CHARSET";
+    invalidFieldNames << "CHECK";
+    invalidFieldNames << "CHECKSUM";
+    invalidFieldNames << "CIPHER";
+    invalidFieldNames << "CLASS_ORIGIN";
+    invalidFieldNames << "CLIENT";
+    invalidFieldNames << "CLONE";
+    invalidFieldNames << "CLOSE";
+    invalidFieldNames << "COALESCE";
+    invalidFieldNames << "CODE";
+    invalidFieldNames << "COLLATE";
+    invalidFieldNames << "COLLATION";
+    invalidFieldNames << "COLUMN";
+    invalidFieldNames << "COLUMNS";
+    invalidFieldNames << "COLUMN_FORMAT";
+    invalidFieldNames << "COLUMN_NAME";
+    invalidFieldNames << "COMMENT";
+    invalidFieldNames << "COMMIT";
+    invalidFieldNames << "COMMITTED";
+    invalidFieldNames << "COMPACT";
+    invalidFieldNames << "COMPLETION";
+    invalidFieldNames << "COMPONENT";
+    invalidFieldNames << "COMPRESSED";
+    invalidFieldNames << "COMPRESSION";
+    invalidFieldNames << "CONCURRENT";
+    invalidFieldNames << "CONDITION";
+    invalidFieldNames << "CONNECTION";
+    invalidFieldNames << "CONSISTENT";
+    invalidFieldNames << "CONSTRAINT";
+    invalidFieldNames << "CONSTRAINT_CATALOG";
+    invalidFieldNames << "CONSTRAINT_NAME";
+    invalidFieldNames << "CONSTRAINT_SCHEMA";
+    invalidFieldNames << "CONTAINS";
+    invalidFieldNames << "CONTEXT";
+    invalidFieldNames << "CONTINUE";
+    invalidFieldNames << "CONVERT";
+    invalidFieldNames << "CPU";
+    invalidFieldNames << "CREATE";
+    invalidFieldNames << "CROSS";
+    invalidFieldNames << "CUBE";
+    invalidFieldNames << "CUME_DIST";
+    invalidFieldNames << "CURRENT";
+    invalidFieldNames << "CURRENT_DATE";
+    invalidFieldNames << "CURRENT_TIME";
+    invalidFieldNames << "CURRENT_TIMESTAMP";
+    invalidFieldNames << "CURRENT_USER";
+    invalidFieldNames << "CURSOR";
+    invalidFieldNames << "CURSOR_NAME";
+    invalidFieldNames << "DATA";
+    invalidFieldNames << "DATABASE";
+    invalidFieldNames << "DATABASES";
+    invalidFieldNames << "DATAFILE";
+    invalidFieldNames << "DATE";
+    invalidFieldNames << "DATETIME";
+    invalidFieldNames << "DAY";
+    invalidFieldNames << "DAY_HOUR";
+    invalidFieldNames << "DAY_MICROSECOND";
+    invalidFieldNames << "DAY_MINUTE";
+    invalidFieldNames << "DAY_SECOND";
+    invalidFieldNames << "DEALLOCATE";
+    invalidFieldNames << "DEC";
+    invalidFieldNames << "DECIMAL";
+    invalidFieldNames << "DECLARE";
+    invalidFieldNames << "DEFAULT";
+    invalidFieldNames << "DEFAULT_AUTH";
+    invalidFieldNames << "DEFINER";
+    invalidFieldNames << "DEFINITION";
+    invalidFieldNames << "DELAYED";
+    invalidFieldNames << "DELAY_KEY_WRITE";
+    invalidFieldNames << "DELETE";
+    invalidFieldNames << "DENSE_RANK";
+    invalidFieldNames << "DESC";
+    invalidFieldNames << "DESCRIBE";
+    invalidFieldNames << "DESCRIPTION";
+    invalidFieldNames << "DES_KEY_FILE";
+    invalidFieldNames << "DETERMINISTIC";
+    invalidFieldNames << "DIAGNOSTICS";
+    invalidFieldNames << "DIRECTORY";
+    invalidFieldNames << "DISABLE";
+    invalidFieldNames << "DISCARD";
+    invalidFieldNames << "DISK";
+    invalidFieldNames << "DISTINCT";
+    invalidFieldNames << "DISTINCTROW";
+    invalidFieldNames << "DIV";
+    invalidFieldNames << "DO";
+    invalidFieldNames << "DOUBLE";
+    invalidFieldNames << "DROP";
+    invalidFieldNames << "DUAL";
+    invalidFieldNames << "DUMPFILE";
+    invalidFieldNames << "DUPLICATE";
+    invalidFieldNames << "DYNAMIC";
+    invalidFieldNames << "EACH";
+    invalidFieldNames << "ELSE";
+    invalidFieldNames << "ELSEIF";
+    invalidFieldNames << "EMPTY";
+    invalidFieldNames << "ENABLE";
+    invalidFieldNames << "ENCLOSED";
+    invalidFieldNames << "ENCRYPTION";
+    invalidFieldNames << "END";
+    invalidFieldNames << "ENDS";
+    invalidFieldNames << "ENFORCED";
+    invalidFieldNames << "ENGINE";
+    invalidFieldNames << "ENGINES";
+    invalidFieldNames << "ENUM";
+    invalidFieldNames << "ERROR";
+    invalidFieldNames << "ERRORS";
+    invalidFieldNames << "ESCAPE";
+    invalidFieldNames << "ESCAPED";
+    invalidFieldNames << "EVENT";
+    invalidFieldNames << "EVENTS";
+    invalidFieldNames << "EVERY";
+    invalidFieldNames << "EXCEPT";
+    invalidFieldNames << "EXCHANGE";
+    invalidFieldNames << "EXCLUDE";
+    invalidFieldNames << "EXECUTE";
+    invalidFieldNames << "EXISTS";
+    invalidFieldNames << "EXIT";
+    invalidFieldNames << "EXPANSION";
+    invalidFieldNames << "EXPIRE";
+    invalidFieldNames << "EXPLAIN";
+    invalidFieldNames << "EXPORT";
+    invalidFieldNames << "EXTENDED";
+    invalidFieldNames << "EXTENT_SIZE";
+    invalidFieldNames << "FALSE";
+    invalidFieldNames << "FAST";
+    invalidFieldNames << "FAULTS";
+    invalidFieldNames << "FETCH";
+    invalidFieldNames << "FIELDS";
+    invalidFieldNames << "FILE";
+    invalidFieldNames << "FILE_BLOCK_SIZE";
+    invalidFieldNames << "FILTER";
+    invalidFieldNames << "FIRST";
+    invalidFieldNames << "FIRST_VALUE";
+    invalidFieldNames << "FIXED";
+    invalidFieldNames << "FLOAT";
+    invalidFieldNames << "FLOAT4";
+    invalidFieldNames << "FLOAT8";
+    invalidFieldNames << "FLUSH";
+    invalidFieldNames << "FOLLOWING";
+    invalidFieldNames << "FOLLOWS";
+    invalidFieldNames << "FOR";
+    invalidFieldNames << "FORCE";
+    invalidFieldNames << "FOREIGN";
+    invalidFieldNames << "FORMAT";
+    invalidFieldNames << "FOUND";
+    invalidFieldNames << "FROM";
+    invalidFieldNames << "FULL";
+    invalidFieldNames << "FULLTEXT";
+    invalidFieldNames << "FUNCTION";
+    invalidFieldNames << "GENERAL";
+    invalidFieldNames << "GENERATED";
+    invalidFieldNames << "GEOMCOLLECTION";
+    invalidFieldNames << "GEOMETRY";
+    invalidFieldNames << "GEOMETRYCOLLECTION";
+    invalidFieldNames << "GET";
+    invalidFieldNames << "GET_FORMAT";
+    invalidFieldNames << "GET_MASTER_PUBLIC_KEY";
+    invalidFieldNames << "GLOBAL";
+    invalidFieldNames << "GRANT";
+    invalidFieldNames << "GRANTS";
+    invalidFieldNames << "GROUP";
+    invalidFieldNames << "GROUPING";
+    invalidFieldNames << "GROUPS";
+    invalidFieldNames << "GROUP_REPLICATION";
+    invalidFieldNames << "HANDLER";
+    invalidFieldNames << "HASH";
+    invalidFieldNames << "HAVING";
+    invalidFieldNames << "HELP";
+    invalidFieldNames << "HIGH_PRIORITY";
+    invalidFieldNames << "HISTOGRAM";
+    invalidFieldNames << "HISTORY";
+    invalidFieldNames << "HOST";
+    invalidFieldNames << "HOSTS";
+    invalidFieldNames << "HOUR";
+    invalidFieldNames << "HOUR_MICROSECOND";
+    invalidFieldNames << "HOUR_MINUTE";
+    invalidFieldNames << "HOUR_SECOND";
+    invalidFieldNames << "IDENTIFIED";
+    invalidFieldNames << "IF";
+    invalidFieldNames << "IGNORE";
+    invalidFieldNames << "IGNORE_SERVER_IDS";
+    invalidFieldNames << "IMPORT";
+    invalidFieldNames << "IN";
+    invalidFieldNames << "INACTIVE";
+    invalidFieldNames << "INDEX";
+    invalidFieldNames << "INDEXES";
+    invalidFieldNames << "INFILE";
+    invalidFieldNames << "INITIAL_SIZE";
+    invalidFieldNames << "INNER";
+    invalidFieldNames << "INOUT";
+    invalidFieldNames << "INSENSITIVE";
+    invalidFieldNames << "INSERT";
+    invalidFieldNames << "INSERT_METHOD";
+    invalidFieldNames << "INSTALL";
+    invalidFieldNames << "INSTANCE";
+    invalidFieldNames << "INT";
+    invalidFieldNames << "INT1";
+    invalidFieldNames << "INT2";
+    invalidFieldNames << "INT3";
+    invalidFieldNames << "INT4";
+    invalidFieldNames << "INT8";
+    invalidFieldNames << "INTEGER";
+    invalidFieldNames << "INTERVAL";
+    invalidFieldNames << "INTO";
+    invalidFieldNames << "INVISIBLE";
+    invalidFieldNames << "INVOKER";
+    invalidFieldNames << "IO";
+    invalidFieldNames << "IO_AFTER_GTIDS";
+    invalidFieldNames << "IO_BEFORE_GTIDS";
+    invalidFieldNames << "IO_THREAD";
+    invalidFieldNames << "IPC";
+    invalidFieldNames << "IS";
+    invalidFieldNames << "ISOLATION";
+    invalidFieldNames << "ISSUER";
+    invalidFieldNames << "ITERATE";
+    invalidFieldNames << "JOIN";
+    invalidFieldNames << "JSON";
+    invalidFieldNames << "JSON_TABLE";
+    invalidFieldNames << "KEY";
+    invalidFieldNames << "KEYS";
+    invalidFieldNames << "KEY_BLOCK_SIZE";
+    invalidFieldNames << "KILL";
+    invalidFieldNames << "LAG";
+    invalidFieldNames << "LAG ";
+    invalidFieldNames << "LANGUAGE";
+    invalidFieldNames << "LAST";
+    invalidFieldNames << "LAST_VALUE";
+    invalidFieldNames << "LATERAL";
+    invalidFieldNames << "LEAD";
+    invalidFieldNames << "LEADING";
+    invalidFieldNames << "LEAVE";
+    invalidFieldNames << "LEAVES";
+    invalidFieldNames << "LEFT";
+    invalidFieldNames << "LESS";
+    invalidFieldNames << "LEVEL";
+    invalidFieldNames << "LIKE";
+    invalidFieldNames << "LIMIT";
+    invalidFieldNames << "LINEAR";
+    invalidFieldNames << "LINES";
+    invalidFieldNames << "LINESTRING";
+    invalidFieldNames << "LIST";
+    invalidFieldNames << "LOAD";
+    invalidFieldNames << "LOCAL";
+    invalidFieldNames << "LOCALTIME";
+    invalidFieldNames << "LOCALTIMESTAMP";
+    invalidFieldNames << "LOCK";
+    invalidFieldNames << "LOCKED";
+    invalidFieldNames << "LOCKS";
+    invalidFieldNames << "LOGFILE";
+    invalidFieldNames << "LOGS";
+    invalidFieldNames << "LONG";
+    invalidFieldNames << "LONGBLOB ";
+    invalidFieldNames << "LONGTEXT";
+    invalidFieldNames << "LOOP";
+    invalidFieldNames << "LOW_PRIORITY";
+    invalidFieldNames << "MASTER";
+    invalidFieldNames << "MASTER_AUTO_POSITION";
+    invalidFieldNames << "MASTER_BIND";
+    invalidFieldNames << "MASTER_CONNECT_RETRY";
+    invalidFieldNames << "MASTER_DELAY";
+    invalidFieldNames << "MASTER_HEARTBEAT_PERIOD";
+    invalidFieldNames << "MASTER_HOST";
+    invalidFieldNames << "MASTER_LOG_FILE";
+    invalidFieldNames << "MASTER_LOG_POS";
+    invalidFieldNames << "MASTER_PASSWORD";
+    invalidFieldNames << "MASTER_PORT";
+    invalidFieldNames << "MASTER_PUBLIC_KEY_PATH";
+    invalidFieldNames << "MASTER_RETRY_COUNT";
+    invalidFieldNames << "MASTER_SERVER_ID";
+    invalidFieldNames << "MASTER_SSL";
+    invalidFieldNames << "MASTER_SSL_CA";
+    invalidFieldNames << "MASTER_SSL_CAPATH";
+    invalidFieldNames << "MASTER_SSL_CERT";
+    invalidFieldNames << "MASTER_SSL_CIPHER";
+    invalidFieldNames << "MASTER_SSL_CRL";
+    invalidFieldNames << "MASTER_SSL_CRLPATH";
+    invalidFieldNames << "MASTER_SSL_KEY";
+    invalidFieldNames << "MASTER_SSL_VERIFY_SERVER_CERT";
+    invalidFieldNames << "MASTER_TLS_VERSION";
+    invalidFieldNames << "MASTER_USER";
+    invalidFieldNames << "MATCH";
+    invalidFieldNames << "MAXVALUE";
+    invalidFieldNames << "MAX_CONNECTIONS_PER_HOUR";
+    invalidFieldNames << "MAX_QUERIES_PER_HOUR";
+    invalidFieldNames << "MAX_ROWS";
+    invalidFieldNames << "MAX_SIZE";
+    invalidFieldNames << "MAX_UPDATES_PER_HOUR";
+    invalidFieldNames << "MAX_USER_CONNECTIONS";
+    invalidFieldNames << "MEDIUM";
+    invalidFieldNames << "MEDIUMBLOB";
+    invalidFieldNames << "MEDIUMINT";
+    invalidFieldNames << "MEDIUMTEXT";
+    invalidFieldNames << "MEMORY";
+    invalidFieldNames << "MERGE";
+    invalidFieldNames << "MESSAGE_TEXT";
+    invalidFieldNames << "MICROSECOND";
+    invalidFieldNames << "MIDDLEINT";
+    invalidFieldNames << "MIGRATE";
+    invalidFieldNames << "MINUTE";
+    invalidFieldNames << "MINUTE_MICROSECOND";
+    invalidFieldNames << "MINUTE_SECOND";
+    invalidFieldNames << "MIN_ROWS";
+    invalidFieldNames << "MOD";
+    invalidFieldNames << "MODE";
+    invalidFieldNames << "MODIFIES";
+    invalidFieldNames << "MODIFY";
+    invalidFieldNames << "MONTH";
+    invalidFieldNames << "MULTILINESTRING";
+    invalidFieldNames << "MULTIPOINT";
+    invalidFieldNames << "MULTIPOLYGON";
+    invalidFieldNames << "MUTEX";
+    invalidFieldNames << "MYSQL_ERRNO";
+    invalidFieldNames << "NAME";
+    invalidFieldNames << "NAMES";
+    invalidFieldNames << "NATIONAL";
+    invalidFieldNames << "NATURAL";
+    invalidFieldNames << "NCHAR";
+    invalidFieldNames << "NDB";
+    invalidFieldNames << "NDBCLUSTER";
+    invalidFieldNames << "NESTED";
+    invalidFieldNames << "NETWORK_NAMESPACE";
+    invalidFieldNames << "NEVER";
+    invalidFieldNames << "NEW";
+    invalidFieldNames << "NEXT";
+    invalidFieldNames << "NO";
+    invalidFieldNames << "NODEGROUP";
+    invalidFieldNames << "NONE";
+    invalidFieldNames << "NOT";
+    invalidFieldNames << "NOWAIT";
+    invalidFieldNames << "NO_WAIT";
+    invalidFieldNames << "NO_WRITE_TO_BINLOG";
+    invalidFieldNames << "NTH_VALUE";
+    invalidFieldNames << "NTILE";
+    invalidFieldNames << "NULL";
+    invalidFieldNames << "NULLS";
+    invalidFieldNames << "NUMBER";
+    invalidFieldNames << "NUMERIC";
+    invalidFieldNames << "NVARCHAR";
+    invalidFieldNames << "OF";
+    invalidFieldNames << "OFFSET";
+    invalidFieldNames << "OJ";
+    invalidFieldNames << "OLD";
+    invalidFieldNames << "ON";
+    invalidFieldNames << "ONE";
+    invalidFieldNames << "ONLY";
+    invalidFieldNames << "OPEN";
+    invalidFieldNames << "OPTIMIZE";
+    invalidFieldNames << "OPTIMIZER_COSTS";
+    invalidFieldNames << "OPTION";
+    invalidFieldNames << "OPTIONAL";
+    invalidFieldNames << "OPTIONALLY";
+    invalidFieldNames << "OPTIONS";
+    invalidFieldNames << "OR";
+    invalidFieldNames << "ORDER";
+    invalidFieldNames << "ORDINALITY";
+    invalidFieldNames << "ORGANIZATION";
+    invalidFieldNames << "OTHERS";
+    invalidFieldNames << "OUT";
+    invalidFieldNames << "OUTER";
+    invalidFieldNames << "OUTFILE";
+    invalidFieldNames << "OVER";
+    invalidFieldNames << "OWNER";
+    invalidFieldNames << "PACK_KEYS";
+    invalidFieldNames << "PAGE";
+    invalidFieldNames << "PARSER";
+    invalidFieldNames << "PARSE_GCOL_EXPR";
+    invalidFieldNames << "PARTIAL";
+    invalidFieldNames << "PARTITION";
+    invalidFieldNames << "PARTITIONING";
+    invalidFieldNames << "PARTITIONS";
+    invalidFieldNames << "PASSWORD";
+    invalidFieldNames << "PATH";
+    invalidFieldNames << "PERCENT_RANK";
+    invalidFieldNames << "PERSIST";
+    invalidFieldNames << "PERSIST_ONLY";
+    invalidFieldNames << "PHASE";
+    invalidFieldNames << "PLUGIN";
+    invalidFieldNames << "PLUGINS";
+    invalidFieldNames << "PLUGIN_DIR";
+    invalidFieldNames << "POINT";
+    invalidFieldNames << "POLYGON";
+    invalidFieldNames << "PORT";
+    invalidFieldNames << "PRECEDES";
+    invalidFieldNames << "PRECEDING";
+    invalidFieldNames << "PRECISION";
+    invalidFieldNames << "PREPARE";
+    invalidFieldNames << "PRESERVE";
+    invalidFieldNames << "PREV";
+    invalidFieldNames << "PRIMARY";
+    invalidFieldNames << "PRIVILEGES";
+    invalidFieldNames << "PROCEDURE";
+    invalidFieldNames << "PROCESS";
+    invalidFieldNames << "PROCESSLIST";
+    invalidFieldNames << "PROFILE";
+    invalidFieldNames << "PROFILES";
+    invalidFieldNames << "PROXY";
+    invalidFieldNames << "PURGE";
+    invalidFieldNames << "QUARTER";
+    invalidFieldNames << "QUERY";
+    invalidFieldNames << "QUICK";
+    invalidFieldNames << "RANGE";
+    invalidFieldNames << "RANK";
+    invalidFieldNames << "READ";
+    invalidFieldNames << "READS";
+    invalidFieldNames << "READ_ONLY";
+    invalidFieldNames << "READ_WRITE";
+    invalidFieldNames << "REAL";
+    invalidFieldNames << "REBUILD";
+    invalidFieldNames << "RECOVER";
+    invalidFieldNames << "RECURSIVE";
+    invalidFieldNames << "REDOFILE";
+    invalidFieldNames << "REDO_BUFFER_SIZE";
+    invalidFieldNames << "REDUNDANT";
+    invalidFieldNames << "REFERENCE";
+    invalidFieldNames << "REFERENCES";
+    invalidFieldNames << "REGEXP";
+    invalidFieldNames << "RELAY";
+    invalidFieldNames << "RELAYLOG";
+    invalidFieldNames << "RELAY_LOG_FILE";
+    invalidFieldNames << "RELAY_LOG_POS";
+    invalidFieldNames << "RELAY_THREAD";
+    invalidFieldNames << "RELEASE";
+    invalidFieldNames << "RELOAD";
+    invalidFieldNames << "REMOTE";
+    invalidFieldNames << "REMOVE";
+    invalidFieldNames << "RENAME";
+    invalidFieldNames << "REORGANIZE";
+    invalidFieldNames << "REPAIR";
+    invalidFieldNames << "REPEAT";
+    invalidFieldNames << "REPEATABLE";
+    invalidFieldNames << "REPLACE";
+    invalidFieldNames << "REPLICATE_DO_DB";
+    invalidFieldNames << "REPLICATE_DO_TABLE";
+    invalidFieldNames << "REPLICATE_IGNORE_DB";
+    invalidFieldNames << "REPLICATE_IGNORE_TABLE";
+    invalidFieldNames << "REPLICATE_REWRITE_DB";
+    invalidFieldNames << "REPLICATE_WILD_DO_TABLE";
+    invalidFieldNames << "REPLICATE_WILD_IGNORE_TABLE";
+    invalidFieldNames << "REPLICATION";
+    invalidFieldNames << "REQUIRE";
+    invalidFieldNames << "RESET";
+    invalidFieldNames << "RESIGNAL";
+    invalidFieldNames << "RESOURCE";
+    invalidFieldNames << "RESPECT";
+    invalidFieldNames << "RESTART";
+    invalidFieldNames << "RESTORE";
+    invalidFieldNames << "RESTRICT";
+    invalidFieldNames << "RESUME";
+    invalidFieldNames << "RETAIN";
+    invalidFieldNames << "RETURN";
+    invalidFieldNames << "RETURNED_SQLSTATE";
+    invalidFieldNames << "RETURNS";
+    invalidFieldNames << "REUSE";
+    invalidFieldNames << "REVERSE";
+    invalidFieldNames << "REVOKE";
+    invalidFieldNames << "RIGHT";
+    invalidFieldNames << "RLIKE";
+    invalidFieldNames << "ROLE";
+    invalidFieldNames << "ROLLBACK";
+    invalidFieldNames << "ROLLUP";
+    invalidFieldNames << "ROTATE";
+    invalidFieldNames << "ROUTINE";
+    invalidFieldNames << "ROW";
+    invalidFieldNames << "ROWS";
+    invalidFieldNames << "ROW_COUNT";
+    invalidFieldNames << "ROW_FORMAT";
+    invalidFieldNames << "ROW_NUMBER";
+    invalidFieldNames << "RTREE";
+    invalidFieldNames << "SAVEPOINT";
+    invalidFieldNames << "SCHEDULE";
+    invalidFieldNames << "SCHEMA";
+    invalidFieldNames << "SCHEMAS";
+    invalidFieldNames << "SCHEMA_NAME";
+    invalidFieldNames << "SECOND";
+    invalidFieldNames << "SECONDARY";
+    invalidFieldNames << "SECONDARY_ENGINE";
+    invalidFieldNames << "SECONDARY_LOAD";
+    invalidFieldNames << "SECONDARY_UNLOAD";
+    invalidFieldNames << "SECOND_MICROSECOND";
+    invalidFieldNames << "SECURITY";
+    invalidFieldNames << "SELECT";
+    invalidFieldNames << "SENSITIVE";
+    invalidFieldNames << "SEPARATOR";
+    invalidFieldNames << "SERIAL";
+    invalidFieldNames << "SERIALIZABLE";
+    invalidFieldNames << "SERVER";
+    invalidFieldNames << "SESSION";
+    invalidFieldNames << "SET";
+    invalidFieldNames << "SHARE";
+    invalidFieldNames << "SHOW";
+    invalidFieldNames << "SHUTDOWN";
+    invalidFieldNames << "SIGNAL";
+    invalidFieldNames << "SIGNED";
+    invalidFieldNames << "SIMPLE";
+    invalidFieldNames << "SKIP";
+    invalidFieldNames << "SLAVE";
+    invalidFieldNames << "SLOW";
+    invalidFieldNames << "SMALLINT";
+    invalidFieldNames << "SNAPSHOT";
+    invalidFieldNames << "SOCKET";
+    invalidFieldNames << "SOME";
+    invalidFieldNames << "SONAME";
+    invalidFieldNames << "SOUNDS";
+    invalidFieldNames << "SOURCE";
+    invalidFieldNames << "SPATIAL";
+    invalidFieldNames << "SPECIFIC";
+    invalidFieldNames << "SQL";
+    invalidFieldNames << "SQLEXCEPTION";
+    invalidFieldNames << "SQLSTATE";
+    invalidFieldNames << "SQLWARNING";
+    invalidFieldNames << "SQL_AFTER_GTIDS";
+    invalidFieldNames << "SQL_AFTER_MTS_GAPS";
+    invalidFieldNames << "SQL_BEFORE_GTIDS";
+    invalidFieldNames << "SQL_BIG_RESULT";
+    invalidFieldNames << "SQL_BUFFER_RESULT";
+    invalidFieldNames << "SQL_CACHE";
+    invalidFieldNames << "SQL_CALC_FOUND_ROWS";
+    invalidFieldNames << "SQL_NO_CACHE";
+    invalidFieldNames << "SQL_SMALL_RESULT";
+    invalidFieldNames << "SQL_THREAD";
+    invalidFieldNames << "SQL_TSI_DAY";
+    invalidFieldNames << "SQL_TSI_HOUR";
+    invalidFieldNames << "SQL_TSI_MINUTE";
+    invalidFieldNames << "SQL_TSI_MONTH";
+    invalidFieldNames << "SQL_TSI_QUARTER";
+    invalidFieldNames << "SQL_TSI_SECOND";
+    invalidFieldNames << "SQL_TSI_WEEK";
+    invalidFieldNames << "SQL_TSI_YEAR";
+    invalidFieldNames << "SRID";
+    invalidFieldNames << "SSL";
+    invalidFieldNames << "STACKED";
+    invalidFieldNames << "START";
+    invalidFieldNames << "STARTING";
+    invalidFieldNames << "STARTS";
+    invalidFieldNames << "STATS_AUTO_RECALC";
+    invalidFieldNames << "STATS_PERSISTENT";
+    invalidFieldNames << "STATS_SAMPLE_PAGES";
+    invalidFieldNames << "STATUS";
+    invalidFieldNames << "STOP";
+    invalidFieldNames << "STORAGE";
+    invalidFieldNames << "STORED";
+    invalidFieldNames << "STRAIGHT_JOIN";
+    invalidFieldNames << "STRING";
+    invalidFieldNames << "SUBCLASS_ORIGIN";
+    invalidFieldNames << "SUBJECT";
+    invalidFieldNames << "SUBPARTITION";
+    invalidFieldNames << "SUBPARTITIONS";
+    invalidFieldNames << "SUPER";
+    invalidFieldNames << "SUSPEND";
+    invalidFieldNames << "SWAPS";
+    invalidFieldNames << "SWITCHES";
+    invalidFieldNames << "SYSTEM";
+    invalidFieldNames << "TABLE";
+    invalidFieldNames << "TABLES";
+    invalidFieldNames << "TABLESPACE";
+    invalidFieldNames << "TABLE_CHECKSUM";
+    invalidFieldNames << "TABLE_NAME";
+    invalidFieldNames << "TEMPORARY";
+    invalidFieldNames << "TEMPTABLE";
+    invalidFieldNames << "TERMINATED";
+    invalidFieldNames << "TEXT";
+    invalidFieldNames << "THAN";
+    invalidFieldNames << "THEN";
+    invalidFieldNames << "THREAD_PRIORITY";
+    invalidFieldNames << "TIES";
+    invalidFieldNames << "TIME";
+    invalidFieldNames << "TIMESTAMP";
+    invalidFieldNames << "TIMESTAMPADD";
+    invalidFieldNames << "TIMESTAMPDIFF";
+    invalidFieldNames << "TINYBLOB";
+    invalidFieldNames << "TINYINT";
+    invalidFieldNames << "TINYTEXT";
+    invalidFieldNames << "TO";
+    invalidFieldNames << "TRAILING";
+    invalidFieldNames << "TRANSACTION";
+    invalidFieldNames << "TRIGGER";
+    invalidFieldNames << "TRIGGERS";
+    invalidFieldNames << "1";
+    invalidFieldNames << "TRUNCATE";
+    invalidFieldNames << "TYPE";
+    invalidFieldNames << "TYPES";
+    invalidFieldNames << "UNBOUNDED";
+    invalidFieldNames << "UNCOMMITTED";
+    invalidFieldNames << "UNDEFINED";
+    invalidFieldNames << "UNDO";
+    invalidFieldNames << "UNDOFILE";
+    invalidFieldNames << "UNDO_BUFFER_SIZE";
+    invalidFieldNames << "UNICODE";
+    invalidFieldNames << "UNINSTALL";
+    invalidFieldNames << "UNION";
+    invalidFieldNames << "UNIQUE";
+    invalidFieldNames << "UNKNOWN";
+    invalidFieldNames << "UNLOCK";
+    invalidFieldNames << "UNSIGNED";
+    invalidFieldNames << "UNTIL";
+    invalidFieldNames << "UPDATE";
+    invalidFieldNames << "UPGRADE";
+    invalidFieldNames << "USAGE";
+    invalidFieldNames << "USE";
+    invalidFieldNames << "USER";
+    invalidFieldNames << "USER_RESOURCES";
+    invalidFieldNames << "USE_FRM";
+    invalidFieldNames << "USING";
+    invalidFieldNames << "UTC_DATE";
+    invalidFieldNames << "UTC_TIME";
+    invalidFieldNames << "UTC_TIMESTAMP";
+    invalidFieldNames << "VALIDATION";
+    invalidFieldNames << "VALUE";
+    invalidFieldNames << "VALUES";
+    invalidFieldNames << "VARBINARY";
+    invalidFieldNames << "VARCHAR";
+    invalidFieldNames << "VARCHARACTER";
+    invalidFieldNames << "VARIABLES";
+    invalidFieldNames << "VARYING";
+    invalidFieldNames << "VCPU";
+    invalidFieldNames << "VIEW";
+    invalidFieldNames << "VIRTUAL";
+    invalidFieldNames << "VISIBLE";
+    invalidFieldNames << "WAIT";
+    invalidFieldNames << "WARNINGS";
+    invalidFieldNames << "WEEK";
+    invalidFieldNames << "WEIGHT_STRING";
+    invalidFieldNames << "WHEN";
+    invalidFieldNames << "WHERE";
+    invalidFieldNames << "WHILE";
+    invalidFieldNames << "WINDOW";
+    invalidFieldNames << "WITH";
+    invalidFieldNames << "WITHOUT";
+    invalidFieldNames << "WORK";
+    invalidFieldNames << "WRAPPER";
+    invalidFieldNames << "WRITE";
+    invalidFieldNames << "X509";
+    invalidFieldNames << "XA";
+    invalidFieldNames << "XID";
+    invalidFieldNames << "XML";
+    invalidFieldNames << "XOR";
+    invalidFieldNames << "YEAR";
+    invalidFieldNames << "YEAR_MONTH";
+    invalidFieldNames << "ZEROFILL";
+    invalidFieldNames << "AVG";
+    invalidFieldNames << "BIT_AND";
+    invalidFieldNames << "BIT_OR";
+    invalidFieldNames << "BIT_XOR";
+    invalidFieldNames << "COUNT";
+    invalidFieldNames << "COUNT(DISTINCT)";
+    invalidFieldNames << "GROUP_CONCAT";
+    invalidFieldNames << "JSON_ARRAYAGG";
+    invalidFieldNames << "JSON_OBJECTAGG";
+    invalidFieldNames << "MAX";
+    invalidFieldNames << "MIN";
+    invalidFieldNames << "STD";
+    invalidFieldNames << "STDDEV";
+    invalidFieldNames << "STDDEV_POP";
+    invalidFieldNames << "STDDEV_SAMP";
+    invalidFieldNames << "SUM";
+    invalidFieldNames << "VAR_POP";
+    invalidFieldNames << "VAR_SAMP";
+    invalidFieldNames << "VARIANCE";
+}
 
 //This logs messages to the terminal. We use printf because qDebug does not log in relase
 void log(QString message)
 {
     QString temp;
     temp = message + "\n";
-    printf(temp.toUtf8().data());
+    printf("%s", temp.toUtf8().data());
 }
 
 int CSVRowNumber;
@@ -302,8 +1061,8 @@ struct tableDef
   QList<TfieldDef> fields; //List of fields
   QList<TlkpValue> lkpValues; //List of lookup values
   int pos; //Global position of the table
-  bool islookup; //Whether the table is a lookup table
-  bool isSeparated; //Whether the table has been separated
+  bool islookup; //Whether the table is a lookup table  
+  bool isOneToOne; //Whether the table has been separated
   QString xmlCode; //The table XML code /xx/xx/xx/xx
   QString parentTable; //The parent of the table
   QDomElement tableElement; //Each table is an Dom Element for building the manifest XML file
@@ -312,6 +1071,113 @@ struct tableDef
 typedef tableDef TtableDef;
 
 QList<TtableDef> tables; //List of tables
+
+
+void checkTableName(QString tableName)
+{
+    for (int pos = 0; pos < tables.count(); pos++)
+    {
+        if (tables[pos].name == tableName)
+        {
+            duplicatedTables.append(tableName);
+        }
+    }
+}
+
+//Checks wether a field already exist in a table
+void checkFieldName(TtableDef table, QString fieldName)
+{
+    for (int pos = 0; pos < table.fields.count(); pos++)
+    {
+        if (table.fields[pos].name == fieldName)
+        {
+            int idx;
+            idx = -1;
+            for (int pos2 = 0; pos2 < duplicatedFields.count(); pos2++)
+            {
+                if (duplicatedFields[pos2].table == table.name)
+                {
+                    idx = pos2;
+                    break;
+                }
+            }
+            if (idx == -1)
+            {
+                TduplicatedField duplicated;
+                duplicated.table = table.name;
+                duplicated.fields.append(fieldName);
+                duplicatedFields.append(duplicated);
+            }
+            else
+            {
+                duplicatedFields[idx].fields.append(fieldName);
+            }
+        }
+    }
+}
+
+void reportDuplicatedTables()
+{
+    QDomDocument XMLResult;
+    XMLResult = QDomDocument("XMLResult");
+    QDomElement XMLRoot;
+    XMLRoot = XMLResult.createElement("XMLResult");
+    XMLResult.appendChild(XMLRoot);
+    if (outputType != "m")
+    {
+        log("The following tables have the same name: ");
+    }
+    for (int pos = 0; pos < duplicatedTables.count(); pos++)
+    {
+        if (outputType != "m")
+        {
+            log("\tTable: " + duplicatedTables[pos]);
+        }
+        QDomElement eDuplicatedItem;
+        eDuplicatedItem = XMLResult.createElement("duplicatedItem");
+        eDuplicatedItem.setAttribute("tableName",duplicatedTables[pos]);
+        XMLRoot.appendChild(eDuplicatedItem);
+    }
+    if (outputType == "m")
+        log(XMLResult.toString());
+}
+
+void reportDuplicatedFields()
+{
+    QDomDocument XMLResult;
+    XMLResult = QDomDocument("XMLResult");
+    QDomElement XMLRoot;
+    XMLRoot = XMLResult.createElement("XMLResult");
+    XMLResult.appendChild(XMLRoot);
+    if (outputType != "m")
+    {
+        log("The following tables have duplicated fields: ");
+    }
+    for (int pos = 0; pos < duplicatedFields.count(); pos++)
+    {
+        if (outputType != "m")
+        {
+            log("\tTable: " + duplicatedFields[pos].table);
+        }
+        QDomElement eDuplicatedTable;
+        eDuplicatedTable = XMLResult.createElement("duplicatedTable");
+        eDuplicatedTable.setAttribute("tableName",duplicatedFields[pos].table);
+        for (int pos2 = 0; pos2 < duplicatedFields[pos].fields.count(); pos2++)
+        {
+            if (outputType != "m")
+            {
+                log("\t\tField: " + duplicatedFields[pos].fields[pos2]);
+            }
+            QDomElement eDuplicatedField;
+            eDuplicatedField = XMLResult.createElement("duplicatedField");
+            eDuplicatedField.setAttribute("fieldName",duplicatedFields[pos].fields[pos2]);
+            eDuplicatedTable.appendChild(eDuplicatedField);
+        }
+        XMLRoot.appendChild(eDuplicatedTable);
+    }
+    if (outputType == "m")
+        log(XMLResult.toString());
+}
 
 // This function return the XML create element of a table.
 // Used to produce the XML create file so a table can be a child of another table
@@ -724,9 +1590,9 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
                 tables[pos].tableElement = outputdoc.createElement("table");
                 tables[pos].tableElement.setAttribute("mysqlcode",prefix + tables[pos].name.toLower());
                 tables[pos].tableElement.setAttribute("xmlcode",tables[pos].xmlCode);
-                tables[pos].tableElement.setAttribute("parent",tables[pos].parentTable);
-                if (tables[pos].isSeparated == true)
-                    tables[pos].tableElement.setAttribute("separated","true");
+                tables[pos].tableElement.setAttribute("parent",tables[pos].parentTable);                
+                if (tables[pos].isOneToOne == true)
+                    tables[pos].tableElement.setAttribute("onetoone","true");
 
                 //For the create XML
                 tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
@@ -1182,7 +2048,7 @@ void genSQL(QString ddlFile,QString insFile, QString metaFile, QString xmlFile, 
 TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
 {
     TfieldMap result;
-    result.type = "varchar";
+    result.type = "text";
     result.size = 60;
     result.decSize = 0;
     if (ODKFieldType == "start")
@@ -1200,22 +2066,22 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "deviceid")
     {
         result.type = "varchar";
-        result.size = 60;
+        result.size = 20;
     }
     if (ODKFieldType == "subscriberid")
     {
         result.type = "varchar";
-        result.size = 60;
+        result.size = 25;
     }
     if (ODKFieldType == "simserial")
     {
         result.type = "varchar";
-        result.size = 60;
+        result.size = 25;
     }
     if (ODKFieldType == "phonenumber")
     {
         result.type = "varchar";
-        result.size = 60;
+        result.size = 20;
     }
     if (ODKFieldType == "note")
     {
@@ -1251,12 +2117,11 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "geopoint")
     {
         result.type = "varchar";
-        result.size = 120;
+        result.size = 80;
     }
     if (ODKFieldType == "calculate")
     {
-        result.type = "varchar";
-        result.size = 255;
+        result.type = "text";
     }
     return result; //Otherwise treat it as varchar
 }
@@ -1452,6 +2317,7 @@ QString fixField(QString source)
     res = res.replace(",","");
     res = res.replace(" ","");
     res = res.replace(".","_");
+    isFieldValid(res);
     return res;
 }
 
@@ -1864,56 +2730,59 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
     }
     else
     {
-        //Processing languages
         QStringList ODKLanguages;
         int ncols;
-        QXlsx::CellReference ref;
-        QXlsx::CellReference langRef;
-        QXlsx::Cell *cell;
         QXlsx::Worksheet *excelSheet = (QXlsx::Worksheet*)xlsx.sheet("settings");
-        bool hasDefaultLanguage = false;
-        for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
+        QXlsx::CellReference ref;
+        QXlsx::Cell *cell;
+        QXlsx::CellReference langRef;
+        if (!justCheck)
         {
-            ref.setRow(1);
-            ref.setColumn(ncols);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
-
-                if (cell->value().toString().toLower() == "default_language")
-                {
-                    ref.setRow(2);
-                    ref.setColumn(ncols);
-                    ODKLanguages.append(excelSheet->cellAt(ref)->value().toString());
-                    hasDefaultLanguage = true;
-                }
-        }
-
-        excelSheet = (QXlsx::Worksheet*)xlsx.sheet("survey");
-        for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
-        {            
-            ref.setRow(1);
-            ref.setColumn(ncols);
-            cell = excelSheet->cellAt(ref);
-            if (cell != 0)
+            //Processing languages
+            bool hasDefaultLanguage = false;
+            for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
             {
-                if (cell->value().toString().indexOf("label") >= 0)
-                {
-                    QString label;
-                    label = cell->value().toString();
-                    if (label.indexOf(":") >= 0)
+                ref.setRow(1);
+                ref.setColumn(ncols);
+                cell = excelSheet->cellAt(ref);
+                if (cell != 0)
+
+                    if (cell->value().toString().toLower() == "default_language")
                     {
-                        int langIdx = label.lastIndexOf(":");
-                        QString language;
-                        language = label.right(label.length()-langIdx-1);
-                        if (ODKLanguages.indexOf(language) < 0)
-                            ODKLanguages.append(language);
+                        ref.setRow(2);
+                        ref.setColumn(ncols);
+                        ODKLanguages.append(excelSheet->cellAt(ref)->value().toString());
+                        hasDefaultLanguage = true;
                     }
-                    else
+            }
+
+            excelSheet = (QXlsx::Worksheet*)xlsx.sheet("survey");
+            for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
+            {
+                ref.setRow(1);
+                ref.setColumn(ncols);
+                cell = excelSheet->cellAt(ref);
+                if (cell != 0)
+                {
+                    if (cell->value().toString().indexOf("label") >= 0)
                     {
-                        if (!hasDefaultLanguage)
+                        QString label;
+                        label = cell->value().toString();
+                        if (label.indexOf(":") >= 0)
                         {
-                            if (ODKLanguages.indexOf("English") < 0)
-                                ODKLanguages.append("English");
+                            int langIdx = label.lastIndexOf(":");
+                            QString language;
+                            language = label.right(label.length()-langIdx-1);
+                            if (ODKLanguages.indexOf(language) < 0)
+                                ODKLanguages.append(language);
+                        }
+                        else
+                        {
+                            if (!hasDefaultLanguage)
+                            {
+                                if (ODKLanguages.indexOf("English") < 0)
+                                    ODKLanguages.append("English");
+                            }
                         }
                     }
                 }
@@ -1921,69 +2790,73 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         }
         if (ODKLanguages.count() == 0)
             ODKLanguages.append("English");
-
-        if ((ODKLanguages.count() > 1) && (languages.count() == 1))
+        if (!justCheck)
         {
-            if (outputType == "h")
-                log("This ODK has multiple languages but not other languages where specified with the -l parameter.");
-            else
-            {
-                QDomDocument XMLResult;
-                XMLResult = QDomDocument("XMLResult");
-                QDomElement XMLRoot;
-                XMLRoot = XMLResult.createElement("XMLResult");
-                XMLResult.appendChild(XMLRoot);
-                QDomElement eLanguages;
-                eLanguages = XMLResult.createElement("languages");
-                for (int pos = 0; pos <= ODKLanguages.count()-1;pos++)
-                {
-                    QDomElement eLanguage;
-                    eLanguage = XMLResult.createElement("language");
-                    QDomText vSepFile;
-                    vSepFile = XMLResult.createTextNode(ODKLanguages[pos]);
-                    eLanguage.appendChild(vSepFile);
-                    eLanguages.appendChild(eLanguage);
-                }
-                XMLRoot.appendChild(eLanguages);
-                log(XMLResult.toString());
-            }
-            return 3;
-        }
-
-        bool languageNotFound;
-        languageNotFound = false;
-        QDomDocument XMLResult;
-        XMLResult = QDomDocument("XMLResult");
-        QDomElement XMLRoot;
-        XMLRoot = XMLResult.createElement("XMLResult");
-        XMLResult.appendChild(XMLRoot);
-        QDomElement eLanguages;
-        eLanguages = XMLResult.createElement("languages");
-        for (int lng = 0; lng < ODKLanguages.count();lng++)
-            if (genLangIndexByName(ODKLanguages[lng]) == -1)
+            if ((ODKLanguages.count() > 1) && (languages.count() == 1))
             {
                 if (outputType == "h")
-                {
-                    languageNotFound = true;
-                    log("Language " + ODKLanguages[lng] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
-                }
+                    log("This ODK has multiple languages but not other languages where specified with the -l parameter.");
                 else
                 {
-                    languageNotFound = true;
-                    QDomElement eLanguage;
-                    eLanguage = XMLResult.createElement("language");
-                    QDomText vSepFile;
-                    vSepFile = XMLResult.createTextNode(ODKLanguages[lng]);
-                    eLanguage.appendChild(vSepFile);
-                    eLanguages.appendChild(eLanguage);
+                    QDomDocument XMLResult;
+                    XMLResult = QDomDocument("XMLResult");
+                    QDomElement XMLRoot;
+                    XMLRoot = XMLResult.createElement("XMLResult");
+                    XMLResult.appendChild(XMLRoot);
+                    QDomElement eLanguages;
+                    eLanguages = XMLResult.createElement("languages");
+                    for (int pos = 0; pos <= ODKLanguages.count()-1;pos++)
+                    {
+                        QDomElement eLanguage;
+                        eLanguage = XMLResult.createElement("language");
+                        QDomText vSepFile;
+                        vSepFile = XMLResult.createTextNode(ODKLanguages[pos]);
+                        eLanguage.appendChild(vSepFile);
+                        eLanguages.appendChild(eLanguage);
+                    }
+                    XMLRoot.appendChild(eLanguages);
+                    log(XMLResult.toString());
                 }
+                return 3;
             }
-        XMLRoot.appendChild(eLanguages);
-        if (languageNotFound)
+        }
+        if (!justCheck)
         {
-            if (outputType == "m")
-                log(XMLResult.toString());
-            return 4;
+            bool languageNotFound;
+            languageNotFound = false;
+            QDomDocument XMLResult;
+            XMLResult = QDomDocument("XMLResult");
+            QDomElement XMLRoot;
+            XMLRoot = XMLResult.createElement("XMLResult");
+            XMLResult.appendChild(XMLRoot);
+            QDomElement eLanguages;
+            eLanguages = XMLResult.createElement("languages");
+            for (int lng = 0; lng < ODKLanguages.count();lng++)
+                if (genLangIndexByName(ODKLanguages[lng]) == -1)
+                {
+                    if (outputType == "h")
+                    {
+                        languageNotFound = true;
+                        log("Language " + ODKLanguages[lng] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
+                    }
+                    else
+                    {
+                        languageNotFound = true;
+                        QDomElement eLanguage;
+                        eLanguage = XMLResult.createElement("language");
+                        QDomText vSepFile;
+                        vSepFile = XMLResult.createTextNode(ODKLanguages[lng]);
+                        eLanguage.appendChild(vSepFile);
+                        eLanguages.appendChild(eLanguage);
+                    }
+                }
+            XMLRoot.appendChild(eLanguages);
+            if (languageNotFound)
+            {
+                if (outputType == "m")
+                    log(XMLResult.toString());
+                return 4;
+            }
         }
 
         //Allocating survey labels column indexes to languages
@@ -2000,11 +2873,19 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                     label = cell->value().toString();
                     if (label.indexOf(":") >= 0)
                     {
-                        int langIdx = label.lastIndexOf(":");
-                        QString language;
-                        language = label.right(label.length()-langIdx-1);
-                        langIdx = genLangIndexByName(language);
-                        languages[langIdx].idxInSurvey = ncols;
+                        if (!justCheck)
+                        {
+                            int langIdx = label.lastIndexOf(":");
+                            QString language;
+                            language = label.right(label.length()-langIdx-1);
+                            langIdx = genLangIndexByName(language);
+                            languages[langIdx].idxInSurvey = ncols;
+                        }
+                        else
+                        {
+                            int langIdx = genLangIndexByName(ODKLanguages[0]);
+                            languages[langIdx].idxInSurvey = ncols;
+                        }
                     }
                     else
                     {
@@ -2030,11 +2911,19 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                     label = cell->value().toString();
                     if (label.indexOf(":") >= 0)
                     {
-                        int langIdx = label.lastIndexOf(":");
-                        QString language;
-                        language = label.right(label.length()-langIdx-1);
-                        langIdx = genLangIndexByName(language);
-                        languages[langIdx].idxInChoices = ncols;
+                        if (!justCheck)
+                        {
+                            int langIdx = label.lastIndexOf(":");
+                            QString language;
+                            language = label.right(label.length()-langIdx-1);
+                            langIdx = genLangIndexByName(language);
+                            languages[langIdx].idxInChoices = ncols;
+                        }
+                        else
+                        {
+                            int langIdx = genLangIndexByName(ODKLanguages[0]);
+                            languages[langIdx].idxInChoices = ncols;
+                        }
                     }
                     else
                     {
@@ -2044,12 +2933,15 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                 }
             }
         }
-        for (ncols = 0; ncols < languages.count();ncols++)
+        if (!justCheck)
         {
-            if ((languages[ncols].idxInChoices == -1) || (languages[ncols].idxInSurvey == -1))
+            for (ncols = 0; ncols < languages.count();ncols++)
             {
-                log("Language " + languages[ncols].desc + " is not present in the labels of the sheets choices or Survey");
-                return 5;
+                if ((languages[ncols].idxInChoices == -1) || (languages[ncols].idxInSurvey == -1))
+                {
+                    log("Language " + languages[ncols].desc + " is not present in the labels of the sheets choices or Survey");
+                    return 5;
+                }
             }
         }
         //Processing survey structure
@@ -2063,6 +2955,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         columnAppearance = -1;
         int columnCalculation;
         columnCalculation = -1;
+        int columnRepeatCount;
+        columnRepeatCount = -1;
 
         for (ncols = 1; ncols <= excelSheet->dimension().lastColumn(); ncols++)
         {
@@ -2086,6 +2980,10 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                 if (cell->value().toString().toLower().indexOf("calculation") >= 0)
                 {
                     columnCalculation = ncols;
+                }
+                if (cell->value().toString().toLower().indexOf("repeat_count") >= 0)
+                {
+                    columnRepeatCount = ncols;
                 }
             }
         }
@@ -2169,8 +3067,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         }
 
         maintable.pos = tableIndex;
-        maintable.islookup = false;
-        maintable.isSeparated = false;
+        maintable.islookup = false;        
+        maintable.isOneToOne = false;
         maintable.xmlCode = "main";
         maintable.parentTable = "NULL";
 
@@ -2219,6 +3117,30 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         foriginID.isMultiSelect = false;
         maintable.fields.append(foriginID);
 
+        if (justCheck)
+        {
+            TfieldDef dummyKey;
+            dummyKey.name = "dummykey";
+            for (lang = 0; lang <= languages.count()-1;lang++)
+            {
+                TlngLkpDesc langDesc;
+                langDesc.langCode = languages[lang].code;
+                langDesc.desc = "dummykey";
+                dummyKey.desc.append(langDesc);
+            }
+            dummyKey.type = "varchar";
+            dummyKey.size = 15;
+            dummyKey.decSize = 0;
+            dummyKey.rField = "";
+            dummyKey.rTable = "";
+            dummyKey.key = true;
+            dummyKey.xmlCode = "dummy";
+            dummyKey.selectSource = "NONE";
+            dummyKey.selectListName = "NONE";
+            dummyKey.isMultiSelect = false;
+            maintable.fields.append(dummyKey);
+        }
+
         tables.append(maintable);
         addToRepeat(mainTable);
 
@@ -2227,6 +3149,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
         QString variableName;
         QString variableApperance;
         QString variableCalculation;
+        QString variableRepeatCount;
         QString tableName;
         int tblIndex;
         int nrow;
@@ -2273,6 +3196,13 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                 variableCalculation = cell->value().toString().trimmed().toLower();
             else
                 variableCalculation = "";
+            //Read the repeat count
+            ref.setColumn(columnRepeatCount);
+            cell = excelSheet->cellAt(ref);
+            if (cell != 0)
+                variableRepeatCount = cell->value().toString().trimmed().toLower();
+            else
+                variableRepeatCount = "";
 
             //if (variableName == "secd_d4_exotic_breed")
             //{
@@ -2293,6 +3223,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                     tableIndex = tableIndex + 1;
                     TtableDef aTable;
                     aTable.name = fixField(variableName.toLower());
+                    checkTableName(aTable.name);
 
                     for (int lng = 0; lng < languages.count();lng++)
                     {
@@ -2310,7 +3241,10 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
 
                     aTable.pos = tableIndex;
                     aTable.islookup = false;
-                    aTable.isSeparated = false;
+                    if (variableRepeatCount == "1")
+                        aTable.isOneToOne = true;
+                    else
+                        aTable.isOneToOne = false;
                     if (getVariableStack() == "")
                         aTable.xmlCode = variableName;
                     else
@@ -2339,28 +3273,32 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                             aTable.fields.append(relField);
                         }
                     }
-                    //Add the extra row ID Key field to this table
-                    TfieldDef keyField;
-                    keyField.name = fixField(variableName.toLower()) + "_rowid";
-                    for (int lng = 0; lng < languages.count(); lng++)
+                    if (aTable.isOneToOne == false)
                     {
-                        TlngLkpDesc fieldDesc;
-                        fieldDesc.langCode = languages[lng].code;
-                        fieldDesc.desc = "Unique Row ID";
-                        keyField.desc.append(fieldDesc);
+                        //Add the extra row ID Key field to this table
+                        TfieldDef keyField;
+                        keyField.name = fixField(variableName.toLower()) + "_rowid";
+                        for (int lng = 0; lng < languages.count(); lng++)
+                        {
+                            TlngLkpDesc fieldDesc;
+                            fieldDesc.langCode = languages[lng].code;
+                            fieldDesc.desc = "Unique Row ID";
+                            keyField.desc.append(fieldDesc);
+                        }
+                        keyField.type = "int";
+                        keyField.size = 3;
+                        keyField.decSize = 0;
+                        keyField.key = true;
+                        keyField.rTable = "";
+                        keyField.rField = "";
+                        keyField.xmlCode = "NONE";
+                        keyField.selectSource = "NONE";
+                        keyField.selectListName = "NONE";
+                        keyField.isMultiSelect = false;
+                        keyField.multiSelectTable = "";
+                        aTable.fields.append(keyField);
                     }
-                    keyField.type = "int";
-                    keyField.size = 3;
-                    keyField.decSize = 0;
-                    keyField.key = true;
-                    keyField.rTable = "";
-                    keyField.rField = "";
-                    keyField.xmlCode = "NONE";
-                    keyField.selectSource = "NONE";
-                    keyField.selectListName = "NONE";
-                    keyField.isMultiSelect = false;
-                    keyField.multiSelectTable = "";
-                    aTable.fields.append(keyField);
+
                     tables.append(aTable);
                     addToRepeat(variableName);
                     addToStack(variableName);
@@ -2468,6 +3406,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                                 aField.desc.append(fieldDesc);
                             }
                         }
+                        checkFieldName(tables[tblIndex],aField.name);
                         tables[tblIndex].fields.append(aField);
                     }
                     else
@@ -2573,8 +3512,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                                             lkpTable.desc.append(fieldDesc);
                                         }
                                         lkpTable.pos = -1;
-                                        lkpTable.islookup = true;
-                                        lkpTable.isSeparated = false;
+                                        lkpTable.islookup = true;                                        
+                                        lkpTable.isOneToOne = false;
                                         lkpTable.lkpValues.append(values);
                                         //Creates the field for code in the lookup
                                         TfieldDef lkpCode;
@@ -2628,6 +3567,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                                 aField.rTable = "";
                                 aField.rField = "";
                             }
+                            checkFieldName(tables[tblIndex],aField.name);
                             tables[tblIndex].fields.append(aField);
 
                             //We add here the has other field
@@ -2653,6 +3593,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                                 oField.rTable = "";
                                 oField.size = 120;
                                 oField.type = "varchar";
+                                checkFieldName(tables[tblIndex],oField.name);
                                 tables[tblIndex].fields.append(oField);
                             }
                         }                        
@@ -2791,8 +3732,8 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                                         lkpTable.desc.append(fieldDesc);
                                     }
                                     lkpTable.pos = -1;
-                                    lkpTable.islookup = true;
-                                    lkpTable.isSeparated = false;
+                                    lkpTable.islookup = true;                                    
+                                    lkpTable.isOneToOne = false;
                                     lkpTable.lkpValues.append(values);
                                     //Creates the field for code in the lookup
                                     TfieldDef lkpCode;
@@ -2853,6 +3794,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                                 aField.isMultiSelect = false;
                                 aField.multiSelectTable = "";
                             }
+                            checkFieldName(tables[tblIndex],aField.name);
                             tables[tblIndex].fields.append(aField); //Appends the multi select varchar field to the list
 
                             //We add here the has other field
@@ -2878,6 +3820,7 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                                 oField.rTable = "";
                                 oField.size = 120;
                                 oField.type = "varchar";
+                                checkFieldName(tables[tblIndex],oField.name);
                                 tables[tblIndex].fields.append(oField);
                             }
 
@@ -2886,15 +3829,18 @@ int processXLSX(QString inputFile, QString mainTable, QString mainField, QDir di
                 }
             }
         }
-        if (!mainFieldFound)
+        if (!justCheck)
         {
-            log("ERROR!: The main variable \"" + mainField + "\" was not found in the ODK. Please indicate a correct main variable");
-            return 10;
-        }
-        if (!mainFieldinMainTable)
-        {
-            log("ERROR!: The main variable \"" + mainField + "\" is not in the main table \"" + mainTable + "\". Please indicate a correct main variable.");
-            return 11;
+            if (!mainFieldFound)
+            {
+                log("ERROR!: The main variable \"" + mainField + "\" was not found in the ODK. Please indicate a correct main variable");
+                return 10;
+            }
+            if (!mainFieldinMainTable)
+            {
+                log("ERROR!: The main variable \"" + mainField + "\" is not in the main table \"" + mainTable + "\". Please indicate a correct main variable.");
+                return 11;
+            }
         }
     }
     return 0;
@@ -3029,8 +3975,8 @@ int separateTable(TtableDef &table, QDomNode groups)
             }
             ntable.xmlCode = table.xmlCode;
             ntable.pos = tableIndex;
-            ntable.islookup = false;
-            ntable.isSeparated = true;
+            ntable.islookup = false;            
+            ntable.isOneToOne = false;
             ntable.parentTable = table.name;
             for (pos2 = 0; pos2 <= keys.count()-1;pos2++)
             {
@@ -3262,6 +4208,76 @@ int checkLookupTables()
     return 0;
 }
 
+bool checkTables2()
+{
+    int pos;
+    int pos2;
+    int tmax;
+    tmax = tables.count();
+    int rfcount;
+    int select_count;
+    QList <Ttblwitherror > tables_with_error;
+    for (pos = 0; pos <= tmax-1;pos++)
+    {
+        rfcount = 0;
+        select_count = 0;
+        for (pos2 = 0; pos2 <= tables[pos].fields.count()-1;pos2++)
+        {
+            if (!tables[pos].fields[pos2].rTable.isEmpty())
+            {
+                if (isRelatedTableLookUp(tables[pos].fields[pos2].rTable))
+                    select_count = select_count + 1;
+                rfcount++;
+            }
+        }
+        if (rfcount > 64)
+        {
+            Ttblwitherror aTable;
+            aTable.name = tables[pos].name;
+            aTable.num_selects = select_count + (rfcount - select_count);
+            tables_with_error.append(aTable);
+        }
+    }
+    if (tables_with_error.count() > 0)
+    {
+        if (outputType == "h")
+        {
+            log("Error: The following tables have more than 64 selects:");
+            for (pos = 0; pos < tables_with_error.count(); pos++)
+            {
+                log(tables_with_error[pos].name + " with " + QString::number(tables_with_error[pos].num_selects) + " selects.");
+            }
+            log("");
+            log("Some notes on this restriction and how to correct it:");
+            log("We tent to organize our ODK forms in sections with questions around a topic. For example: \"livestock inputs\" or \"crops sales\".\n");
+            log("These sections have type = \"begin/end group\". We also organize questions that must be repeated in sections with type = \"begin/end repeat.\"\n");
+            log("ODK Tools store repeats as separate tables (like different Excel sheets) however groups are not. ODK tools store all items (questions, notes, calculations, etc.) outside repeats into a table called \"maintable\". Thus \"maintable\" usually end up with several items and if your ODK form have many selects then the \"maintable\" could potentially have more than 64 selects. ODK Tools can only handle 64 selects per table.\n");
+            log("You can bypass this restriction by creating groups of items inside repeats BUT WITH repeat_count = 1. A repeat with repeat_count = 1 will behave in the same way as a group but ODKTools will create a new table for it to store all its items. Eventually if you export the data to Excel your items will be organized in different sheets each representing a table.\n");
+            log("Please edit your ODK XLSX file, group several items inside repeats with repeat_count = 1 and run this process again.");
+            return true;
+        }
+        else
+        {
+            QDomDocument XMLResult;
+            XMLResult = QDomDocument("XMLResult");
+            QDomElement XMLRoot;
+            XMLRoot = XMLResult.createElement("XMLResult");
+            XMLResult.appendChild(XMLRoot);
+            for (pos = 0; pos < tables_with_error.count(); pos++)
+            {
+                QDomElement eTable;
+                eTable = XMLResult.createElement("table");
+                eTable.setAttribute("name",tables_with_error[pos].name);
+                eTable.setAttribute("selects",tables_with_error[pos].num_selects);
+                XMLRoot.appendChild(eTable);
+            }
+            log(XMLResult.toString());
+            return true;
+        }
+    }
+    return false;
+}
+
 // This function check the tables. If the table has more than 60 relationships creates a separation file using UUID as file name
 // The separation file then can be used as an input parameter to separate the tables into sections
 int checkTables(QString sepOutFile)
@@ -3409,7 +4425,7 @@ int main(int argc, char *argv[])
     title = title + " * ODK XLSX file.                                                    * \n";
     title = title + " ********************************************************************* \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.1");
 
     TCLAP::ValueArg<std::string> inputArg("x","inputXLSX","Input ODK XLSX survey file",true,"","string");
     TCLAP::ValueArg<std::string> tableArg("t","mainTable","Name of the master table for the target schema. ODK surveys do not have a master table however this is neccesary to store ODK variables that are not inside a repeat. Please give a name for the master table for maintable, mainmodule, coverinformation, etc.",true,"","string");
@@ -3421,16 +4437,14 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> insertXMLArg("I","xmlinsert","Output lookup values in XML format. Default ./insert.xml",false,"./insert.xml","string");
     TCLAP::ValueArg<std::string> metadataArg("m","outputmetadata","Output metadata file. Default ./metadata.sql",false,"./metadata.sql","string");
     TCLAP::ValueArg<std::string> impxmlArg("f","outputxml","Output xml manifest file. Default ./manifest.xml",false,"./manifest.xml","string");
-    TCLAP::ValueArg<std::string> prefixArg("p","prefix","Prefix for each table. _ is added to the prefix. Default no prefix",false,"","string");
-    TCLAP::ValueArg<std::string> sepArg("s","separationfile","Separation file to use",false,"","string");
-    TCLAP::ValueArg<std::string> sepOutputArg("S","separationoutputfile","Separation file to writen if required. By default a auto generated file will be created",false,"","string");
+    TCLAP::ValueArg<std::string> prefixArg("p","prefix","Prefix for each table. _ is added to the prefix. Default no prefix",false,"","string");    
     TCLAP::ValueArg<std::string> langArg("l","otherlanguages","Other languages. For example: (en)English,(es)Español. Required if ODK form has multiple languages",false,"","string");
     TCLAP::ValueArg<std::string> defLangArg("d","deflanguage","Default language. For example: (en)English. If not indicated then English will be asumed",false,"(en)English","string");
     TCLAP::ValueArg<std::string> transFileArg("T","translationfile","Output translation file",false,"./iso639.sql","string");
     TCLAP::ValueArg<std::string> yesNoStringArg("y","yesnostring","Yes and No strings in the default language in the format \"String|String\". This will allow the tool to identify Yes/No lookup tables and exclude them. This is not case sensitive. For example, if the default language is Spanish this value should be indicated as \"Si|No\". If empty English \"Yes|No\" will be assumed",false,"Yes|No","string");
     TCLAP::ValueArg<std::string> tempDirArg("e","tempdirectory","Temporary directory. ./tmp by default",false,"./tmp","string");
     TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");
-
+    TCLAP::SwitchArg justCheckSwitch("K","justCheck","Just check of main inconsistencies and report back", cmd, false);
     TCLAP::UnlabeledMultiArg<std::string> suppFiles("supportFile", "support files", false, "string");
 
     debug = false;
@@ -3450,20 +4464,18 @@ int main(int argc, char *argv[])
     cmd.add(insertXMLArg);
     cmd.add(metadataArg);
     cmd.add(impxmlArg);
-    cmd.add(prefixArg);
-    cmd.add(sepArg);
+    cmd.add(prefixArg);    
     cmd.add(langArg);
     cmd.add(defLangArg);
     cmd.add(transFileArg);
     cmd.add(yesNoStringArg);
     cmd.add(tempDirArg);
-    cmd.add(outputTypeArg);
-    cmd.add(sepOutputArg);
+    cmd.add(outputTypeArg);    
     cmd.add(suppFiles);
 
     //Parsing the command lines
     cmd.parse( argc, argv );
-
+    loadInvalidFieldNames();
     //Get the support files
     std::vector<std::string> v = suppFiles.getValue();
     for (int i = 0; static_cast<unsigned int>(i) < v.size(); i++)
@@ -3489,14 +4501,14 @@ int main(int argc, char *argv[])
     QString xmlCreateFile = QString::fromUtf8(XMLCreateArg.getValue().c_str());
     QString mTable = QString::fromUtf8(tableArg.getValue().c_str());
     QString mainVar = QString::fromUtf8(mainVarArg.getValue().c_str());
-    QString sepFile = QString::fromUtf8(sepArg.getValue().c_str());
-    QString sepOutFile = QString::fromUtf8(sepOutputArg.getValue().c_str());
     QString lang = QString::fromUtf8(langArg.getValue().c_str());
     QString defLang = QString::fromUtf8(defLangArg.getValue().c_str());
     QString transFile = QString::fromUtf8(transFileArg.getValue().c_str());
     QString yesNoString = QString::fromUtf8(yesNoStringArg.getValue().c_str());
     QString tempDirectory = QString::fromUtf8(tempDirArg.getValue().c_str());
     outputType = QString::fromUtf8(outputTypeArg.getValue().c_str());
+
+    justCheck = justCheckSwitch.getValue();
 
     QDir currdir(".");
     QDir dir;
@@ -3656,30 +4668,59 @@ int main(int argc, char *argv[])
     returnValue = processXLSX(input,mTable.trimmed(),mainVar.trimmed(),dir,dblite);
     if (returnValue == 0)
     {
-        //dumpTablesForDebug();
-        if (sepFile != "") //If we have a separation file
+        if (duplicatedTables.count() > 0)
         {
-            //log("Separating tables");
-            QFile file(sepFile);
-            if (file.exists())
-            {
-                if (separeteTables(sepFile) == 1) //Separate the tables using the file  //TODO: If separation happens then we need to move multi-select tables to the end of the list
-                    return 1;
-            }
+            reportDuplicatedTables();
+            exit(22);
         }
-        appendUUIDs();
-        //log("Checking tables");
-        if (checkTables(sepOutFile) != 0) //Check the tables to see if they have less than 60 related fields. If so a separation file is created
+        if (duplicatedFields.count() > 0)
         {
-            return 2; //If a table has more than 60 related field then exit
+            reportDuplicatedFields();
+            exit(23);
+        }
+        appendUUIDs();        
+        if (checkTables2()) //Check the tables to see if they have less than 64 related fields
+        {
+            exit(2); //If a table has more than 60 related field then exit
         }
         if (checkLookupTables() != 0)
-            return 9;
+            exit(9);
         //log("Generating SQL scripts");
-        genSQL(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
+        if (!justCheck)
+            genSQL(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
     }
     else
         return returnValue;
+
+    if (invalidFields.count() > 0)
+    {
+        if (outputType == "h")
+        {
+            log("The following field and/or table names are invalid:\n");
+            for (int pos = 0; pos < invalidFields.count(); pos++)
+            {
+                log("\t" + invalidFields[pos]);
+            }
+        }
+        else
+        {
+            QDomDocument XMLResult;
+            XMLResult = QDomDocument("XMLResult");
+            QDomElement XMLRoot;
+            XMLRoot = XMLResult.createElement("XMLResult");
+            XMLResult.appendChild(XMLRoot);
+            for (int item = 0; item < invalidFields.count(); item++)
+            {
+                QDomElement eDuplicatedItem;
+                eDuplicatedItem = XMLResult.createElement("invalidName");
+                eDuplicatedItem.setAttribute("name",invalidFields[item]);
+                XMLRoot.appendChild(eDuplicatedItem);
+            }
+            log(XMLResult.toString());
+        }
+        exit(24);
+    }
+
     if (outputType == "h")
         log("Done without errors");
     return 0;
