@@ -24,10 +24,22 @@ License along with CreateFromXML.  If not, see <http://www.gnu.org/licenses/lgpl
 #include <QDomElement>
 #include <QDomNode>
 #include <QFile>
+#include <QList>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
 namespace pt = boost::property_tree;
+
+bool keysForRepo;
+
+struct arraySizeItem
+{
+    QString name;
+    int size;
+};
+typedef arraySizeItem TarraySizeItem;
+
+QList<TarraySizeItem > arraySizes;
 
 void log(QString message)
 {
@@ -36,15 +48,28 @@ void log(QString message)
     printf(temp.toUtf8().data());
 }
 
+int getArraySize(QString name)
+{
+    for (int pos = 0; pos < arraySizes.count(); pos++)
+    {
+        if (arraySizes[pos].name == name)
+            return arraySizes[pos].size;
+    }
+    return 1;
+}
+
 void parseManifest(QDomNode node, pt::ptree &json)
 {
     while (!node.isNull())
     {
         QString xmlCode;
-        xmlCode = node.toElement().attribute("xmlcode","NONE");
+        if (!keysForRepo)
+            xmlCode = node.toElement().attribute("xmlcode","NONE");
+        else
+            xmlCode = node.toElement().attribute("mysqlcode","NONE");
         if (node.toElement().tagName() == "field")
         {
-            if ((xmlCode != "NONE") && (xmlCode != "dummy"))
+            if ((xmlCode != "NONE") && (xmlCode != "dummy") && (xmlCode != "rowuuid"))
             {
                 json.put(xmlCode.toStdString(),"dummy");
             }
@@ -54,7 +79,10 @@ void parseManifest(QDomNode node, pt::ptree &json)
             pt::ptree childObject;
             parseManifest(node.firstChild(), childObject);
             pt::ptree repeatArray;
-            repeatArray.push_front(std::make_pair("", childObject));
+            int arraySize;
+            arraySize = getArraySize(xmlCode);
+            for (int pos = 1 ; pos <= arraySize; pos++)
+                repeatArray.push_front(std::make_pair("", childObject));
             json.put_child(xmlCode.toStdString(),repeatArray);
         }
         node = node.nextSibling();
@@ -78,9 +106,12 @@ int main(int argc, char *argv[])
 
     TCLAP::ValueArg<std::string> inputArg("i","input","Input manifest XML file",true,"","string");
     TCLAP::ValueArg<std::string> outputArg("o","output","Output JSON file",false,"./output.json","string");
+    TCLAP::ValueArg<std::string> arraysArg("a","arrays","Array sizes as defined as name:size,name:size",false,"","string");
+    TCLAP::SwitchArg repoSwitch("r","repository","Generate keys for repository", cmd, false);
 
     cmd.add(inputArg);
     cmd.add(outputArg);
+    cmd.add(arraysArg);
 
     //Parsing the command lines
     cmd.parse( argc, argv );
@@ -88,6 +119,24 @@ int main(int argc, char *argv[])
     //Getting the variables from the command
     QString input = QString::fromUtf8(inputArg.getValue().c_str());
     QString output = QString::fromUtf8(outputArg.getValue().c_str());
+    QString sarrays = QString::fromUtf8(arraysArg.getValue().c_str());
+    keysForRepo = repoSwitch.getValue();
+
+    if (sarrays != "")
+    {
+        QStringList items = sarrays.split(",",QString::SkipEmptyParts);
+        for (int pos = 0; pos < items.count(); pos++)
+        {
+            QStringList parts = items[pos].split(":",QString::SkipEmptyParts);
+            if (parts.length() == 2)
+            {
+                TarraySizeItem item;
+                item.name = parts[0];
+                item.size = parts[1].toInt();
+                arraySizes.append(item);
+            }
+        }
+    }
 
     if (input != output)
     {
@@ -115,9 +164,12 @@ int main(int argc, char *argv[])
             {
                 QDomNode start = rootA.firstChild().firstChild();
                 pt::ptree JSONRoot;
-                JSONRoot.put("_xform_id_string","dummy");
-                JSONRoot.put("_submissionid","dummy");
-                JSONRoot.put("meta/instanceID","dummy");
+                if (!keysForRepo)
+                {
+                    JSONRoot.put("_xform_id_string","dummy");
+                    JSONRoot.put("_submissionid","dummy");
+                    JSONRoot.put("meta/instanceID","dummy");
+                }
                 parseManifest(start, JSONRoot);
                 pt::write_json(output.toStdString(),JSONRoot);
             }
