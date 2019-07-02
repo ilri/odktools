@@ -9,4 +9,5 @@ SUBDIRS = compareCreateXML \
     MySQLDenormalize \
     JSONToCSV \
     MySQLToXLSX \
-    createAuditTriggers
+    createAuditTriggers \
+    createDummyJSON
