@@ -32,7 +32,7 @@ void log(QString message)
 {
     QString temp;
     temp = message + "\n";
-    printf(temp.toUtf8().data());
+    printf("%s",temp.toLocal8Bit().data());
 }
 
 QStringList chuckFiles;

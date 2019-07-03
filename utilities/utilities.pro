@@ -8,4 +8,6 @@ SUBDIRS = compareCreateXML \
     insertFromXML \
     MySQLDenormalize \
     JSONToCSV \
-    MySQLToXLSX 
+    MySQLToXLSX \ 
+    createDummyJSON \
+    createAuditTriggers

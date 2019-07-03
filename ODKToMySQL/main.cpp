@@ -4685,9 +4685,32 @@ int main(int argc, char *argv[])
         }
         if (checkLookupTables() != 0)
             exit(9);
-        //log("Generating SQL scripts");
-        if (!justCheck)
-            genSQL(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
+        //log("Generating SQL scripts");        
+        genSQL(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
+        if (justCheck)
+        {
+            // Remove all files besided the manifest
+            if (QFile::exists(ddl))
+                QFile::remove(ddl);
+
+            if (QFile::exists(insert))
+                QFile::remove(insert);
+
+            if (QFile::exists(metadata))
+                QFile::remove(metadata);
+
+            if (QFile::exists(transFile))
+                QFile::remove(transFile);
+
+            if (QFile::exists(xmlCreateFile))
+                QFile::remove(xmlCreateFile);
+
+            if (QFile::exists(insertXML))
+                QFile::remove(insertXML);
+
+            if (QFile::exists(drop))
+                QFile::remove(drop);
+        }
     }
     else
         return returnValue;
