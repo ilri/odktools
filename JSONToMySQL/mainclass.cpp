@@ -373,7 +373,7 @@ void mainClass::log(QString message)
 {
     QString temp;
     temp = message + "\n";
-    printf(temp.toLocal8Bit().data());
+    printf("%s",temp.toUtf8().data());
 }
 
 //This function returns a the xmlFieldCode based on its MySQL name
