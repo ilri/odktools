@@ -45,7 +45,7 @@ void log(QString message)
 {
     QString temp;
     temp = message + "\n";
-    printf(temp.toUtf8().data());
+    printf("%s",temp.toLocal8Bit().data());
 }
 
 int getArraySize(QString name)
@@ -93,16 +93,15 @@ int main(int argc, char *argv[])
 {
     QString title;
     title = title + "********************************************************************* \n";
-    title = title + " * Create from XML                                                   * \n";
-    title = title + " * This tool create a SQL DDL script file from a XML schema file     * \n";
-    title = title + " * created by ODKToMySQL.                                            * \n";
+    title = title + " * Create Dummy JSON                                                 * \n";
+    title = title + " * This tool creates a dummy data file in JSON format based on a     * \n";
+    title = title + " * manifest file.                                                    * \n";
     title = title + " *                                                                   * \n";
-    title = title + " * This tool is usefull when dealing with multiple versions of an    * \n";
-    title = title + " * ODK survey that were combined into a common XML schema using      * \n";
-    title = title + " * compareCreateXML.                                                 * \n";
+    title = title + " * This tool is usefull when flatting JSONs into a CSV format while  * \n";
+    title = title + " * conserving a proper order of the variables.                       * \n";
     title = title + " ********************************************************************* \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.1");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "2.0");
 
     TCLAP::ValueArg<std::string> inputArg("i","input","Input manifest XML file",true,"","string");
     TCLAP::ValueArg<std::string> outputArg("o","output","Output JSON file",false,"./output.json","string");
