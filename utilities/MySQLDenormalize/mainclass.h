@@ -94,7 +94,6 @@ private:
     QString output;
     QString nullValue;
     QString tempDir;
-    bool includeProtected;
 };
 
 #endif // MAINCLASS_H

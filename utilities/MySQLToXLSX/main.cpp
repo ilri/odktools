@@ -45,8 +45,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> createArg("x","createxml","Input create XML file",true,"","string");
     TCLAP::ValueArg<std::string> outArg("o","output","Output XLSX file",true,"","string");
     TCLAP::ValueArg<std::string> tmpArg("T","tempdir","Temporary directory (./tmp by default)",false,"./tmp","string");
-    TCLAP::ValueArg<std::string> firstArg("f","firstsheetname","Name for the first sheet",false,"","string");
-    TCLAP::SwitchArg remoteSwitch("i","includesensitive","Include sensitive information. False by default", cmd, false);
+    TCLAP::ValueArg<std::string> firstArg("f","firstsheetname","Name for the first sheet",false,"","string");    
     TCLAP::SwitchArg lookupSwitch("l","includelookups","Include lookup tables. False by default", cmd, false);
     TCLAP::SwitchArg mselSwitch("m","includemultiselects","Include multi-select tables. False by default", cmd, false);
 
@@ -64,9 +63,7 @@ int main(int argc, char *argv[])
     //Parsing the command lines
     cmd.parse( argc, argv );
 
-    //Getting the variables from the command
-    bool includeSensitive;
-    includeSensitive = remoteSwitch.getValue();
+    //Getting the variables from the command    
 
     bool includeLookUps;
     includeLookUps = lookupSwitch.getValue();
@@ -85,7 +82,7 @@ int main(int argc, char *argv[])
     QString firstSheetName = QString::fromUtf8(firstArg.getValue().c_str());
 
     mainClass *task = new mainClass(&app);
-    task->setParameters(host,port,user,pass,schema,createXML,outputFile,includeSensitive,tmpDir, includeLookUps, includeMSels, firstSheetName);
+    task->setParameters(host,port,user,pass,schema,createXML,outputFile,tmpDir, includeLookUps, includeMSels, firstSheetName);
     QObject::connect(task, SIGNAL(finished()), &app, SLOT(quit()));
     QTimer::singleShot(0, task, SLOT(run()));
     app.exec();

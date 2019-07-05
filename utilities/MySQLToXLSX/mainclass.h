@@ -28,7 +28,7 @@ class mainClass : public QObject
     Q_OBJECT
 public:
     explicit mainClass(QObject *parent = nullptr);
-    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool includeProtected, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName);
+    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName);
     int returnCode;
 signals:
     void finished();
@@ -48,8 +48,7 @@ private:
     QString schema;
     QString outputFile;
     QString tempDir;
-    QString createXML;
-    bool includeSensitive;
+    QString createXML;    
     QList<TtableDef> tables;
     QList<TtableDef> mainTables;
     QStringList tableNames;

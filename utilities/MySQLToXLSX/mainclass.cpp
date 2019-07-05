@@ -28,15 +28,14 @@ void mainClass::log(QString message)
     printf("%s", temp.toUtf8().data());
 }
 
-void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool includeProtected, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName)
+void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName)
 {
     this->host = host;
     this->port = port;
     this->user = user;
     this->pass = pass;
     this->schema = schema;
-    this->outputFile = outputFile;
-    this->includeSensitive = includeProtected;
+    this->outputFile = outputFile;    
     this->tempDir = tempDir;
     this->createXML = createXML;
     this->incLookups = incLookups;
@@ -241,45 +240,40 @@ void mainClass::loadTable(QDomNode table)
 {
     QDomElement eTable;
     eTable = table.toElement();
-    if ((eTable.attribute("sensitive","false") == "false") || (includeSensitive))
-    {
-        TtableDef aTable;
-        aTable.islookup = false;
-        aTable.name = eTable.attribute("name","");
-        aTable.desc = eTable.attribute("name","");
 
-        QDomNode field = table.firstChild();
-        while (!field.isNull())
+    TtableDef aTable;
+    aTable.islookup = false;
+    aTable.name = eTable.attribute("name","");
+    aTable.desc = eTable.attribute("name","");
+
+    QDomNode field = table.firstChild();
+    while (!field.isNull())
+    {
+        QDomElement eField;
+        eField = field.toElement();
+        if (eField.tagName() == "field")
         {
-            QDomElement eField;
-            eField = field.toElement();
-            if (eField.tagName() == "field")
-            {
-                if ((eField.attribute("sensitive","false") == "false") || (includeSensitive))
-                {
-                    TfieldDef aField;
-                    aField.name = eField.attribute("name","");
-                    aField.desc = eField.attribute("name","");
-                    aField.type = eField.attribute("type","");
-                    aField.size = eField.attribute("size","").toInt();
-                    aField.decSize = eField.attribute("decsize","").toInt();
-                    aTable.fields.append(aField);
-                }
-            }
-            else
-            {
-                loadTable(field);
-            }
-            field = field.nextSibling();
+            TfieldDef aField;
+            aField.name = eField.attribute("name","");
+            aField.desc = eField.attribute("name","");
+            aField.type = eField.attribute("type","");
+            aField.size = eField.attribute("size","").toInt();
+            aField.decSize = eField.attribute("decsize","").toInt();
+            aTable.fields.append(aField);
         }
-        if (aTable.name.indexOf("_msel_") < 0)
-            mainTables.append(aTable);
         else
         {
-            if (incmsels)
-            {
-                 mainTables.append(aTable);
-            }
+            loadTable(field);
+        }
+        field = field.nextSibling();
+    }
+    if (aTable.name.indexOf("_msel_") < 0)
+        mainTables.append(aTable);
+    else
+    {
+        if (incmsels)
+        {
+            mainTables.append(aTable);
         }
     }
 }
@@ -313,33 +307,30 @@ int mainClass::generateXLSX()
             while (!lkpTable.isNull())
             {
                 QDomElement eTable;
-                eTable = lkpTable.toElement();
-                if ((eTable.attribute("sensitive","false") == "false") || (includeSensitive))
-                {
-                    TtableDef aTable;
-                    aTable.islookup = true;
-                    aTable.name = eTable.attribute("name","");
-                    aTable.desc = eTable.attribute("desc","");
+                eTable = lkpTable.toElement();                
+                TtableDef aTable;
+                aTable.islookup = true;
+                aTable.name = eTable.attribute("name","");
+                aTable.desc = eTable.attribute("desc","");
 
-                    QDomNode field = lkpTable.firstChild();
-                    while (!field.isNull())
-                    {
-                        QDomElement eField;
-                        eField = field.toElement();
-                        if ((eField.attribute("sensitive","false") == "false") || (includeSensitive))
-                        {
-                            TfieldDef aField;
-                            aField.name = eField.attribute("name","");
-                            aField.desc = eField.attribute("desc","");
-                            aField.type = eField.attribute("type","");
-                            aField.size = eField.attribute("size","").toInt();
-                            aField.decSize = eField.attribute("decsize","").toInt();
-                            aTable.fields.append(aField);
-                        }
-                        field = field.nextSibling();
-                    }
-                    tables.append(aTable);
+                QDomNode field = lkpTable.firstChild();
+                while (!field.isNull())
+                {
+                    QDomElement eField;
+                    eField = field.toElement();
+
+                    TfieldDef aField;
+                    aField.name = eField.attribute("name","");
+                    aField.desc = eField.attribute("desc","");
+                    aField.type = eField.attribute("type","");
+                    aField.size = eField.attribute("size","").toInt();
+                    aField.decSize = eField.attribute("decsize","").toInt();
+                    aTable.fields.append(aField);
+
+                    field = field.nextSibling();
                 }
+                tables.append(aTable);
+
                 lkpTable = lkpTable.nextSibling();
             }
         }
