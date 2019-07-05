@@ -64,7 +64,7 @@ class mainClass : public QObject
     Q_OBJECT
 public:
     explicit mainClass(QObject *parent = nullptr);
-    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString table, QString mapDir, QString output, bool includeProtected, QString tempDir);
+    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString table, QString mapDir, QString output, QString tempDir);
     int returnCode;
 signals:
     void finished();

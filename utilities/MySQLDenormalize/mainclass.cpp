@@ -63,7 +63,7 @@ void mainClass::log(QString message)
     printf("%s",temp.toLocal8Bit().data());
 }
 
-void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString table, QString mapDir, QString output, bool includeProtected, QString tempDir)
+void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString table, QString mapDir, QString output, QString tempDir)
 {
     this->host = host;
     this->port = port;
@@ -73,7 +73,6 @@ void mainClass::setParameters(QString host, QString port, QString user, QString 
     this->table = table;
     this->mapDir = mapDir;
     this->output = output;
-    this->includeProtected = includeProtected;
     this->tempDir = tempDir;
 }
 
