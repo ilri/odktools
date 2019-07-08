@@ -48,6 +48,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> firstArg("f","firstsheetname","Name for the first sheet",false,"","string");    
     TCLAP::SwitchArg lookupSwitch("l","includelookups","Include lookup tables. False by default", cmd, false);
     TCLAP::SwitchArg mselSwitch("m","includemultiselects","Include multi-select tables. False by default", cmd, false);
+    TCLAP::SwitchArg protectSwitch("c","protect","Protect sensitive fields. False by default", cmd, false);
 
 
 
@@ -71,6 +72,9 @@ int main(int argc, char *argv[])
     bool includeMSels;
     includeMSels = mselSwitch.getValue();
 
+    bool protectSensitive;
+    protectSensitive = protectSwitch.getValue();
+
     QString host = QString::fromUtf8(hostArg.getValue().c_str());
     QString port = QString::fromUtf8(portArg.getValue().c_str());
     QString user = QString::fromUtf8(userArg.getValue().c_str());
@@ -82,7 +86,7 @@ int main(int argc, char *argv[])
     QString firstSheetName = QString::fromUtf8(firstArg.getValue().c_str());
 
     mainClass *task = new mainClass(&app);
-    task->setParameters(host,port,user,pass,schema,createXML,outputFile,tmpDir, includeLookUps, includeMSels, firstSheetName);
+    task->setParameters(host,port,user,pass,schema,createXML,outputFile,tmpDir, includeLookUps, includeMSels, firstSheetName, protectSensitive);
     QObject::connect(task, SIGNAL(finished()), &app, SLOT(quit()));
     QTimer::singleShot(0, task, SLOT(run()));
     app.exec();

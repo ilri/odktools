@@ -11,6 +11,10 @@ struct fieldDef
   QString desc; //Variable description
   int size; //Variable size
   int decSize; //Variable decimal size
+  bool sensitive;
+  bool key;
+  QString replace_value;
+  QString value;
 };
 typedef fieldDef TfieldDef;
 
@@ -28,7 +32,7 @@ class mainClass : public QObject
     Q_OBJECT
 public:
     explicit mainClass(QObject *parent = nullptr);
-    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName);
+    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, bool protectSensitive);
     int returnCode;
 signals:
     void finished();
@@ -41,6 +45,7 @@ private:
     void getFieldData(QString table, QString field, QString &desc, QString &valueType, int &size, int &decsize);
     const char *getSheetDescription(QString name);
     void loadTable(QDomNode node);
+    QString protect_field(QString table_name, QString field_name, QString field_value);
     QString host;
     QString port;
     QString user;
@@ -56,6 +61,9 @@ private:
     bool incLookups;
     bool incmsels;
     QString firstSheetName;
+    bool protectSensitive;
+    QList<TfieldDef> keys;
+    QList<TfieldDef> replace_values;
 };
 
 #endif // MAINCLASS_H
