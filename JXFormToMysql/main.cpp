@@ -117,6 +117,7 @@ struct fieldDef
   QString multiSelectTable; //Multiselect table
   QString selectSource; //The source of the select. Internal, External or Search
   QString selectListName; //The list name of the select
+  bool sensitive;
 };
 typedef fieldDef TfieldDef;
 
@@ -1636,24 +1637,21 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 //For the create XML
                 tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
                 tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
-                tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));
-                tables[pos].tableCreteElement.setAttribute("sensitive","false");
+                tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));                
             }
             else
             {
                 //For the create XML
                 tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
                 tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
-                tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));
-                tables[pos].tableCreteElement.setAttribute("sensitive","false");
+                tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));                
             }
         }
         else
         {
             tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
             tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
-            tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));
-            tables[pos].tableCreteElement.setAttribute("sensitive","false");
+            tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));            
 
             //Append the values to the XML insert
             QDomElement lkptable = insertValuesXML.createElement("table");
@@ -1714,6 +1712,11 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         fieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                         fieldNode.setAttribute("type",tables[pos].fields[clm].type);
                         fieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                        if (tables[pos].fields[clm].sensitive == true)
+                        {
+                            fieldNode.setAttribute("sensitive","true");
+                            fieldNode.setAttribute("protection","exclude");
+                        }
                         fieldNode.setAttribute("size",tables[pos].fields[clm].size);
                         fieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
                         if (tables[pos].fields[clm].isMultiSelect == true)
@@ -1743,9 +1746,13 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                         createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                         createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                        if (tables[pos].fields[clm].sensitive == true)
+                        {
+                            createFieldNode.setAttribute("sensitive","true");
+                            createFieldNode.setAttribute("protection","exclude");
+                        }
                         createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
-                        createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
-                        createFieldNode.setAttribute("sensitive","false");
+                        createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);                        
 
                         if (tables[pos].fields[clm].isMultiSelect == true)
                         {
@@ -1775,9 +1782,13 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("name",tables[pos].fields[clm].name.toLower());
                         createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                         createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                        if (tables[pos].fields[clm].sensitive == true)
+                        {
+                            createFieldNode.setAttribute("sensitive","true");
+                            createFieldNode.setAttribute("protection","exclude");
+                        }
                         createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
-                        createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
-                        createFieldNode.setAttribute("sensitive","false");
+                        createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);                        
                         if (tables[pos].fields[clm].key)
                             createFieldNode.setAttribute("key","true");
                         if (tables[pos].fields[clm].rTable != "")
@@ -1800,9 +1811,13 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                     createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                     createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                     createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                    if (tables[pos].fields[clm].sensitive == true)
+                    {
+                        createFieldNode.setAttribute("sensitive","true");
+                        createFieldNode.setAttribute("protection","exclude");
+                    }
                     createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
-                    createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
-                    createFieldNode.setAttribute("sensitive","false");
+                    createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);                    
                     if (tables[pos].fields[clm].key)
                         createFieldNode.setAttribute("key","true");
                     if (tables[pos].fields[clm].rTable != "")
@@ -1825,9 +1840,13 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                 createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                 createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                if (tables[pos].fields[clm].sensitive == true)
+                {
+                    createFieldNode.setAttribute("sensitive","true");
+                    createFieldNode.setAttribute("protection","exclude");
+                }
                 createFieldNode.setAttribute("size",tables[pos].fields[clm].size);
-                createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);
-                createFieldNode.setAttribute("sensitive","false");
+                createFieldNode.setAttribute("decsize",tables[pos].fields[clm].decSize);                
                 if (tables[pos].fields[clm].key)
                     createFieldNode.setAttribute("key","true");
                 if (tables[pos].fields[clm].rTable != "")
@@ -2598,6 +2617,7 @@ void appendUUIDs()
         UUIDField.calculateWithSelect = false;
         UUIDField.selectSource = "NONE";
         UUIDField.selectListName = "NONE";
+        UUIDField.sensitive = false;
         tables[pos].fields.append(UUIDField);
     }
 }
@@ -3280,6 +3300,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
         aField.size = getMaxValueLength(values);
         aField.decSize = 0;
         aField.key = false;
+        aField.sensitive = false;
         aField.isMultiSelect = false;
         aField.multiSelectTable = "";
         aField.formula = "";
@@ -3324,6 +3345,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
                         lkpCode.desc.append(langDesc);
                     }
                     lkpCode.key = true;
+                    lkpCode.sensitive = false;
                     lkpCode.type = aField.type;
                     lkpCode.size = aField.size;
                     lkpCode.decSize = aField.decSize;
@@ -3341,6 +3363,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
                         lkpDesc.desc.append(langDesc);
                     }
                     lkpDesc.key = false;
+                    lkpDesc.sensitive = false;
                     lkpDesc.type = "varchar";
                     lkpDesc.size = getMaxDescLength(values);
                     lkpDesc.decSize = 0;
@@ -3423,6 +3446,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
         aField.decSize = vartype.decSize;
         aField.calculateWithSelect = false;
         aField.formula = "";
+        aField.sensitive = false;
         if (fixField(variableName) == fixField(mainField.toLower()))
         {
             if (!primaryKeyAdded)
@@ -3631,7 +3655,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 aField.key = false;
 
             checkFieldName(tables[tblIndex],aField.name);
-
+            aField.sensitive = false;
             aField.isMultiSelect = false;
             aField.multiSelectTable = "";
             aField.formula = "";
@@ -3694,6 +3718,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                             lkpCode.desc.append(langDesc);
                         }
                         lkpCode.key = true;
+                        lkpCode.sensitive = false;
                         lkpCode.type = aField.type;
                         lkpCode.size = aField.size;
                         lkpCode.decSize = aField.decSize;
@@ -3711,6 +3736,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                             lkpDesc.desc.append(langDesc);
                         }
                         lkpDesc.key = false;
+                        lkpDesc.sensitive = false;
                         lkpDesc.type = "varchar";
                         lkpDesc.size = getMaxDescLength(values);
                         lkpDesc.decSize = 0;
@@ -3755,6 +3781,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 aField.formula = "";
                 aField.calculateWithSelect = false;
                 oField.key = false;
+                oField.sensitive = false;
                 oField.multiSelectTable = "";
                 oField.rField = "";
                 oField.rTable = "";
@@ -3775,6 +3802,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             aField.size = getMaxMSelValueLength(values);
             aField.decSize = 0;
             aField.key = false;
+            aField.sensitive = false;
             aField.isMultiSelect = true;
             aField.formula = "";
             aField.calculateWithSelect = false;
@@ -3822,6 +3850,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         relField.size = tables[tblIndex].fields[field].size;
                         relField.decSize = tables[tblIndex].fields[field].decSize;
                         relField.key = true;
+                        relField.sensitive = false;
                         relField.rTable = tables[tblIndex].name;
                         relField.rField = tables[tblIndex].fields[field].name;
                         relField.xmlCode = "NONE";
@@ -3854,6 +3883,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 mselKeyField.selectListName = "NONE";
                 mselKeyField.desc.append(aField.desc);
                 mselKeyField.key = true;
+                mselKeyField.sensitive = false;
 
                 if (!selectHasOrOther(variableType))
                 {
@@ -3900,6 +3930,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         lkpCode.desc.append(langDesc);
                     }
                     lkpCode.key = true;
+                    lkpCode.sensitive = false;
                     lkpCode.type = mselKeyField.type;
                     lkpCode.size = mselKeyField.size;
                     lkpCode.decSize = mselKeyField.decSize;
@@ -3918,6 +3949,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     }
 
                     lkpDesc.key = false;
+                    lkpDesc.sensitive = false;
                     lkpDesc.type = "varchar";
                     lkpDesc.size = getMaxDescLength(values);
                     lkpDesc.decSize = 0;                    
@@ -3970,6 +4002,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 oField.formula = "";
                 oField.calculateWithSelect = false;
                 oField.key = false;
+                oField.sensitive = false;
                 oField.multiSelectTable = "";
                 oField.rField = "";
                 oField.rTable = "";
@@ -4085,6 +4118,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
             relField.size = parentTable.fields[field].size;
             relField.decSize = parentTable.fields[field].decSize;
             relField.key = true;
+            relField.sensitive = false;
             relField.rTable = parentTable.name;
             relField.rField = parentTable.fields[field].name;
             relField.xmlCode = "NONE";
@@ -4117,6 +4151,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
         keyField.size = 3;
         keyField.decSize = 0;
         keyField.key = true;
+        keyField.sensitive = false;
         keyField.rTable = "";
         keyField.rField = "";
         keyField.xmlCode = "NONE";
@@ -4154,6 +4189,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
         aField.size = getMaxValueLength(values);
         aField.decSize = 0;
         aField.key = true;
+        aField.sensitive = false;
         aField.isMultiSelect = false;
         aField.multiSelectTable = "";
         aField.formula = "";
@@ -4203,6 +4239,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
                         lkpCode.desc.append(langDesc);
                     }
                     lkpCode.key = true;
+                    lkpCode.sensitive = false;
                     lkpCode.type = aField.type;
                     lkpCode.size = aField.size;
                     lkpCode.decSize = aField.decSize;
@@ -4220,6 +4257,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
                         lkpDesc.desc.append(langDesc);
                     }
                     lkpDesc.key = false;
+                    lkpDesc.sensitive = false;
                     lkpDesc.type = "varchar";
                     lkpDesc.size = getMaxDescLength(values);
                     lkpDesc.decSize = 0;
@@ -4270,6 +4308,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
         keyField.size = 3;
         keyField.decSize = 0;
         keyField.key = true;
+        keyField.sensitive = false;
         keyField.rTable = "";
         keyField.rField = "";
         keyField.xmlCode = "NONE";
@@ -4298,6 +4337,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
         f_geopoint_lat.rField = "";
         f_geopoint_lat.rTable = "";
         f_geopoint_lat.key = false;
+        f_geopoint_lat.sensitive = true;
         f_geopoint_lat.isMultiSelect = false;
         f_geopoint_lat.xmlCode = "NONE";
         f_geopoint_lat.odktype = "NONE";
@@ -4323,6 +4363,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
         f_geopoint_lon.rField = "";
         f_geopoint_lon.rTable = "";
         f_geopoint_lon.key = false;
+        f_geopoint_lon.sensitive = true;
         f_geopoint_lon.isMultiSelect = false;
         f_geopoint_lon.xmlCode = "NONE";
         f_geopoint_lon.odktype = "NONE";
@@ -4790,6 +4831,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         fsurveyID.rField = "";
         fsurveyID.rTable = "";
         fsurveyID.key = false;
+        fsurveyID.sensitive = false;
         fsurveyID.isMultiSelect = false;
         fsurveyID.formula = "";
         fsurveyID.calculateWithSelect = false;
@@ -4815,6 +4857,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         foriginID.rField = "";
         foriginID.rTable = "";
         foriginID.key = false;
+        foriginID.sensitive = false;
         foriginID.xmlCode = "NONE";
         foriginID.selectSource = "NONE";
         foriginID.selectListName = "NONE";
@@ -4839,6 +4882,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         f_submitted_by.rField = "";
         f_submitted_by.rTable = "";
         f_submitted_by.key = false;
+        f_submitted_by.sensitive = false;
         f_submitted_by.isMultiSelect = false;
         f_submitted_by.xmlCode = "_submitted_by";
         f_submitted_by.odktype = "text";
@@ -4864,6 +4908,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         f_submitted_date.rField = "";
         f_submitted_date.rTable = "";
         f_submitted_date.key = false;
+        f_submitted_date.sensitive = false;
         f_submitted_date.isMultiSelect = false;
         f_submitted_date.xmlCode = "_submitted_date";
         f_submitted_date.odktype = "datetime";
@@ -4884,11 +4929,12 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
             f_geopoint.desc.append(langDesc);
         }
         f_geopoint.type = "varchar";
-        f_geopoint.size = 120;
+        f_geopoint.size = 80;
         f_geopoint.decSize = 0;
         f_geopoint.rField = "";
         f_geopoint.rTable = "";
         f_geopoint.key = false;
+        f_geopoint.sensitive = true;
         f_geopoint.isMultiSelect = false;
         f_geopoint.xmlCode = "_geopoint";
         f_geopoint.odktype = "geopoint";
@@ -4896,6 +4942,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         f_geopoint.formula = "";
         f_geopoint.selectSource = "NONE";
         f_geopoint.selectListName = "NONE";
+        f_geopoint.sensitive = true;
         maintable.fields.append(f_geopoint);
 
         tables.append(maintable);
@@ -5074,6 +5121,44 @@ int addLanguage(QString langCode, bool defLang)
         languages.append(language);
     }
     return 0;
+}
+
+void protect_sensitive()
+{
+    QStringList protectedFields;
+    protectedFields.append("add location prompt");
+    protectedFields.append("geopoint");
+    protectedFields.append("get subscriber id");
+    protectedFields.append("gps");
+    protectedFields.append("location");
+    protectedFields.append("q geopoint");
+    protectedFields.append("q location");
+    protectedFields.append("sim id");
+    protectedFields.append("simserial");
+    protectedFields.append("subscriber id");
+    protectedFields.append("subscriberid");
+    protectedFields.append("uri:email");
+    protectedFields.append("uri:phonenumber");
+    protectedFields.append("uri:subscriberid");
+    protectedFields.append("uri:username");
+    protectedFields.append("username");
+    protectedFields.append("get phone number");
+    protectedFields.append("phone number");
+    protectedFields.append("phonenumber");
+    protectedFields.append("geoshape");
+    protectedFields.append("q geoshape");
+    protectedFields.append("geotrace");
+    protectedFields.append("q geotrace");
+
+
+    for (int pos = 0; pos < tables.count(); pos++)
+    {
+        for (int pos2 = 0; pos2 < tables[pos].fields.count(); pos2++)
+        {
+            if (protectedFields.indexOf(tables[pos].fields[pos2].odktype) >= 0)
+                tables[pos].fields[pos2].sensitive = true;
+        }
+    }
 }
 
 int main(int argc, char *argv[])
@@ -5336,7 +5421,8 @@ int main(int argc, char *argv[])
         {
             exit(2);
         }
-        appendUUIDs();        
+        appendUUIDs();
+        protect_sensitive();
         if (!justCheck)
             generateOutputFiles(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
     }
