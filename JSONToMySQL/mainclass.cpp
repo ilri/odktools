@@ -95,7 +95,8 @@ void mainClass::run()
     }
 
     {
-        QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL");
+        QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL","repository");
+        QSqlDatabase imported_db = QSqlDatabase::addDatabase("QSQLITE","submissions");
         db.setHostName(host);
         db.setPort(port.toInt());
         db.setDatabaseName(schema);
@@ -114,41 +115,31 @@ void mainClass::run()
             }
             QTextStream UUIDout(&UUIDFile); //Stream to the processing file
 
-            QStringList procList;
-            QFile file(input);
-            if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+            imported_db.setDatabaseName(input);
+            if (imported_db.open())
             {
-                QTextStream in(&file);
-                while (!in.atEnd())
+                QSqlQuery query(imported_db);
+                QString sql;
+                sql = "CREATE TABLE submissions (submission_id VARCHAR(64) PRIMARY KEY)";
+                if (!query.exec(sql))
                 {
-                    QString line = in.readLine();
-                    procList.append(line);
-                }
-                file.close();
-            }
-            if (!QFile(input).exists())
-            {
-                //The file is new so write from start
-                if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-                {
-                    log("Cannot create processing file");
-                    returnCode = 1;
-                    db.close();
-                    emit finished();
+                    if (query.lastError().databaseText().indexOf("already exists") < 0)
+                    {
+                        log("Cannot create processing table: " + query.lastError().databaseText());
+                        returnCode = 1;
+                        db.close();
+                        emit finished();
+                    }
                 }
             }
             else
             {
-                //The file exists so append at the end
-                if (!file.open(QIODevice::Append | QIODevice::Text))
-                {
-                    log("Cannot create processing file");
-                    returnCode = 1;
-                    db.close();
-                    emit finished();
-                }
+                log("Cannot create processing sqlite file");
+                returnCode = 1;
+                db.close();
+                emit finished();
             }
-            QTextStream out(&file); //Stream to the processing file
+
             QDir mapDir(mapOutputDir);
             if (!mapDir.exists())
             {
@@ -157,6 +148,7 @@ void mainClass::run()
                     log("Output map directory does not exist and cannot be created");
                     returnCode = 1;
                     db.close();
+                    imported_db.close();
                     emit finished();
                 }
             }
@@ -172,6 +164,7 @@ void mainClass::run()
                         log("Cannot create log file");
                         returnCode = 1;
                         db.close();
+                        imported_db.close();
                         emit finished();
                     }
                     logStream.setDevice(&logFile);
@@ -184,6 +177,7 @@ void mainClass::run()
                         log("Cannot create log file");
                         returnCode = 1;
                         db.close();
+                        imported_db.close();
                         emit finished();
                     }
                     logStream.setDevice(&logFile);
@@ -203,8 +197,8 @@ void mainClass::run()
             {
                 log("Database does not support transactions");
                 db.close();
-                returnCode = 1;
-                db.close();
+                imported_db.close();
+                returnCode = 1;                
                 emit finished();
             }
 
@@ -221,6 +215,7 @@ void mainClass::run()
                     log("Cannot create sqlFile file");
                     returnCode = 1;
                     db.close();
+                    imported_db.close();
                     emit finished();
                 }
                 sqlStream.setDevice(&sqlFile);
@@ -229,13 +224,15 @@ void mainClass::run()
             SQLError = false;
             SQLErrorNumber = "";
             int processError;
-            processError = processFile2(db,json,manifest,procList);
-            if (processError == 1)
+            processError = processFile2(db,json,manifest,imported_db);
+            if (processError == 2)
             {
                 //This will happen if the file is already processes or an error ocurred
                 db.close();
+                imported_db.close();
                 returnCode = 1;
                 emit finished();
+                return;
             }
             if ((SQLError) || (processError == 1))
             {
@@ -264,6 +261,7 @@ void mainClass::run()
                         else
                         {
                             db.close();
+                            imported_db.close();
                             returnCode = 1;
                             emit finished();
                         }
@@ -272,7 +270,9 @@ void mainClass::run()
 
                 if (!db.rollback())
                 {
+                    log("Error: Rolling back was not possible. Please check the database");
                     db.close();
+                    imported_db.close();
                     returnCode = 1;
                     emit finished();
                 }
@@ -286,8 +286,25 @@ void mainClass::run()
                 UUIDFile.close();
 
                 QFileInfo fi(json);
-                out << fi.baseName() + "\n";
-                file.close();
+                // Inserting into the submission database
+                QString sql;
+                QSqlQuery query(imported_db);
+                sql = "INSERT INTO submissions VALUES ('" + fi.baseName() + "')";
+                if (!query.exec(sql))
+                {
+                    log("Error: Cannot store the submission in the submission database. Rolling back");
+                    if (!db.rollback())
+                    {
+                        log("Error: Cannot store the submission in the submission database. Rolling back was not possible. Please check the database");
+                        db.close();
+                        imported_db.close();
+                        returnCode = 1;
+                        emit finished();
+                    }
+                    db.close();
+                    imported_db.close();
+                }
+
                 if (outputType == "h")
                 {
                     logFile.close();
@@ -303,6 +320,7 @@ void mainClass::run()
                     log("Warning: Commit did not succed. Please check the database");
                     log(QString::number(db.lastError().number()));
                     db.close();
+                    imported_db.close();
                     returnCode = 1;
                     emit finished();
                 }
@@ -323,6 +341,7 @@ void mainClass::run()
             }
 
             db.close();
+            imported_db.close();
         }
         else
         {
@@ -458,71 +477,8 @@ void mainClass::logOSMError(QString errorMessage, QString table, int nodeIndex, 
 }
 
 //This procedure creates log entries into the log file. It used the dictionary tables to retrive a more understanable message.
-void mainClass::logError(QSqlDatabase db,QString errorMessage, QString table, int rowNumber,QVariantMap jsonData,QList< TfieldDef> fields, QString execSQL)
-{
-    int idx;
-    idx = errorMessage.indexOf("CONSTRAINT");
-    if (idx >= 0)
-    {
-        int idx2;
-        idx2 = errorMessage.indexOf("FOREIGN KEY");
-        QString cntr;
-        cntr = errorMessage.mid(idx+11,idx2-(idx+11));
-        cntr = cntr.replace("`","");
-        cntr = cntr.simplified();
-
-        QSqlQuery query(db);
-        QString sql;
-        QString field;
-        sql = "SELECT error_msg,error_notes,clm_cod FROM dict_relinfo WHERE cnt_name = '" + cntr + "'";
-        if (query.exec(sql))
-        {
-            if (query.first())
-            {
-                errorMessage = query.value(0).toString();
-                field = query.value(2).toString();
-                if (outputType == "h")
-                {
-                    if (getXMLCodeFromField(fields,field) != "Unknown")
-                        logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t" + getXMLCodeFromField(fields,field) + "\t" + errorMessage + "\tValue not found = " + jsonData[getXMLCodeFromField(fields,field)].toString() + "\t" + execSQL + "\n";
-                    else
-                        logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
-                }
-                else
-                {
-                    QDomElement eError;
-                    eError = xmlLog.createElement("error");
-                    if (getXMLCodeFromField(fields,field) != "Unknown")
-                    {
-                        eError.setAttribute("FileUUID",fileID);
-                        eError.setAttribute("Table",table);
-                        eError.setAttribute("RowInJSON",QString::number(rowNumber));
-                        eError.setAttribute("JSONVariable",getXMLCodeFromField(fields,field));
-                        eError.setAttribute("Error",errorMessage);
-                        eError.setAttribute("Notes","Value not found = " + jsonData[getXMLCodeFromField(fields,field)].toString());
-                        QDomText sqlExecuted;
-                        sqlExecuted = xmlLog.createTextNode(execSQL);
-                        eError.appendChild(sqlExecuted);
-                        eErrors.appendChild(eError);
-                    }
-                    else
-                    {
-                        eError.setAttribute("FileUUID",fileID);
-                        eError.setAttribute("Table",table);
-                        eError.setAttribute("RowInJSON",QString::number(rowNumber));
-                        eError.setAttribute("JSONVariable","");
-                        eError.setAttribute("Error",errorMessage);
-                        eError.setAttribute("Notes","");
-                        QDomText sqlExecuted;
-                        sqlExecuted = xmlLog.createTextNode(execSQL);
-                        eError.appendChild(sqlExecuted);
-                        eErrors.appendChild(eError);
-                    }
-                }
-                return;
-            }
-        }
-    }
+void mainClass::logError(QString errorMessage, QString table, int rowNumber, QString execSQL)
+{    
     if (outputType == "h")
         logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
     else
@@ -542,50 +498,8 @@ void mainClass::logError(QSqlDatabase db,QString errorMessage, QString table, in
     }
 }
 
-void mainClass::logErrorMSel(QSqlDatabase db,QString errorMessage, QString table, int rowNumber,QString value, QString execSQL)
+void mainClass::logErrorMSel(QString errorMessage, QString table, int rowNumber, QString execSQL)
 {
-    int idx;
-    idx = errorMessage.indexOf("CONSTRAINT");
-    if (idx >= 0)
-    {
-        int idx2;
-        idx2 = errorMessage.indexOf("FOREIGN KEY");
-        QString cntr;
-        cntr = errorMessage.mid(idx+11,idx2-(idx+11));
-        cntr = cntr.replace("`","");
-        cntr = cntr.simplified();
-
-        QSqlQuery query(db);
-        QString sql;
-        QString field;
-        sql = "SELECT error_msg,error_notes,clm_cod FROM dict_relinfo WHERE cnt_name = '" + cntr + "'";
-        if (query.exec(sql))
-        {
-            if (query.first())
-            {
-                errorMessage = query.value(0).toString();
-                field = query.value(2).toString();
-                if (outputType == "h")
-                    logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t" + field + "\t" + errorMessage + "\tValue not found = " + value + "\t" + execSQL + "\n";
-                else
-                {
-                    QDomElement eError;
-                    eError = xmlLog.createElement("error");
-                    eError.setAttribute("FileUUID",fileID);
-                    eError.setAttribute("Table",table);
-                    eError.setAttribute("RowInJSON",QString::number(rowNumber));
-                    eError.setAttribute("JSONVariable",field);
-                    eError.setAttribute("Error",errorMessage);
-                    eError.setAttribute("Notes","Value not found = " + value);
-                    QDomText sqlExecuted;
-                    sqlExecuted = xmlLog.createTextNode(execSQL);
-                    eError.appendChild(sqlExecuted);
-                    eErrors.appendChild(eError);
-                }
-                return;
-            }
-        }
-    }
     if (outputType == "h")
         logStream << fileID + "\t" + table + "\t" + QString::number(rowNumber) + "\t\t" + errorMessage + "\t\t" + execSQL + "\n";
     else
@@ -802,48 +716,18 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
             insValue.multiSelectTable = fields[pos].multiSelectTable;
 
             //sqlHeader = sqlHeader + fields[pos].name + ",";
-            if (mainTable == table)
-            {
-                if (fields[pos].name == "surveyid")
-                {
-                  //sqlValues = sqlValues + "'" + fileID + "',";
-                  fieldValue = fileID;
-                }
-                else
-                {
-                    if (fields[pos].name == "originid")
-                    {
-                        //sqlValues = sqlValues + "'ODKTOOLS',";
-                        fieldValue = "ODKTOOLS";
-                    }
-                    else
-                    {
-                        fieldValue = fixString(jsonData[fields[pos].xmlCode].toString());                        
-                        if (fieldValue.isEmpty())
-                        {
-                            // This happens when the cover information is stored in a repeat of one
-                            // so part of the information for the main table must be searched in jsonData
-                            // and part in jsonData2
-                            fieldValue = fixString(jsonData2[fields[pos].xmlCode].toString());
-                        }
-                        //sqlValues = sqlValues + "'" + fieldValue + "',";
-                    }
-                }
-            }
-            else
-            {
-                variantValue =  jsonData[fields[pos].xmlCode];
-                fieldValue = fixString(QString::fromUtf8(variantValue.toByteArray()));
-                if (fieldValue.isEmpty())
-                {
-                    // This happens when the cover information is stored in a repeat of one
-                    // so part of the information for the main table must be searched in jsonData
-                    // and part in jsonData2
-                    variantValue = jsonData2[fields[pos].xmlCode];
-                    fieldValue = fixString(QString::fromUtf8(variantValue.toByteArray()));
-                }
+            variantValue =  jsonData[fields[pos].xmlCode];
+            fieldValue = fixString(QString::fromUtf8(variantValue.toByteArray()));
 
-                //sqlValues = sqlValues + "'" + fixString(fieldValue) + "',";
+            if (fields[pos].name == "originid")
+            {
+                //sqlValues = sqlValues + "'ODKTOOLS',";
+                fieldValue = "ODKTOOLS 2.0";
+            }
+            if (fields[pos].name == "surveyid")
+            {
+              //sqlValues = sqlValues + "'" + fileID + "',";
+              fieldValue = fileID;
             }
             if (fields[pos].type == "datetime")
             {
@@ -926,12 +810,13 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
     hasSomethingToInsert = true;
     if (hasSomethingToInsert) //There are other values besides keys to insert
     {
+        query.exec("SET @odktools_ignore_insert = 1");
         if (!query.exec(sql))
         {
             SQLError = true; //An error occurred. This will trigger a rollback
             if (SQLErrorNumber == "")
                 SQLErrorNumber = query.lastError().nativeErrorCode() + "&"  + query.lastError().databaseText() + "@" + table;
-            logError(db,query.lastError().databaseText(),table,tblIndex,jsonData,fields,sql); //Write the error to the log
+            logError(query.lastError().databaseText(),table,tblIndex,sql); //Write the error to the log
         }
         else
         {
@@ -1017,13 +902,13 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
                 {
                     sqlStream << sql + ";\n";
                 }
-
+                query.exec("SET @odktools_ignore_insert = 1");
                 if (!query.exec(sql))
                 {
                   SQLError = true; //An error occurred. This will trigger a rollback
                   if (SQLErrorNumber == "")
                     SQLErrorNumber = query.lastError().nativeErrorCode() + "&" + query.lastError().databaseText() + "@" + mSelectTableName;
-                  logErrorMSel(db,query.lastError().databaseText(),mSelectTableName,tblIndex,mSelectValues[nvalue],sql); //Write the error to the log
+                  logErrorMSel(query.lastError().databaseText(),mSelectTableName,tblIndex,sql); //Write the error to the log
                 }
                 else
                 {
@@ -1073,7 +958,7 @@ QString  mainClass::fixField(QString source)
     res = res.replace(",","");
     res = res.replace(" ","");
     res = res.replace(".","_");
-    res = res.replace(":","_");
+    res = res.replace(":","");
     res = res.trimmed().simplified().toLower();
     return res;
 }
@@ -1119,6 +1004,7 @@ void mainClass::insertOSMData(QString OSMField, QDomElement node, int nodeIndex,
     }
     sql = sql + "'" + strRecordUUID + "')";
     QSqlQuery query(db);
+    query.exec("SET @odktools_ignore_insert = 1");    
     if (!query.exec(sql))
     {
         SQLError = true; //An error occurred. This will trigger a rollback
@@ -1134,7 +1020,7 @@ void mainClass::insertOSMData(QString OSMField, QDomElement node, int nodeIndex,
 }
 
 void mainClass::processOSM(QString OSMField, QString OSMFile, QList< TfieldDef> parentkeys, QSqlDatabase db)
-{
+{    
     QString filePath = "";
     for (int idx=0; idx < OSMFiles.count(); idx++)
     {
@@ -1228,6 +1114,7 @@ void mainClass::processLoop(QJsonObject jsonData, QString loopTable, QString loo
             sql = sql + "'" + fieldValue + "',";
         }
         sql = sql + "'" + strRecordUUID + "')";
+        query.exec("SET @odktools_ignore_insert = 1");
         if (!query.exec(sql))
         {
             SQLError = true; //An error occurred. This will trigger a rollback
@@ -1264,6 +1151,7 @@ void mainClass::processLoop(QJsonObject jsonData, QString loopTable, QString loo
                         sql = sql + "'" + loopItems[iItem] + "',";
                         sql = sql + "'" + parts[ipart] + "',";
                         sql = sql + "'" + strRecordUUID + "')";
+                        query.exec("SET @odktools_ignore_insert = 1");
                         if (!query.exec(sql))
                         {
                             SQLError = true; //An error occurred. This will trigger a rollback
@@ -1301,9 +1189,6 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
     QString group;
     group = table.toElement().attribute("group","false");
 
-    QString separated;
-    separated = table.toElement().attribute("separated","false");
-
     QString osm;
     osm = table.toElement().attribute("osm","false");
 
@@ -1318,7 +1203,7 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
 
     QVariantMap emptyMap;
     if (osm == "true")
-    {
+    {        
         QString OSMODKField;
         OSMODKField = table.toElement().attribute("xmlcode","none");
         QString OSMFile = jsonData.value(OSMODKField).toString("");
@@ -1326,6 +1211,7 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
         if (OSMFile != "")
         {
             processOSM(OSMField,OSMFile,keys,db);
+            return 0;
         }
     }
     if (loop == "true")
@@ -1363,6 +1249,7 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
                 fieldNode = fieldNode.nextSibling();
             }
             processLoop(jsonData,loopTable,loopXMLRoot,loopItems,loopFields,keys,db);
+            return 0;
         }
     }
 
@@ -1371,7 +1258,7 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
         while (!child.isNull())
         {
             if (child.toElement().nodeName() == "field")
-            {
+            {                
                 //We not process referenced fields because they come as part of the key
                 if (child.toElement().attribute("reference") == "false")
                 {
@@ -1402,14 +1289,23 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
             else
             {
                 sqlCreated = true; //To control more than one child table
-                if ((tableXMLCode == "main") || (group == "true") || (separated == "true") || (osm == "true") || (loop == "true"))
+                if ((tableXMLCode == "main") || (group == "true") || (osm == "true") || (loop == "true"))
                 {
                     if (genSQL == true)
                     {
                         keys.append(createSQL(db,jsonData.toVariantMap(),tableCode,fields,keys,emptyMap,true));    //Change the variant map to an object later on!
                         genSQL = false;
                     }
-                    procTable2(db,jsonData,child,keys);
+                    if ((osm == false) && (loop == false))
+                    {
+                        QJsonArray children = jsonData.value(child.toElement().attribute("xmlcode")).toArray();
+                        for (int chld = 0; chld < children.count(); chld++)
+                            procTable2(db,children.at(chld).toObject(),child,keys);
+                    }
+                    else
+                    {
+                        procTable2(db,jsonData,child,keys);
+                    }
                 }
                 else
                 {
@@ -1456,63 +1352,90 @@ int mainClass::procTable2(QSqlDatabase db,QJsonObject jsonData, QDomNode table, 
         }
         if (!sqlCreated)
         {
-            createSQL(db,jsonData.toVariantMap(),tableCode,fields,keys,emptyMap,true);   //Change the variant map later in
+            if ((tableXMLCode == "main") || (group == "true") || (osm == "true") || (loop == "true"))
+                createSQL(db,jsonData.toVariantMap(),tableCode,fields,keys,emptyMap,true);   //Change the variant map later in
+            else
+            {
+                QString tableXMLCode = table.toElement().attribute("xmlcode","");
+                if (tableXMLCode != "")
+                {
+                    QJsonArray JSONArray;
+                    JSONArray = jsonData.value(tableXMLCode).toArray();
+                    for (int item = 0; item < JSONArray.count(); item++) //For each item in the array
+                    {
+                        QJsonObject JSONItem = JSONArray[item].toObject();
+                        createSQL(db,JSONItem.toVariantMap(),tableCode,fields,keys,emptyMap,false);
+                    }
+                }
+            }
         }
     }
     return 0;
 }
 
-int mainClass::processFile2(QSqlDatabase db, QString json, QString manifest, QStringList procList)
+int mainClass::processFile2(QSqlDatabase db, QString json, QString manifest, QSqlDatabase submissions_db)
 {
     QFileInfo fi(json);
     //If the file hasn't been processed yet
-    if (procList.indexOf(fi.baseName()) < 0)
+    QSqlQuery query(submissions_db);
+    QString sql;
+    sql = "SELECT count(submission_id ) FROM submissions WHERE submission_id ='" + fi.baseName() + "'";
+    if (query.exec(sql))
     {
-        fileID = fi.baseName();
-
-        QFile JSONFile(json);
-        if (!JSONFile.open(QIODevice::ReadOnly))
+        query.first();
+        if (query.value(0).toInt() == 0)
         {
-            log("Cannot open" + json);
-            return 1;
-        }
-        QByteArray JSONData = JSONFile.readAll();
-        QJsonDocument JSONDocument;
-        JSONDocument = QJsonDocument::fromJson(JSONData);
-        QJsonObject firstObject = JSONDocument.object();
-        if (!firstObject.isEmpty())
-        {
+            fileID = fi.baseName();
 
-            //Opens the Manifest File
-            QDomDocument doc("mydocument");
-            QFile xmlfile(manifest);
-            if (!xmlfile.open(QIODevice::ReadOnly))
+            QFile JSONFile(json);
+            if (!JSONFile.open(QIODevice::ReadOnly))
             {
-                log("Error reading manifest file");
+                log("Cannot open" + json);
                 return 1;
             }
-            if (!doc.setContent(&xmlfile))
+            QByteArray JSONData = JSONFile.readAll();
+            QJsonDocument JSONDocument;
+            JSONDocument = QJsonDocument::fromJson(JSONData);
+            QJsonObject firstObject = JSONDocument.object();
+            if (!firstObject.isEmpty())
             {
-                log("Error reading manifest file");
+
+                //Opens the Manifest File
+                QDomDocument doc("mydocument");
+                QFile xmlfile(manifest);
+                if (!xmlfile.open(QIODevice::ReadOnly))
+                {
+                    log("Error reading manifest file");
+                    return 1;
+                }
+                if (!doc.setContent(&xmlfile))
+                {
+                    log("Error reading manifest file");
+                    xmlfile.close();
+                    return 1;
+                }
                 xmlfile.close();
-                return 1;
+
+                //Gets the first table of the file
+                QDomNode root;
+                root = doc.firstChild().nextSibling().firstChild();
+
+                //Process the table with no parent Keys
+                QList< TfieldDef> noParentKeys;
+                procTable2(db,firstObject,root,noParentKeys);
             }
-            xmlfile.close();
 
-            //Gets the first table of the file
-            QDomNode root;
-            root = doc.firstChild().nextSibling().firstChild();
-
-            //Process the table with no parent Keys
-            QList< TfieldDef> noParentKeys;
-            procTable2(db,firstObject,root,noParentKeys);
         }
-
+        else
+        {
+            log("File " + json + " has been already processed. Skipped");
+            return 2;
+        }
     }
     else
     {
-        log("File " + json + " has been already processed. Skipped");
-        return 1;
+        log("Error while quering for submission " + json + ". Skipping it");
+        return 2;
     }
     return 0;
 }

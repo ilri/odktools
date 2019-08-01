@@ -11,6 +11,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/foreach.hpp>
 #include <xlsxwriter.h>
+#include <QDebug>
+#include <QUuid>
 
 namespace pt = boost::property_tree;
 
@@ -24,20 +26,23 @@ void mainClass::log(QString message)
 {
     QString temp;
     temp = message + "\n";
-    printf("%s",temp.toLocal8Bit().data());
+    printf("%s", temp.toUtf8().data());
 }
 
-void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool includeProtected, QString tempDir)
+void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, bool protectSensitive)
 {
     this->host = host;
     this->port = port;
     this->user = user;
     this->pass = pass;
     this->schema = schema;
-    this->outputFile = outputFile;
-    this->includeSensitive = includeProtected;
+    this->outputFile = outputFile;    
     this->tempDir = tempDir;
     this->createXML = createXML;
+    this->incLookups = incLookups;
+    this->incmsels = incmsels;
+    this->firstSheetName = firstSheetName;
+    this->protectSensitive = protectSensitive;
 }
 
 void mainClass::getFieldData(QString table, QString field, QString &desc, QString &valueType, int &size, int &decsize)
@@ -65,7 +70,7 @@ void mainClass::getFieldData(QString table, QString field, QString &desc, QStrin
 const char *mainClass::getSheetDescription(QString name)
 {
     QString truncated;
-    truncated = name.left(28);
+    truncated = name.left(25);
     truncated = truncated.replace("[","");
     truncated = truncated.replace("]","");
     truncated = truncated.replace(":","");
@@ -87,6 +92,46 @@ const char *mainClass::getSheetDescription(QString name)
     }
 }
 
+QString mainClass::protect_field(QString table_name, QString field_name, QString field_value)
+{
+    for (int pos = 0; pos < keys.count(); pos++)
+    {
+        if (keys[pos].name == field_name)
+        {
+            for (int pos2 = 0; pos2 < replace_values.count(); pos2++)
+            {
+                if ((replace_values[pos2].name == field_name) && (replace_values[pos2].value == field_value))
+                    return replace_values[pos2].replace_value;
+            }
+            QUuid replaceUUID=QUuid::createUuid();
+            QString strReplaceUUID=replaceUUID.toString().replace("{","").replace("}","");
+            TfieldDef a_replace_value;
+            a_replace_value.name = field_name;
+            a_replace_value.value = field_value;
+            a_replace_value.replace_value = strReplaceUUID;
+            replace_values.append(a_replace_value);
+            return strReplaceUUID;
+        }
+
+    }
+    for (int pos = 0; pos < tables.count(); pos++)
+    {
+        if (tables[pos].name == table_name)
+        {
+            for (int pos2 = 0; pos2 < tables[pos].fields.count(); pos2++)
+            {
+                if (tables[pos].fields[pos2].name == field_name)
+                {
+                    if (tables[pos].fields[pos2].sensitive == true)
+                    {
+                        return "~~exclude~~";
+                    }
+                }
+            }
+        }
+    }
+    return field_value;
+}
 
 int mainClass::parseDataToXLSX()
 {
@@ -119,7 +164,7 @@ int mainClass::parseDataToXLSX()
                         tableDesc = tables[pos].desc;
                         if (tableDesc == "")
                             tableDesc = tables[pos].name;
-                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,getSheetDescription(tableDesc));
+                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,getSheetDescription(tables[pos].desc));
                         int rowNo = 1;
                         bool inserted = false;
                         BOOST_FOREACH(boost::property_tree::ptree::value_type const&row, aTable.get_child("") )
@@ -142,13 +187,18 @@ int mainClass::parseDataToXLSX()
                                     int decSize;
                                     QString fieldName = QString::fromStdString(fname);
                                     QString fieldValue = QString::fromStdString(fvalue);
+                                    if (protectSensitive)
+                                        fieldValue = protect_field(tables[pos].name, fieldName, fieldValue);
                                     getFieldData(tables[pos].name,fieldName,desc,valueType,size,decSize);
                                     if (desc != "NONE")
                                     {
                                         inserted = true;
                                         if (rowNo == 1)
                                             worksheet_write_string(worksheet,0, colNo, fieldName.toUtf8().constData(), NULL);
-                                        worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
+                                        if (fieldValue != "~~exclude~~")
+                                            worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
+                                        else
+                                            worksheet_write_string(worksheet,rowNo, colNo, "", NULL);
                                         colNo++;
                                     }
                                 }
@@ -186,7 +236,7 @@ int mainClass::parseDataToXLSX()
                         tableDesc = tables[pos].desc;
                         if (tableDesc == "")
                             tableDesc = tables[pos].name;
-                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,getSheetDescription(tableDesc));
+                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,getSheetDescription(tables[pos].name));
                         int rowNo = 1;
                         bool inserted = false;
                         BOOST_FOREACH(boost::property_tree::ptree::value_type const&row, aTable.get_child("") )
@@ -237,38 +287,56 @@ void mainClass::loadTable(QDomNode table)
 {
     QDomElement eTable;
     eTable = table.toElement();
-    if ((eTable.attribute("sensitive","false") == "false") || (includeSensitive))
-    {
-        TtableDef aTable;
-        aTable.islookup = false;
-        aTable.name = eTable.attribute("name","");
-        aTable.desc = eTable.attribute("desc","");
 
-        QDomNode field = table.firstChild();
-        while (!field.isNull())
+    TtableDef aTable;
+    aTable.islookup = false;
+    aTable.name = eTable.attribute("name","");
+    aTable.desc = eTable.attribute("name","");
+
+    QDomNode field = table.firstChild();
+    while (!field.isNull())
+    {
+        QDomElement eField;
+        eField = field.toElement();
+        if (eField.tagName() == "field")
         {
-            QDomElement eField;
-            eField = field.toElement();
-            if (eField.tagName() == "field")
+            TfieldDef aField;
+            aField.name = eField.attribute("name","");
+            aField.desc = eField.attribute("name","");
+            aField.type = eField.attribute("type","");
+            aField.size = eField.attribute("size","").toInt();
+            aField.decSize = eField.attribute("decsize","").toInt();
+            if (eField.attribute("sensitive","false") == "true")
             {
-                if ((eField.attribute("sensitive","false") == "false") || (includeSensitive))
+                aField.sensitive = true;
+                if (eField.attribute("key","false") == "true")
                 {
-                    TfieldDef aField;
-                    aField.name = eField.attribute("name","");
-                    aField.desc = eField.attribute("desc","");
-                    aField.type = eField.attribute("type","");
-                    aField.size = eField.attribute("size","").toInt();
-                    aField.decSize = eField.attribute("decsize","").toInt();
-                    aTable.fields.append(aField);
+                    aField.key = true;
+                    TfieldDef keyField;
+                    keyField.name = aField.name;
+                    keyField.replace_value = "";
+                    keys.append(keyField);
                 }
+                aField.key = false;
             }
             else
-            {
-                loadTable(field);
-            }
-            field = field.nextSibling();
+                aField.sensitive = false;
+            aTable.fields.append(aField);
         }
+        else
+        {
+            loadTable(field);
+        }
+        field = field.nextSibling();
+    }
+    if (aTable.name.indexOf("_msel_") < 0)
         mainTables.append(aTable);
+    else
+    {
+        if (incmsels)
+        {
+            mainTables.append(aTable);
+        }
     }
 }
 
@@ -294,15 +362,14 @@ int mainClass::generateXLSX()
     QDomElement rootA = docA.documentElement();
     if (rootA.tagName() == "XMLSchemaStructure")
     {
-        QDomNode lkpTable = rootA.firstChild().firstChild();
-
-        //Getting the fields to export from Lookup tables
-        while (!lkpTable.isNull())
+        if (this->incLookups)
         {
-            QDomElement eTable;
-            eTable = lkpTable.toElement();
-            if ((eTable.attribute("sensitive","false") == "false") || (includeSensitive))
+            QDomNode lkpTable = rootA.firstChild().firstChild();
+            //Getting the fields to export from Lookup tables
+            while (!lkpTable.isNull())
             {
+                QDomElement eTable;
+                eTable = lkpTable.toElement();                
                 TtableDef aTable;
                 aTable.islookup = true;
                 aTable.name = eTable.attribute("name","");
@@ -313,21 +380,21 @@ int mainClass::generateXLSX()
                 {
                     QDomElement eField;
                     eField = field.toElement();
-                    if ((eField.attribute("sensitive","false") == "false") || (includeSensitive))
-                    {
-                        TfieldDef aField;
-                        aField.name = eField.attribute("name","");
-                        aField.desc = eField.attribute("desc","");
-                        aField.type = eField.attribute("type","");
-                        aField.size = eField.attribute("size","").toInt();
-                        aField.decSize = eField.attribute("decsize","").toInt();
-                        aTable.fields.append(aField);
-                    }
+
+                    TfieldDef aField;
+                    aField.name = eField.attribute("name","");
+                    aField.desc = eField.attribute("desc","");
+                    aField.type = eField.attribute("type","");
+                    aField.size = eField.attribute("size","").toInt();
+                    aField.decSize = eField.attribute("decsize","").toInt();                    
+                    aTable.fields.append(aField);
+
                     field = field.nextSibling();
                 }
                 tables.append(aTable);
+
+                lkpTable = lkpTable.nextSibling();
             }
-            lkpTable = lkpTable.nextSibling();
         }
 
         //Getting the fields to export from tables
@@ -335,7 +402,8 @@ int mainClass::generateXLSX()
         loadTable(table);
         for (int nt =mainTables.count()-1; nt >= 0;nt--)
             tables.append(mainTables[nt]);
-
+        if (firstSheetName != "")
+            tables[0].desc = firstSheetName;
         //Export the tables as XML to the temp directory
         //Call MySQLDump to export each table as XML
         //We use MySQLDump because it very very fast

@@ -50,8 +50,6 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> mapArg("m","mapdirectory","Directory containing the map XML files",true,"","string");
     TCLAP::ValueArg<std::string> outArg("o","output","Output directory to store the JSON result files",false,"CSV","string");
     TCLAP::ValueArg<std::string> tmpArg("T","tempdir","Temporary directory (./tmp by default)",false,"./tmp","string");
-    TCLAP::SwitchArg remoteSwitch("i","includeprotected","Include protected", cmd, false);
-
 
     cmd.add(hostArg);
     cmd.add(portArg);
@@ -65,10 +63,7 @@ int main(int argc, char *argv[])
     //Parsing the command lines
     cmd.parse( argc, argv );
 
-    //Getting the variables from the command
-    bool includeProtected;
-    includeProtected = remoteSwitch.getValue();
-
+    //Getting the variables from the command    
     QString host = QString::fromUtf8(hostArg.getValue().c_str());
     QString port = QString::fromUtf8(portArg.getValue().c_str());
     QString user = QString::fromUtf8(userArg.getValue().c_str());
@@ -80,7 +75,7 @@ int main(int argc, char *argv[])
     QString tmpDir = QString::fromUtf8(tmpArg.getValue().c_str());
 
     mainClass *task = new mainClass(&app);
-    task->setParameters(host,port,user,pass,schema,table,mapDir,output,includeProtected,tmpDir);
+    task->setParameters(host,port,user,pass,schema,table,mapDir,output,tmpDir);
     QObject::connect(task, SIGNAL(finished()), &app, SLOT(quit()));
     QTimer::singleShot(0, task, SLOT(run()));
     app.exec();

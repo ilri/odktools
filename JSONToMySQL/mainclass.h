@@ -102,8 +102,8 @@ private:
     int getLastIndex(QString table);
     void log(QString message);
     QString getXMLCodeFromField(QList< TfieldDef> fields, QString field);
-    void logError(QSqlDatabase db,QString errorMessage, QString table, int rowNumber,QVariantMap jsonData,QList< TfieldDef> fields, QString execSQL);
-    void logErrorMSel(QSqlDatabase db,QString errorMessage, QString table, int rowNumber,QString value, QString execSQL);
+    void logError(QString errorMessage, QString table, int rowNumber, QString execSQL);
+    void logErrorMSel(QString errorMessage, QString table, int rowNumber, QString execSQL);
     QString fixString(QString source);
     QList<TfieldDef > createSQL(QSqlDatabase db, QVariantMap jsonData, QString table, QList< TfieldDef> fields, QList< TfieldDef> parentkeys, QVariantMap jsonData2, bool mTable);
     void debugKeys(QString table, QList< TfieldDef> keys);
@@ -111,7 +111,7 @@ private:
     int procTable(QSqlDatabase db, QVariantMap jsonData, QDomNode table, QList< TfieldDef> parentkeys);
     int procTable2(QSqlDatabase db, QJsonObject jsonData, QDomNode table, QList< TfieldDef> parentkeys);
     int processFile(QSqlDatabase db, QString json, QString manifest, QStringList procList);
-    int processFile2(QSqlDatabase db, QString json, QString manifest, QStringList procList);
+    int processFile2(QSqlDatabase db, QString json, QString manifest, QSqlDatabase submissions_db);
     void storeRecord(QStringList parentUUIDS, QString recordUUID);
     void storeRecord(QString parentUUID, QString recordUUID);
     void findElementsWithAttribute(const QDomElement& elem, const QString& attr, const QString& attvalue, QList<QDomElement> &foundElements);
