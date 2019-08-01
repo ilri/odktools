@@ -38,15 +38,15 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
     QStringList dropLiteTriggers;
 
     TriggerData << "CREATE TABLE IF NOT EXISTS audit_log (";
-    TriggerData << "audit_id INT(11) NOT NULL AUTO_INCREMENT ,";
-    TriggerData << "audit_date TIMESTAMP NULL ,";
+    TriggerData << "audit_id VARCHAR(64) ,";
+    TriggerData << "audit_date TIMESTAMP(6) NULL ,";
     TriggerData << "audit_action VARCHAR(6) NULL ,";
     TriggerData << "audit_user VARCHAR(120) NULL ,";
     TriggerData << "audit_table VARCHAR(120) NULL ,";
     TriggerData << "audit_column VARCHAR(120) NULL ,";
-    TriggerData << "audit_key VARCHAR(500) NULL ,";
-    TriggerData << "audit_oldvalue VARCHAR(500) NULL ,";
-    TriggerData << "audit_newvalue VARCHAR(500) NULL ,";
+    TriggerData << "audit_key VARCHAR(64) NULL ,";
+    TriggerData << "audit_oldvalue TEXT NULL ,";
+    TriggerData << "audit_newvalue TEXT NULL ,";
     TriggerData << "audit_insdeldata TEXT NULL ,";
     TriggerData << "PRIMARY KEY (audit_id) )";
     TriggerData << " ENGINE = InnoDB CHARSET=utf8;";
@@ -66,8 +66,8 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
     TriggerLite << "audit_table VARCHAR(120) NULL ,";
     TriggerLite << "audit_column VARCHAR(120) NULL ,";
     TriggerLite << "audit_key VARCHAR(64) NULL ,";
-    TriggerLite << "audit_oldvalue VARCHAR(500) NULL ,";
-    TriggerLite << "audit_newvalue VARCHAR(500) NULL ,";
+    TriggerLite << "audit_oldvalue TEXT NULL ,";
+    TriggerLite << "audit_newvalue TEXT NULL ,";
     TriggerLite << "audit_insdeldata TEXT NULL ,";
     TriggerLite << "PRIMARY KEY (audit_id) );";
     TriggerLite << "";
@@ -87,7 +87,9 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
                 TriggerData << "CREATE TRIGGER audit_" + strTriggerUUID +"_update";
                 TriggerData << "AFTER UPDATE ON " + query.value(0).toString();
                 TriggerData << "FOR EACH ROW BEGIN";
-                TriggerData << "DECLARE ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP();";
+                TriggerData << "DECLARE ts TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6);";
+                TriggerData << "DECLARE tuuid VARCHAR(64);";
+                TriggerData << "SET tuuid = uuid();";
                 TriggerData << "";
 
                 QString mykeyData;
@@ -97,7 +99,7 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
                 {
                     while (query2.next())
                     {
-                        TriggerData << "IF OLD." + query2.value(0).toString() + " <> NEW." + query2.value(0).toString() + " THEN INSERT INTO audit_log(audit_date,audit_action,audit_user,audit_table,audit_column,audit_key,audit_oldvalue,audit_newvalue) VALUES (ts,'UPDATE',@odktools_current_user,'" + query.value(0).toString() + "','" + query2.value(0).toString() + "'," + mykeyData + ",OLD." + query2.value(0).toString() + ",NEW." + query2.value(0).toString() + ");";
+                        TriggerData << "IF OLD." + query2.value(0).toString() + " <> NEW." + query2.value(0).toString() + " THEN INSERT INTO audit_log(audit_id,audit_date,audit_action,audit_user,audit_table,audit_column,audit_key,audit_oldvalue,audit_newvalue) VALUES (tuuid,ts,'UPDATE',@odktools_current_user,'" + query.value(0).toString() + "','" + query2.value(0).toString() + "'," + mykeyData + ",OLD." + query2.value(0).toString() + ",NEW." + query2.value(0).toString() + ");";
                         TriggerData << "END IF;";
                     }
                 }
@@ -115,7 +117,9 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
                 TriggerData << "CREATE TRIGGER audit_" + strTriggerUUID +"_insert";
                 TriggerData << "AFTER INSERT ON " + query.value(0).toString();
                 TriggerData << "FOR EACH ROW BEGIN";
-                TriggerData << "DECLARE ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP();";
+                TriggerData << "DECLARE ts TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6);";
+                TriggerData << "DECLARE tuuid VARCHAR(64);";
+                TriggerData << "SET tuuid = uuid();";
                 TriggerData << "";
                 TriggerData << "IF @odktools_ignore_insert IS NULL THEN ";
 
@@ -136,7 +140,7 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
                 else
                     myNoKeyData = "''";
 
-                TriggerData << "INSERT INTO audit_log(audit_date,audit_action,audit_user,audit_table,audit_key,audit_insdeldata) VALUES (ts,'INSERT',@odktools_current_user,'" + query.value(0).toString() + "'," + mykeyData + "," + myNoKeyData + ");";
+                TriggerData << "INSERT INTO audit_log(audit_id,audit_date,audit_action,audit_user,audit_table,audit_key,audit_insdeldata) VALUES (tuuid,ts,'INSERT',@odktools_current_user,'" + query.value(0).toString() + "'," + mykeyData + "," + myNoKeyData + ");";
                 TriggerData << "END IF;";
                 TriggerData << "";
                 TriggerData << "END$$";
@@ -151,8 +155,9 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
                 TriggerData << "CREATE TRIGGER audit_" + strTriggerUUID +"_delete";
                 TriggerData << "AFTER DELETE ON " + query.value(0).toString();
                 TriggerData << "FOR EACH ROW BEGIN";
-                TriggerData << "DECLARE ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP();";
-                TriggerData << "DECLARE us VARCHAR(120) DEFAULT USER();";
+                TriggerData << "DECLARE ts TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6);";
+                TriggerData << "DECLARE tuuid VARCHAR(64);";
+                TriggerData << "SET tuuid = uuid();";
                 TriggerData << "";
 
                 mykeyData = "OLD.rowuuid";
@@ -171,7 +176,7 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
                     myNoKeyData = "''";
 
 
-                TriggerData << "INSERT INTO audit_log(audit_date,audit_action,audit_user,audit_table,audit_key,audit_insdeldata) VALUES (ts,'DELETE',@odktools_current_user,'" + query.value(0).toString() + "'," + mykeyData + "," + myNoKeyData + ");";
+                TriggerData << "INSERT INTO audit_log(audit_id,audit_date,audit_action,audit_user,audit_table,audit_key,audit_insdeldata) VALUES (tuuid,ts,'DELETE',@odktools_current_user,'" + query.value(0).toString() + "'," + mykeyData + "," + myNoKeyData + ");";
 
                 TriggerData << "";
                 TriggerData << "END$$";
@@ -185,29 +190,29 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
                 QString litekeyData;
                 QString liteNoKeyData;
 
-                litekeyData = "OLD.rowuuid";
-                dropLiteTriggers << "DROP TRIGGER audit_" + strTriggerUUID + "_update;";
-
-                TriggerLite << "CREATE TRIGGER audit_" + strTriggerUUID + "_update";
-                TriggerLite << "AFTER UPDATE ON " + query.value(0).toString();
-                TriggerLite << "FOR EACH ROW BEGIN";
-                TriggerLite << "";
-
+                litekeyData = "OLD.rowuuid";                
                 sql = "SELECT COLUMN_NAME,ORDINAL_POSITION,COLUMN_KEY FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" + schema + "' AND TABLE_NAME = '" + query.value(0).toString() + "' ORDER BY ORDINAL_POSITION";
                 if (query2.exec(sql))
                 {
                     while (query2.next())
                     {
-                        TriggerLite << "INSERT INTO audit_log(audit_date,audit_action,audit_user,audit_table,audit_column,audit_key,audit_oldvalue,audit_newvalue) values ((hex( randomblob(4)) || '-' || hex( randomblob(2)) || '-' || '4' || substr( hex( randomblob(2)), 2) || '-' || substr('AB89', 1 + (abs(random()) % 4) , 1)  || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))),'UPDATE','NONE','" + query.value(0).toString() + "','" + query2.value(0).toString() + "'," + litekeyData + ",OLD." + query2.value(0).toString() + ",NEW." + query2.value(0).toString() + ");";
+                        QUuid fieldtriggerUUID=QUuid::createUuid();
+                        QString strfieldtriggerUUID=fieldtriggerUUID.toString().replace("{","").replace("}","").replace("-","_");
+
+                        dropLiteTriggers << "DROP TRIGGER audit_" + strfieldtriggerUUID + "_update;";
+                        TriggerLite << "CREATE TRIGGER audit_" + strfieldtriggerUUID + "_update";
+                        TriggerLite << "AFTER UPDATE ON " + query.value(0).toString();
+                        TriggerLite << "FOR EACH ROW ";
+                        TriggerLite << "WHEN NEW." + query2.value(0).toString() + " != OLD." + query2.value(0).toString();
+                        TriggerLite << "BEGIN ";
+                        TriggerLite << "INSERT INTO audit_log(audit_id,audit_date,audit_action,audit_user,audit_table,audit_column,audit_key,audit_oldvalue,audit_newvalue) values ((hex( randomblob(4)) || '-' || hex( randomblob(2)) || '-' || '4' || substr( hex( randomblob(2)), 2) || '-' || substr('AB89', 1 + (abs(random()) % 4) , 1)  || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))),STRFTIME('%Y-%m-%d %H:%M:%f', 'NOW'),'UPDATE','NONE','" + query.value(0).toString() + "','" + query2.value(0).toString() + "'," + litekeyData + ",OLD." + query2.value(0).toString() + ",NEW." + query2.value(0).toString() + ");";
+                        TriggerLite << "END;";
+                        TriggerLite << "";
                     }
                 }
-
-                TriggerLite << "";
-                TriggerLite << "END;";
                 TriggerLite << "";
 
-                //Insert trigger for SQLite---------------------------------------------------------------------------
-
+                //Insert trigger for SQLite---------------------------------------------------------------------------                
                 dropLiteTriggers << "DROP TRIGGER audit_" + strTriggerUUID + "_insert;";
 
                 TriggerLite << "CREATE TRIGGER audit_" + strTriggerUUID + "_insert";
@@ -216,7 +221,7 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
                 TriggerLite << "";
                 litekeyData = "NEW.rowuuid";
 
-                sql = "SELECT COLUMN_NAME,ORDINAL_POSITION,COLUMN_KEY FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" + schema + "' AND TABLE_NAME = '" + query.value(0).toString() + "' AND COLUMN_KEY != 'PRI'";
+                sql = "SELECT COLUMN_NAME,ORDINAL_POSITION,COLUMN_KEY FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" + schema + "' AND TABLE_NAME = '" + query.value(0).toString() + + "' AND COLUMN_NAME != 'rowuuid'";
                 if (query2.exec(sql))
                 {
                     liteNoKeyData = "(";
@@ -230,7 +235,7 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
                 else
                     liteNoKeyData = "''";
 
-                TriggerLite << "INSERT INTO audit_log(audit_date,audit_action,audit_user,audit_table,audit_key,audit_insdeldata) values ((hex( randomblob(4)) || '-' || hex( randomblob(2)) || '-' || '4' || substr( hex( randomblob(2)), 2) || '-' || substr('AB89', 1 + (abs(random()) % 4) , 1)  || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))),'INSERT','NONE','" + query.value(0).toString() + "'," + litekeyData + "," + liteNoKeyData + ");";
+                TriggerLite << "INSERT INTO audit_log(audit_id,audit_date,audit_action,audit_user,audit_table,audit_key,audit_insdeldata) values ((hex( randomblob(4)) || '-' || hex( randomblob(2)) || '-' || '4' || substr( hex( randomblob(2)), 2) || '-' || substr('AB89', 1 + (abs(random()) % 4) , 1)  || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))),STRFTIME('%Y-%m-%d %H:%M:%f', 'NOW'),'INSERT','NONE','" + query.value(0).toString() + "'," + litekeyData + "," + liteNoKeyData + ");";
 
                 TriggerLite << "";
                 TriggerLite << "END;";
@@ -260,7 +265,7 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
                 else
                     liteNoKeyData = "''";
 
-                TriggerLite << "INSERT INTO audit_log(audit_date,audit_action,audit_user,audit_table,audit_key,audit_insdeldata) values ((hex( randomblob(4)) || '-' || hex( randomblob(2)) || '-' || '4' || substr( hex( randomblob(2)), 2) || '-' || substr('AB89', 1 + (abs(random()) % 4) , 1)  || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))),'DELETE','NONE','" + query.value(0).toString() + "'," + litekeyData + "," + liteNoKeyData + ");";
+                TriggerLite << "INSERT INTO audit_log(audit_id,audit_date,audit_action,audit_user,audit_table,audit_key,audit_insdeldata) values ((hex( randomblob(4)) || '-' || hex( randomblob(2)) || '-' || '4' || substr( hex( randomblob(2)), 2) || '-' || substr('AB89', 1 + (abs(random()) % 4) , 1)  || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))),STRFTIME('%Y-%m-%d %H:%M:%f', 'NOW'),'DELETE','NONE','" + query.value(0).toString() + "'," + litekeyData + "," + liteNoKeyData + ");";
 
                 TriggerLite << "";
                 TriggerLite << "END;";
@@ -382,6 +387,7 @@ void mainClass::run()
             }
             QStringList ignore_table;
             ignore_table << "audit_log";
+            ignore_table << "alembic_version";
             returnCode = createAudit(db, outputDirectory, ignore_table);
             db.close();
         }
