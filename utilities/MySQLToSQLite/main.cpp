@@ -1,21 +1,21 @@
 /*
-CreateFromXML
+MySQLToSQlite
 
-Copyright (C) 2015-2017 International Livestock Research Institute.
-Author: Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
+Copyright (C) 2019 QLands Technology Consultants.
+Author: Carlos Quiros (cquiros_at_qlands.com)
 
-CreateFromXML is free software: you can redistribute it and/or modify
+MySQLToSQLite is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
 published by the Free Software Foundation, either version 3 of
 the License, or (at your option) any later version.
 
-CreateFromXML is distributed in the hope that it will be useful,
+MySQLToSQLite is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
-License along with CreateFromXML.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
+License along with MySQLToSQLite.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
 */
 
 #include <tclap/CmdLine.h>
@@ -38,13 +38,11 @@ struct tblDef
 {
     QString name;
     QString create;
-    QStringList inserts;
     QStringList indexes;
 };
 typedef tblDef TtblDef;
 
 QList <TtblDef> lst_tables;
-
 
 struct relatedField
 {
@@ -395,7 +393,7 @@ int main(int argc, char *argv[])
 {
     QString title;
     title = title + "****************************************************************** \n";
-    title = title + " * MySQLToSQLite 2.0                                              * \n";
+    title = title + " * MySQLToSQLite                                                  * \n";
     title = title + " * This tool generates a SQLite file from a MySQL schema.         * \n";
     title = title + " * The tool relies on MySQLDump, sqlite3 to convert a MySQL       * \n";
     title = title + " * XML dump file into a sqlite database.                          * \n";
@@ -544,6 +542,7 @@ int main(int argc, char *argv[])
                             }
                             return 1;
                         }
+
                         log("Loading audit triggers");
                         myProcess->setStandardInputFile(auditFile);
                         myProcess->start(program, arguments);
@@ -564,7 +563,7 @@ int main(int argc, char *argv[])
                             return 1;
                         }
 
-                        log("Snapshot created successfully");
+                        log("SQLite created successfully");
 
                     }
                     else
