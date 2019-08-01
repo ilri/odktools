@@ -1,3 +1,23 @@
+/*
+CreateAuditTriggers
+
+Copyright (C) 2019 QLands Technology Consultants.
+Author: Carlos Quiros (cquiros_at_qlands.com)
+
+CreateAuditTriggers is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as
+published by the Free Software Foundation, either version 3 of
+the License, or (at your option) any later version.
+
+CreateAuditTriggers is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with CreateFromXML.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
+*/
+
 #include <QCoreApplication>
 #include <tclap/CmdLine.h>
 #include "mainclass.h"
@@ -12,20 +32,16 @@ int main(int argc, char *argv[])
     title = title + " * CreateAuditTriggers                                               * \n";
     title = title + " * This tool creates the audit triggers based on a MySQL schemata.   * \n";
     title = title + " * The tool generates both MySQL and SQLite triggers.                * \n";
+    title = title + " * (c) QLands, 2019                                                  * \n";
     title = title + " ********************************************************************* \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.0");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.1");
     TCLAP::ValueArg<std::string> hostArg("H","host","MySQL Host. Default: localhost",false,"localhost","string");
     TCLAP::ValueArg<std::string> portArg("P","port","MySQL port. Default: 3306",false,"3306","string");
     TCLAP::ValueArg<std::string> userArg("u","user","MySQL User",true,"","string");
     TCLAP::ValueArg<std::string> passArg("p","password","MySQL Password",true,"","string");
     TCLAP::ValueArg<std::string> schemaArg("s","schema","MySQL Schema",true,"","string");
     TCLAP::ValueArg<std::string> outputArg("o","output","Output directory",false,".","string");
-
-    //These two parameters should be removed once the external script code works
-
-    //TCLAP::SwitchArg ignoreSwitch("g","ignore","Ignore insert in main table", cmd, false);
-    //TCLAP::SwitchArg extractSwitch("e","extract","Extract number from primary key", cmd, false);
 
     cmd.add(hostArg);
     cmd.add(portArg);

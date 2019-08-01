@@ -4,12 +4,12 @@ MySQLToSQlite
 Copyright (C) 2019 QLands Technology Consultants.
 Author: Carlos Quiros (cquiros_at_qlands.com)
 
-CreateFromXML is free software: you can redistribute it and/or modify
+MySQLToSQlite is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
 published by the Free Software Foundation, either version 3 of
 the License, or (at your option) any later version.
 
-CreateFromXML is distributed in the hope that it will be useful,
+MySQLToSQlite is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Lesser General Public License for more details.
@@ -393,14 +393,14 @@ int main(int argc, char *argv[])
 {
     QString title;
     title = title + "****************************************************************** \n";
-    title = title + " * MySQLToSQLite 2.0                                              * \n";
+    title = title + " * MySQLToSQLite                                                  * \n";
     title = title + " * This tool generates a SQLite file from a MySQL schema.         * \n";
     title = title + " * The tool relies on MySQLDump, sqlite3 to convert a MySQL       * \n";
     title = title + " * XML dump file into a sqlite database.                          * \n";
     title = title + " * (c) QLands, 2019                                               * \n";
     title = title + " ****************************************************************** \n";
 
-    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "2.0");
+    TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "1.1");
     //Required arguments
     TCLAP::ValueArg<std::string> hostArg("H","host","MySQL Host. Default localhost",false,"localhost","string");
     TCLAP::ValueArg<std::string> portArg("P","port","MySQL Port. Default 3306",false,"3306","string");
