@@ -10,4 +10,5 @@ SUBDIRS = compareCreateXML \
     JSONToCSV \
     MySQLToXLSX \ 
     createDummyJSON \
-    createAuditTriggers
+    createAuditTriggers \
+    MySQLToSQLite
