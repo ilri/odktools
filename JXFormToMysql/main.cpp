@@ -60,7 +60,11 @@ int numColumns;
 int numColumnsInData;
 QStringList duplicatedTables;
 bool justCheck;
+bool merge;
 QStringList requiredFiles;
+QDomElement Insertroot;
+QDomElement Createroot;
+QStringList merge_lkptable_errors;
 
 
 //********************************************Global structures****************************************
@@ -110,6 +114,8 @@ struct fieldDef
   QString formula;
   QString rTable; //Related table
   QString rField; //Related field
+  QString rName; //Contraint name
+  bool mergeFine = false;
   bool key; //Whether the field is key
   QString xmlCode; //The field XML code /xx/xx/xx/xx
   QString xmlFullPath; //The field XML code /xx/xx/xx/xx with groups
@@ -183,6 +189,7 @@ struct tableDef
 typedef tableDef TtableDef;
 
 QList<TtableDef> tables; //List of tables
+QList<TtableDef> merging_tables; //List of tables
 
 struct duplicatedSelectValue
 {
@@ -1279,6 +1286,16 @@ QString getDefLanguage()
     return "";
 }
 
+QString getDefLanguageCode()
+{
+    for (int pos = 0; pos <= languages.count()-1; pos++)
+    {
+        if (languages[pos].deflang == true)
+            return languages[pos].code;
+    }
+    return "";
+}
+
 //This function returns the language code for a given name
 QString getLanguageCode(QString languageName)
 {
@@ -1290,10 +1307,43 @@ QString getLanguageCode(QString languageName)
     return "";
 }
 
+int getMaxDescLength(QList<TlkpValue> values)
+{
+    int res;
+    res = 0;
+    int pos;
+    int lng;
+    for (pos = 0; pos <= values.count()-1;pos++)
+    {
+        for (lng = 0; lng < values[pos].desc.count();lng++)
+        {
+            if (values[pos].desc[lng].desc.length() >= res)
+                res = values[pos].desc[lng].desc.length();
+        }
+    }
+    return res;
+}
+
+//Return the maximum lenght of the values in a lookup table so the size is not excesive for primary keys
+int getMaxValueLength(QList<TlkpValue> values)
+{
+    int res;
+    res = 0;
+    int pos;
+    for (pos = 0; pos <= values.count()-1;pos++)
+    {
+        if (values[pos].code.length() >= res)
+            res = values[pos].code.length();
+    }
+    return res;
+}
+
 //This fuction checkd wheter a lookup table is duplicated.
 //If there is a match then returns such table
-TtableDef getDuplicatedLkpTable(QList<TlkpValue> thisValues)
+TtableDef getDuplicatedLkpTable(QString lkptname, QList<TlkpValue> thisValues, bool &changeSize, int &newCodeSize, bool &changedRel, bool useMergedTables = true)
 {
+    changeSize = false;
+    newCodeSize = -1;
     int pos2;
     bool same;
     TtableDef empty;
@@ -1304,41 +1354,157 @@ TtableDef getDuplicatedLkpTable(QList<TlkpValue> thisValues)
     QList<TlkpValue> currentValues;
     QString thisDesc;
     QString currenDesc;
-
+    changedRel = false;
     //Move the new list of values to a new list and sort it by code    
     qSort(thisValues.begin(),thisValues.end(),lkpComp);
 
     QString defLangCode;
     defLangCode = getLanguageCode(getDefLanguage());
-
-    for (int pos = 0; pos <= tables.count()-1; pos++)
+    bool table_found;
+    table_found = false;
+    if (merge && useMergedTables)
     {
-        if (tables[pos].islookup)
+        for (int pos = 0; pos <= merging_tables.count()-1; pos++)
         {
-            //Move the current list of values to a new list and sort it by code
-            currentValues.clear();
-            currentValues.append(tables[pos].lkpValues);
-            qSort(currentValues.begin(),currentValues.end(),lkpComp);
-
-            if (currentValues.count() == thisValues.count()) //Same number of values
-            {                
-                same = true;
-                for (pos2 = 0; pos2 <= tables[pos].lkpValues.count()-1;pos2++)
+            if (merging_tables[pos].islookup)
+            {
+                if (merging_tables[pos].name == lkptname)
                 {
-                    //Compares if an item in the list dont have same code or same description
-                    thisDesc = getDescForLanguage(thisValues[pos2].desc,defLangCode);
-                    currenDesc = getDescForLanguage(currentValues[pos2].desc,defLangCode);
+                    table_found = true;
+                    currentValues.clear();
+                    currentValues.append(merging_tables[pos].lkpValues);
+                    qSort(currentValues.begin(),currentValues.end(),lkpComp);
+                    if (currentValues.count() == thisValues.count()) //Same number of values
+                    {
+                        same = true;
+                        for (pos2 = 0; pos2 <= merging_tables[pos].lkpValues.count()-1;pos2++)
+                        {
+                            //Compares if an item in the list dont have same code or same description
+                            thisDesc = getDescForLanguage(thisValues[pos2].desc,defLangCode);
+                            currenDesc = getDescForLanguage(currentValues[pos2].desc,defLangCode);
 
-                    if ((currentValues[pos2].code.simplified().toLower() != thisValues[pos2].code.simplified().toLower()) ||
-                            (currenDesc.simplified().toLower() != thisDesc.simplified().toLower()))
-                    {                        
-                        same = false;
-                        break;
+                            if ((currentValues[pos2].code.simplified().toLower() != thisValues[pos2].code.simplified().toLower()) ||
+                                    (currenDesc.simplified().toLower() != thisDesc.simplified().toLower()))
+                            {
+                                merge_lkptable_errors.append(lkptname);
+                                same = false;
+                                break;
+                            }
+                        }
+                        if (!same)
+                        {
+                            merge_lkptable_errors.append(lkptname);
+                            return empty;
+                        }
+                        else
+                        {
+                            tables.append(merging_tables[pos]);
+                            return merging_tables[pos];
+                        }
+                    }
+                    else
+                    {
+                        if (currentValues.count() > thisValues.count())
+                        {
+                            merge_lkptable_errors.append(lkptname);
+                            return empty;
+                        }
+                        else
+                        {
+                            bool found;
+                            for (pos2 = 0; pos2 < currentValues.count(); pos2++)
+                            {
+                                //Compares if an item in the current values does not exist in the new list
+                                currenDesc = getDescForLanguage(currentValues[pos2].desc,defLangCode);
+                                found = false;
+                                for (int pos3 = 0; pos3 < thisValues.count(); pos3++)
+                                {
+                                    thisDesc = getDescForLanguage(thisValues[pos3].desc,defLangCode);
+                                    if ((thisValues[pos3].code == currentValues[pos2].code) && (currenDesc == thisDesc))
+                                        found = true;
+                                }
+                                if (!found)
+                                    break;
+                            }
+                            if (!found)
+                            {
+                                merge_lkptable_errors.append(lkptname);
+                                return empty;
+                            }
+                            else
+                            {
+                                //Look for values that are not part of current
+                                bool found;
+                                for (pos2 = 0; pos2 < thisValues.count(); pos2++)
+                                {
+                                    found = false;
+                                    for (int pos3 = 0; pos3 < currentValues.count(); pos3++)
+                                    {
+                                        if (thisValues[pos2].code == currentValues[pos3].code)
+                                            found = true;
+                                    }
+                                    if (!found)
+                                    {
+                                        merging_tables[pos].lkpValues.append(thisValues[pos2]);
+                                    }
+                                }
+                                bool nchangeSize;
+                                int nnewCodeSize;
+                                bool nchangedRel;
+                                TtableDef existing_table = getDuplicatedLkpTable(lkptname, merging_tables[pos].lkpValues,nchangeSize,nnewCodeSize,nchangedRel,false);
+                                if (existing_table.name != "EMPTY")
+                                {
+                                    changeSize = true;
+                                    changedRel = true;
+                                    newCodeSize = getMaxValueLength(existing_table.lkpValues);
+                                    return existing_table;
+                                }
+                                changeSize = true;
+                                newCodeSize = getMaxValueLength(merging_tables[pos].lkpValues);
+                                int newDescSize;
+                                newDescSize = getMaxDescLength(merging_tables[pos].lkpValues);
+                                merging_tables[pos].fields[0].size = newCodeSize;
+                                merging_tables[pos].fields[1].size = newDescSize;
+                                tables.append(merging_tables[pos]);
+                                return merging_tables[pos];
+                            }
+                        }
                     }
                 }
-                if (same)
+            }
+        }
+    }
+    if (!table_found)
+    {
+        for (int pos = 0; pos <= tables.count()-1; pos++)
+        {
+            if (tables[pos].islookup)
+            {
+                //Move the current list of values to a new list and sort it by code
+                currentValues.clear();
+                currentValues.append(tables[pos].lkpValues);
+                qSort(currentValues.begin(),currentValues.end(),lkpComp);
+
+                if (currentValues.count() == thisValues.count()) //Same number of values
                 {
-                    return tables[pos];
+                    same = true;
+                    for (pos2 = 0; pos2 <= tables[pos].lkpValues.count()-1;pos2++)
+                    {
+                        //Compares if an item in the list dont have same code or same description
+                        thisDesc = getDescForLanguage(thisValues[pos2].desc,defLangCode);
+                        currenDesc = getDescForLanguage(currentValues[pos2].desc,defLangCode);
+
+                        if ((currentValues[pos2].code.simplified().toLower() != thisValues[pos2].code.simplified().toLower()) ||
+                                (currenDesc.simplified().toLower() != thisDesc.simplified().toLower()))
+                        {
+                            same = false;
+                            break;
+                        }
+                    }
+                    if (same)
+                    {
+                        return tables[pos];
+                    }
                 }
             }
         }
@@ -1766,10 +1932,13 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         {
                             createFieldNode.setAttribute("rtable",prefix + tables[pos].fields[clm].rTable);
                             createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);
+                            createFieldNode.setAttribute("rname","fk_" + tables[pos].fields[clm].rName);
 
                             if (isRelatedTableLookUp(tables[pos].fields[clm].rTable))
                             {
                                 createFieldNode.setAttribute("rlookup","true");
+                                if (tables[pos].fields[clm].mergeFine)
+                                    createFieldNode.setAttribute("mergeFine","true");
                             }
 
                         }
@@ -1794,10 +1963,13 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         if (tables[pos].fields[clm].rTable != "")
                         {
                             createFieldNode.setAttribute("rtable",prefix + tables[pos].fields[clm].rTable);
-                            createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);                            
+                            createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);
+                            createFieldNode.setAttribute("rname","fk_" + tables[pos].fields[clm].rName);
                             if (isRelatedTableLookUp(tables[pos].fields[clm].rTable))
                             {
                                 createFieldNode.setAttribute("rlookup","true");
+                                if (tables[pos].fields[clm].mergeFine)
+                                    createFieldNode.setAttribute("mergeFine","true");
                             }
                         }
                         tables[pos].tableCreteElement.appendChild(createFieldNode);
@@ -1824,9 +1996,12 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                     {
                         createFieldNode.setAttribute("rtable",prefix + tables[pos].fields[clm].rTable);
                         createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);
+                        createFieldNode.setAttribute("rname","fk_" + tables[pos].fields[clm].rName);
                         if (isRelatedTableLookUp(tables[pos].fields[clm].rTable))
                         {
                             createFieldNode.setAttribute("rlookup","true");
+                            if (tables[pos].fields[clm].mergeFine)
+                                createFieldNode.setAttribute("mergeFine","true");
                         }
                     }
                     tables[pos].tableCreteElement.appendChild(createFieldNode);
@@ -1852,7 +2027,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 if (tables[pos].fields[clm].rTable != "")
                 {
                     createFieldNode.setAttribute("rtable",prefix + tables[pos].fields[clm].rTable);
-                    createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);                    
+                    createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);
+                    createFieldNode.setAttribute("rname","fk_" + tables[pos].fields[clm].rName);
                 }
                 tables[pos].tableCreteElement.appendChild(createFieldNode);
             }
@@ -1898,13 +2074,13 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
             if (!tables[pos].fields[clm].rTable.isEmpty())
             {
                 if (isRelatedTableLookUp(tables[pos].fields[clm].rTable))
-                {
+                {                    
                     idx++;
-                    index = "INDEX fk" + QString::number(idx) + "_" + prefix + tables[pos].name.toLower() + "_" + prefix + tables[pos].fields[clm].rTable.toLower() ;
-                    indexes << index.left(64) + " (" + tables[pos].fields[clm].name.toLower() + ") , " << "\n";
+                    index = "INDEX fk_" + tables[pos].fields[clm].rName ;
+                    indexes << index + " (" + tables[pos].fields[clm].name.toLower() + ") , " << "\n";
 
-                    constraint = "CONSTRAINT fk" + QString::number(idx) + "_" + prefix + tables[pos].name.toLower() + "_" + prefix + tables[pos].fields[clm].rTable.toLower();
-                    rels << constraint.left(64) << "\n";
+                    constraint = "CONSTRAINT fk_" + tables[pos].fields[clm].rName;
+                    rels << constraint << "\n";
                     rels << "FOREIGN KEY (" + tables[pos].fields[clm].name.toLower() + ")" << "\n";
                     rels << "REFERENCES " + prefix + tables[pos].fields[clm].rTable.toLower() + " (" + tables[pos].fields[clm].rField.toLower() + ")" << "\n";
 
@@ -2495,38 +2671,6 @@ int getMaxMSelValueLength(QList<TlkpValue> values)
     res = res.left(res.length()-1);
     return res.length();
 }
-
-//Return the maximum lenght of the values in a lookup table so the size is not excesive for primary keys
-int getMaxValueLength(QList<TlkpValue> values)
-{
-    int res;
-    res = 0;
-    int pos;
-    for (pos = 0; pos <= values.count()-1;pos++)
-    {
-        if (values[pos].code.length() >= res)
-            res = values[pos].code.length();
-    }
-    return res;
-}
-
-int getMaxDescLength(QList<TlkpValue> values)
-{
-    int res;
-    res = 0;
-    int pos;
-    int lng;
-    for (pos = 0; pos <= values.count()-1;pos++)
-    {
-        for (lng = 0; lng < values[pos].desc.count();lng++)
-        {
-            if (values[pos].desc[lng].desc.length() >= res)
-                res = values[pos].desc[lng].desc.length();
-        }
-    }
-    return res;
-}
-
 
 //Returns wheter or not a the values of a lookup table are yes/no values. Used in combination to yes/no lookup values to
 //create or not a lookup table of yes/no.
@@ -3277,6 +3421,16 @@ void getReferenceForSelectAt(QString calculateExpresion,QString &fieldType, int 
     }
 }
 
+QString getUUIDCode(bool last12 = false)
+{
+    QUuid triggerUUID=QUuid::createUuid();
+    QString strTriggerUUID=triggerUUID.toString().replace("{","").replace("}","").replace("-","_");
+    if (last12)
+        return strTriggerUUID.left(12);
+    else
+        return strTriggerUUID;
+}
+
 //Adds OSM tags as columns to a OSM table
 void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
 {
@@ -3314,13 +3468,17 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
             //Creating the lookp table if its neccesary
             if (isLookUpYesNo(values) == false) //Do not process yes/no values as lookup tables
             {
-                TtableDef lkpTable = getDuplicatedLkpTable(values);
+                QString table_name = "lkp" + fixField(variableName.toLower());
+                bool changeSize;
+                int newCodeSize;
+                bool changedRel;
+                TtableDef lkpTable = getDuplicatedLkpTable(table_name,values,changeSize,newCodeSize,changedRel);
                 lkpTable.isLoop = false;
                 lkpTable.isOSM = false;
                 lkpTable.isGroup = false;
                 if (lkpTable.name == "EMPTY")
                 {
-                    lkpTable.name = "lkp" + fixField(variableName.toLower());
+                    lkpTable.name = table_name;
                     for (int lang = 0; lang < aField.desc.count(); lang++)
                     {
                         TlngLkpDesc fieldDesc;
@@ -3370,6 +3528,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
                     lkpTable.fields.append(lkpDesc);
                     aField.rTable = lkpTable.name;
                     aField.rField = lkpCode.name;
+                    aField.rName = getUUIDCode();
                     tables.append(lkpTable);
                 }
                 else
@@ -3378,6 +3537,18 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
                         log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
                     aField.rTable = lkpTable.name;
                     aField.rField = getKeyField(lkpTable.name);
+                    aField.rName = getUUIDCode();
+                    if (merge)
+                    {
+                        if (changeSize)
+                        {
+                            aField.size = newCodeSize;
+                        }
+                        if (changedRel)
+                        {
+                            aField.mergeFine = true;
+                        }
+                    }
                 }
             }
         }
@@ -3687,13 +3858,17 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 //Creating the lookp table if its neccesary
                 if (isLookUpYesNo(values) == false) //Do not process yes/no values as lookup tables
                 {
-                    TtableDef lkpTable = getDuplicatedLkpTable(values);
+                    QString table_name = "lkp" + fixField(variableName.toLower());
+                    bool changeSize;
+                    int newCodeSize;
+                    bool changedRel;
+                    TtableDef lkpTable = getDuplicatedLkpTable(table_name, values, changeSize, newCodeSize, changedRel);
                     lkpTable.isLoop = false;
                     lkpTable.isOSM = false;
                     lkpTable.isGroup = false;
                     if (lkpTable.name == "EMPTY")
                     {
-                        lkpTable.name = "lkp" + fixField(variableName.toLower());
+                        lkpTable.name = table_name;
                         for (int lang = 0; lang < aField.desc.count(); lang++)
                         {
                             TlngLkpDesc fieldDesc;
@@ -3743,6 +3918,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         lkpTable.fields.append(lkpDesc);
                         aField.rTable = lkpTable.name;
                         aField.rField = lkpCode.name;
+                        aField.rName = getUUIDCode();
                         tables.append(lkpTable);
                     }
                     else
@@ -3750,7 +3926,17 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         if (outputType == "h")
                             log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);                        
                         aField.rTable = lkpTable.name;
-                        aField.rField = getKeyField(lkpTable.name);                        
+                        aField.rField = getKeyField(lkpTable.name);
+                        aField.rName = getUUIDCode();
+                        if (merge)
+                        {
+                            if (changeSize)
+                            {
+                                aField.size = newCodeSize;
+                            }
+                            if (changedRel)
+                                aField.mergeFine = true;
+                        }
                     }
                 }
             }
@@ -3853,6 +4039,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         relField.sensitive = false;
                         relField.rTable = tables[tblIndex].name;
                         relField.rField = tables[tblIndex].fields[field].name;
+                        relField.rName = getUUIDCode();
                         relField.xmlCode = "NONE";
                         relField.isMultiSelect = false;
                         relField.formula = "";
@@ -3898,13 +4085,17 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 mselKeyField.size = getMaxValueLength(values);
                 mselKeyField.decSize = 0;
                 //Processing the lookup table if neccesary
-                TtableDef lkpTable = getDuplicatedLkpTable(values);
+                QString table_name = "lkp" + fixField(variableName.toLower());
+                bool changeSize;
+                int newCodeSize;
+                bool changedRel;
+                TtableDef lkpTable = getDuplicatedLkpTable(table_name,values,changeSize,newCodeSize,changedRel);
                 lkpTable.isLoop = false;
                 lkpTable.isOSM = false;
                 lkpTable.isGroup = false;
                 if (lkpTable.name == "EMPTY")
                 {
-                    lkpTable.name = "lkp" + fixField(variableName.toLower());
+                    lkpTable.name = table_name;
 
                     for (int lang = 0; lang < aField.desc.count(); lang++)
                     {
@@ -3957,6 +4148,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     //Linking the multiselect field to this lookup table
                     mselKeyField.rTable = lkpTable.name;
                     mselKeyField.rField = lkpCode.name;
+                    mselKeyField.rName = getUUIDCode();
                     lkpTable.lkpValues.append(values);
                     tables.append(lkpTable); //Append the lookup table to the list of tables
                 }
@@ -3967,6 +4159,16 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     //Linkin the multiselect table to the existing lookup table
                     mselKeyField.rTable = lkpTable.name;
                     mselKeyField.rField = getKeyField(lkpTable.name);
+                    mselKeyField.rName = getUUIDCode();
+                    if (merge)
+                    {
+                        if (changeSize)
+                        {
+                            aField.size = getMaxMSelValueLength(lkpTable.lkpValues);
+                        }
+                        if (changedRel)
+                            aField.mergeFine = true;
+                    }
                 }
                 mselTable.fields.append(mselKeyField); //Add the multiselect key now linked to the looktable to the multiselect table
                 tables.append(mselTable); //Append the multiselect to the list of tables
@@ -4121,6 +4323,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
             relField.sensitive = false;
             relField.rTable = parentTable.name;
             relField.rField = parentTable.fields[field].name;
+            relField.rName = getUUIDCode();
             relField.xmlCode = "NONE";
             relField.xmlFullPath = "NONE";
             relField.selectSource = "NONE";
@@ -4208,13 +4411,17 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
             //Creating the lookp table if its neccesary
             if (isLookUpYesNo(values) == false) //Do not process yes/no values as lookup tables
             {
-                TtableDef lkpTable = getDuplicatedLkpTable(values);
+                QString table_name = "lkp" + fixField(variableName.toLower());
+                bool changeSize;
+                int newCodeSize;
+                bool changedRel;
+                TtableDef lkpTable = getDuplicatedLkpTable(table_name, values, changeSize, newCodeSize, changedRel);
                 lkpTable.isLoop = false;
                 lkpTable.isOSM = false;
                 lkpTable.isGroup = false;
                 if (lkpTable.name == "EMPTY")
                 {
-                    lkpTable.name = "lkp" + fixField(variableName.toLower());
+                    lkpTable.name = table_name;
                     for (int lang = 0; lang < aField.desc.count(); lang++)
                     {
                         TlngLkpDesc fieldDesc;
@@ -4264,6 +4471,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
                     lkpTable.fields.append(lkpDesc);
                     aField.rTable = lkpTable.name;
                     aField.rField = lkpCode.name;
+                    aField.rName = getUUIDCode();
                     tables.append(lkpTable);
                 }
                 else
@@ -4272,6 +4480,16 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
                         log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
                     aField.rTable = lkpTable.name;
                     aField.rField = getKeyField(lkpTable.name);
+                    aField.rName = getUUIDCode();
+                    if (merge)
+                    {
+                        if (changeSize)
+                        {
+                            aField.size = newCodeSize;
+                        }
+                        if (changedRel)
+                            aField.mergeFine = true;
+                    }
                 }
             }
         }
@@ -4630,6 +4848,109 @@ void reportSelectDuplicates()
         log(XMLResult.toString());
 }
 
+QList<TlkpValue> getValuesFromInsertFile(QString tableName, QDomNode startNode, QString &clmCode, QString &cmlDesc)
+{
+    QDomNode lkptable = startNode;
+    QList<TlkpValue> res;
+    while (!lkptable.isNull())
+    {
+        if (lkptable.toElement().attribute("name") == tableName)
+        {
+            clmCode = lkptable.toElement().attribute("clmcode");
+            cmlDesc = lkptable.toElement().attribute("clmdesc");
+            QDomNode nodeValue = lkptable.firstChild();
+            while (!nodeValue.isNull())
+            {
+                TlkpValue value;
+                value.code = nodeValue.toElement().attribute("code");
+                TlngLkpDesc valueDesc;
+                valueDesc.langCode = getDefLanguageCode();
+                valueDesc.desc = nodeValue.toElement().attribute("description");
+                value.desc.append(valueDesc);
+                res.append(value);
+                nodeValue = nodeValue.nextSibling();
+            }
+        }
+        lkptable = lkptable.nextSibling();
+    }
+    return res;
+}
+
+void loadMergingCreateFile(QDomNode lkptable, QDomNode insertStartNode)
+{
+    while (!lkptable.isNull())
+    {
+        QString tableName;
+        QString tableDesc;
+        tableName = lkptable.toElement().attribute("name");
+        tableDesc = lkptable.toElement().attribute("desc");
+        TtableDef lkpTable;
+        lkpTable.isLoop = false;
+        lkpTable.isOSM = false;
+        lkpTable.isGroup = false;
+
+        lkpTable.name = tableName;
+
+        TlngLkpDesc fieldDesc;
+        fieldDesc.langCode = getDefLanguageCode();
+        fieldDesc.desc = tableDesc;
+        lkpTable.desc.append(fieldDesc);
+
+        lkpTable.pos = -1;
+        lkpTable.islookup = true;
+        lkpTable.isOneToOne = false;
+        QString clmCode;
+        QString cmlDesc;
+        lkpTable.lkpValues.append(getValuesFromInsertFile(tableName, insertStartNode, clmCode, cmlDesc));
+        QDomNode lkpField = lkptable.firstChild();
+        while (!lkpField.isNull())
+        {
+            if (lkpField.toElement().attribute("name") == clmCode)
+            {
+                TfieldDef lkpCode;
+                lkpCode.name = clmCode;
+                lkpCode.selectSource = "NONE";
+                lkpCode.selectListName = "NONE";
+
+                TlngLkpDesc langDesc;
+                langDesc.langCode = getDefLanguageCode();
+                langDesc.desc = lkpField.toElement().attribute("desc");
+                lkpCode.desc.append(langDesc);
+
+                lkpCode.key = true;
+                lkpCode.sensitive = false;
+                lkpCode.type = lkpField.toElement().attribute("type");
+                lkpCode.size = lkpField.toElement().attribute("size").toInt();
+                lkpCode.decSize = lkpField.toElement().attribute("decsize").toInt();
+                lkpTable.fields.append(lkpCode);
+            }
+            if (lkpField.toElement().attribute("name") == cmlDesc)
+            {
+                TfieldDef lkpDesc;
+                lkpDesc.name = cmlDesc;
+                lkpDesc.selectSource = "NONE";
+                lkpDesc.selectListName = "NONE";
+
+                TlngLkpDesc langDesc;
+                langDesc.langCode = getDefLanguageCode();
+                langDesc.desc = lkpField.toElement().attribute("desc");
+                lkpDesc.desc.append(langDesc);
+
+                lkpDesc.key = false;
+                lkpDesc.sensitive = false;
+                lkpDesc.type = lkpField.toElement().attribute("type");
+                lkpDesc.size = lkpField.toElement().attribute("size").toInt();
+                lkpDesc.decSize = lkpField.toElement().attribute("decsize").toInt();
+                lkpTable.fields.append(lkpDesc);
+            }
+
+            lkpField = lkpField.nextSibling();
+        }
+        merging_tables.append(lkpTable);
+        lkptable = lkptable.nextSibling();
+    }
+}
+
 //Reads the input JSON file and converts it to a MySQL database
 int processJSON(QString inputFile, QString mainTable, QString mainField, QDir dir, QSqlDatabase database)
 {
@@ -4792,6 +5113,11 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                 exit(4);
             }
         }
+        if (merge)
+        {          
+            loadMergingCreateFile(Createroot.firstChild().firstChild(),Insertroot.firstChild());
+        }
+
         int lang;
         //Creating the main table
         tableIndex = tableIndex + 1;
@@ -5190,6 +5516,9 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> tempDirArg("e","tempdirectory","Temporary directory. ./tmp by default",false,"./tmp","string");
     TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");    
     TCLAP::SwitchArg justCheckSwitch("K","justCheck","Just check of main inconsistencies and report back", cmd, false);
+    TCLAP::SwitchArg mergeSwitch("M","merge","Process the JXForm for merging. If true the MC and MI parameters cannot be empty", cmd, false);
+    TCLAP::ValueArg<std::string> mergeCreateArg("r","mergecreatefile","Merge with create file",false,"","string");
+    TCLAP::ValueArg<std::string> mergeInsertArg("n","mergeinsertfile","Merge with insert file",false,"","string");
     TCLAP::UnlabeledMultiArg<std::string> suppFiles("supportFile", "support files", false, "string");
 
     debug = false;
@@ -5215,7 +5544,11 @@ int main(int argc, char *argv[])
     cmd.add(transFileArg);
     cmd.add(yesNoStringArg);
     cmd.add(tempDirArg);
-    cmd.add(outputTypeArg);    
+    cmd.add(outputTypeArg);
+
+    cmd.add(mergeCreateArg);
+    cmd.add(mergeInsertArg);
+
     cmd.add(suppFiles);
 
     //Parsing the command lines
@@ -5236,6 +5569,7 @@ int main(int argc, char *argv[])
     }
     loadInvalidFieldNames();
     justCheck = justCheckSwitch.getValue();
+    merge = mergeSwitch.getValue();
     //Getting the variables from the command
     QString input = QString::fromUtf8(inputArg.getValue().c_str());
     QString ddl = QString::fromUtf8(ddlArg.getValue().c_str());
@@ -5252,6 +5586,10 @@ int main(int argc, char *argv[])
     QString transFile = QString::fromUtf8(transFileArg.getValue().c_str());
     QString yesNoString = QString::fromUtf8(yesNoStringArg.getValue().c_str());
     QString tempDirectory = QString::fromUtf8(tempDirArg.getValue().c_str());
+
+    QString mergeCreateFile = QString::fromUtf8(mergeCreateArg.getValue().c_str());
+    QString mergeInsertFile = QString::fromUtf8(mergeInsertArg.getValue().c_str());
+
     outputType = QString::fromUtf8(outputTypeArg.getValue().c_str());
     mainVar = mainVar.trimmed().toLower();
     QDir currdir(".");
@@ -5285,6 +5623,64 @@ int main(int argc, char *argv[])
         }
     }
     dir.setPath(tempDirectory);
+
+    if (merge)
+    {
+        if (!QFile::exists(mergeCreateFile))
+        {
+            log("Create file used for merging does not exists");
+            return 1;
+        }
+        if (!QFile::exists(mergeInsertFile))
+        {
+            log("Insert file used for merging does not exists");
+            return 1;
+        }
+        //Openning and parsing create XML file
+        QDomDocument mergingCrate("create");
+        QFile mergingFile(mergeCreateFile);
+        if (!mergingFile.open(QIODevice::ReadOnly))
+        {
+            log("Cannot open create file used for merging");
+            return 1;
+        }
+        if (!mergingCrate.setContent(&mergingFile))
+        {
+            log("Cannot parse create file used for merging");
+            mergingFile.close();
+            return 1;
+        }
+        mergingFile.close();
+        Createroot = mergingCrate.documentElement();
+        if (Createroot.tagName() != "XMLSchemaStructure")
+        {
+            log("Create file used for merging is not valid");
+            mergingFile.close();
+            return 1;
+        }
+
+        QDomDocument mergingInsert("insert");
+        mergingFile.setFileName(mergeInsertFile);
+        if (!mergingFile.open(QIODevice::ReadOnly))
+        {
+            log("Cannot open insert file used for merging");
+            return 1;
+        }
+        if (!mergingInsert.setContent(&mergingFile))
+        {
+            log("Cannot parse insert file used for merging");
+            mergingFile.close();
+            return 1;
+        }
+        mergingFile.close();
+        Insertroot = mergingInsert.documentElement();
+        if (Insertroot.tagName() != "insertValuesXML")
+        {
+            log("Insert file used for merging is not valid");
+            mergingFile.close();
+            return 1;
+        }
+    }
 
     //Unzip any zip files in the temporary directory
     QStringList zipFiles;
