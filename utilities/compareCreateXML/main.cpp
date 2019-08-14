@@ -23,6 +23,7 @@ License along with CompareCreateXML.  If not, see <http://www.gnu.org/licenses/l
 #include <QDomElement>
 #include <QList>
 #include <QUuid>
+#include <QCoreApplication>
 
 bool fatalError;
 QStringList diff;
@@ -306,96 +307,73 @@ QDomNode findTable(QDomDocument docB,QString tableName)
     return null;
 }
 
-bool compareFields(QDomElement a, QDomElement b, bool &increased, int &newSize, int &newDec, bool &critical)
-{
-    bool same;
-    increased = false;
+QString compareFields(QDomElement a, QDomElement b, int &newSize, int &newDec)
+{    
     newSize = a.attribute("size","0").toInt();
     newDec = a.attribute("decsize","0").toInt();
-    same = true;
-    critical = true;
-    bool isKey;
-    isKey = false;
-    if (a.attribute("key","false") == "true")
-        isKey = true;
-
     if (a.attribute("key","") != b.attribute("key",""))
-        return false;
-
+        return "KNS";
     if (a.attribute("rtable","") != b.attribute("rtable",""))
-        return false;
+        return "RTNS";
     if (a.attribute("rfield","") != b.attribute("rfield",""))
-        return false;
-
+        return "RFNS";
     if (a.attribute("type","") != b.attribute("type",""))
-        return false;
+        return "TNS";
 
     if (a.attribute("size","") != b.attribute("size",""))
-    {
-        critical = false;
-        if (a.attribute("size","0").toInt() >= b.attribute("size","0").toInt())
+    {        
+        if (a.attribute("size","0").toInt() > b.attribute("size","0").toInt())
         {
             if (a.attribute("type","") == "decimal")
             {
-                if (a.attribute("decsize","0").toInt() >= b.attribute("decsize","0").toInt())
+                if (a.attribute("decsize","0").toInt() != b.attribute("decsize","0").toInt())
                 {
-                    if ((a.attribute("size","0").toInt() - a.attribute("decsize","0").toInt()) >= (b.attribute("size","0").toInt() - b.attribute("decsize","0").toInt()))
-                    {
-                        increased = true;
+                    if (a.attribute("decsize","0").toInt() > b.attribute("decsize","0").toInt())
+                    {                        
                         newSize = a.attribute("size","0").toInt();
                         newDec = a.attribute("decsize","0").toInt();
-                        if (isKey == false)
-                            same = true;
-                        else
-                            same = false;
+                        return "FIC";
                     }
                     else
                     {
-                        same = false;
+                        if (a.attribute("decsize","0").toInt() < b.attribute("decsize","0").toInt())
+                            return "FDC";
                     }
                 }
                 else
                 {
-                    same = false;
+                    if (a.attribute("size","0").toInt() < b.attribute("size","0").toInt())
+                        return "FDC";
                 }
             }
             else
-            {
-                increased = true;
+            {                
                 newSize = a.attribute("size","0").toInt();
-                if (isKey == false)
-                    same = true;
-                else
-                    same = false;
+                return "FIC";
             }
-
         }
         else
-            same = false;
+        {
+            if (a.attribute("size","0").toInt() < b.attribute("size","0").toInt())
+                return "FDC";
+        }
     }
     if (a.attribute("decsize","") != b.attribute("decsize",""))
-    {
-        critical = false;
-        if (a.attribute("decsize","0").toInt() >= b.attribute("decsize","0").toInt())
+    {        
+        if (a.attribute("decsize","0").toInt() > b.attribute("decsize","0").toInt())
         {
-            if ((a.attribute("size","0").toInt() - a.attribute("decsize","0").toInt()) >= (b.attribute("size","0").toInt() - b.attribute("decsize","0").toInt()))
-            {
-                increased = true;
-                newSize = a.attribute("size","0").toInt();
-                newDec = a.attribute("decsize","0").toInt();
-                if (isKey == false)
-                    same = true;
-                else
-                    same = false;
-            }
-            else
-                same = false;
+            newSize = a.attribute("size","0").toInt();
+            newDec = a.attribute("decsize","0").toInt();
+            return "FIC";
         }
         else
-            same = false;
+        {
+            if (a.attribute("decsize","0").toInt() < b.attribute("decsize","0").toInt())
+                return "FDC";
+        }
     }
 
-    return same;
+    return "";
 }
 
 QString getFieldDefinition(QDomElement field)
@@ -408,6 +386,57 @@ QString getFieldDefinition(QDomElement field)
     result = result + "RelatedTable=" + field.attribute("rtable","None") + ",";
     result = result + "RelatedField=" + field.attribute("rfield","None") + "]";
     return result;
+}
+
+void checkField(QDomNode eTable, QDomElement a, QDomElement b)
+{
+    int newSize;
+    int newDec;
+    QString result;
+    result = compareFields(a,b,newSize,newDec);
+    if (result != "")
+    {
+        if (result == "FIC")
+        {
+            if (outputType == "h")
+            {
+                if (a.attribute("type","") != "decimal")
+                    log("FIC: The size of field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " will be increased from " + b.attribute("size",0) + " to " + a.attribute("size","0"));
+                else
+                    log("FIC: The size of field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " will be increased from " + b.attribute("size",0) + " to " + a.attribute("size","0") + ". Decimal size from " + b.attribute("decsize",0) + " to " + a.attribute("decsize","0"));
+            }
+            b.setAttribute("size",newSize);
+            b.setAttribute("decsize",newDec);
+            addAlterFieldToDiff(eTable.toElement().attribute("name",""),a,newSize,newDec);
+        }
+        else
+        {
+            if (outputType == "h")
+            {
+                if (result == "KNS")
+                    fatal("KNS: Field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed key from B to A. ODK Tools cannot fix this. You need to fix it in the Excel file");
+                if (result == "RTNS")
+                    fatal("RTNS: The relational table for field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed from B to A. ODK Tools cannot fix this. You need to fix it in the Excel file");
+                if (result == "RFNS")
+                    fatal("RFNS: The relational field for field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed from B to A. ODK Tools cannot fix this. You need to fix it in the Excel file");
+                if (result == "TNS")
+                    fatal("TNS: Field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed type from B to A. ODK Tools cannot fix this. You need to fix it in the Excel file");
+                if (result == "FDC")
+                    log("FDC: The field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " has descreased in size. This change will be ignored");
+            }
+            else
+            {
+                TcompError error;
+                error.code = result;
+                error.table = eTable.toElement().attribute("name","");
+                error.field = a.attribute("name","");
+                error.desc = "";
+                error.from = getFieldDefinition(b);
+                error.to = getFieldDefinition(a);
+                errorList.append(error);
+            }
+        }
+    }
 }
 
 void compareLKPTables(QDomNode table,QDomDocument &docB)
@@ -424,56 +453,24 @@ void compareLKPTables(QDomNode table,QDomDocument &docB)
            while (!field.isNull())
            {
                QDomElement eField = field.toElement();
-               QDomNode fieldFound = findField(tablefound,eField.attribute("name",""));
-               if (!fieldFound.isNull())
+               if (eField.tagName() == "table")
+                   compareLKPTables(field,docB);
+               else
                {
-                   bool increased;
-                   int newSize;
-                   int newDec;
-                   bool critical;
-                   if (compareFields(eField,fieldFound.toElement(),increased,newSize,newDec,critical) == false)
+                   QDomNode fieldFound = findField(tablefound,eField.attribute("name",""));
+                   if (!fieldFound.isNull())
                    {
-                       if (outputType == "h")
-                       {
-                           if (critical)
-                               fatal("FNS:Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " from A is not the same in B. You need to fix it in the XLSX file");
-                       }
-                           else
-                       {
-                           if (critical)
-                           {
-                               TcompError error;
-                               error.code = "FNS";
-                               error.table = node.toElement().attribute("name","");
-                               error.field = eField.attribute("name","");
-                               error.desc = "Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " from A is not the same in B";
-                               error.from = getFieldDefinition(fieldFound.toElement());
-                               error.to = getFieldDefinition(eField);
-                               errorList.append(error);
-                           }
-                       }
+                       checkField(tablefound,field.toElement(),fieldFound.toElement());
                    }
                    else
                    {
-                       if (increased)
-                       {
-                           if (outputType == "h")
-                           {
-                               if (eField.attribute("type","") != "decimal")
-                                   log("FIC: Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " will be increased from " + fieldFound.toElement().attribute("size",0) + " to " + eField.toElement().attribute("size","0"));
-                               else
-                                   log("FIC: Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " will be increased from " + fieldFound.toElement().attribute("size",0) + " to " + eField.toElement().attribute("size","0") + ". Decimal size from " + fieldFound.toElement().attribute("decsize",0) + " to " + eField.toElement().attribute("decsize","0"));
-                           }
-                           addAlterFieldToDiff(node.toElement().attribute("name",""),eField,newSize,newDec);
-                       }
+                       if (outputType == "h")
+                           log("FNF:Field " + eField.attribute("name","") + " in table " + tablefound.toElement().attribute("name","") + " from A is not found in B");
+                       addFieldToDiff(tablefound.toElement().attribute("name",""),eField);
+                       tablefound.insertBefore(eField.cloneNode(true),tablefound.firstChild());
                    }
                }
-               else
-               {
-                   if (outputType == "h")
-                       log("FNF:Field " + eField.attribute("name","") + " in lookup table " + node.toElement().attribute("name","") + " from A is not found in B");
-                   addFieldToDiff(node.toElement().attribute("name",""),eField);
-               }
+
                field = field.nextSibling();
            }
        }
@@ -511,55 +508,17 @@ void compareTables(QDomNode table,QDomDocument &docB)
                     QDomNode fieldFound = findField(tablefound,eField.attribute("name",""));
                     if (!fieldFound.isNull())
                     {
-                        bool increased;
-                        int newSize;
-                        int newDec;
-                        bool critical;
-                        if (compareFields(eField,fieldFound.toElement(),increased,newSize,newDec,critical) == false)
-                        {
-                            if (outputType == "h")
-                            {
-                                if (critical)
-                                    fatal("FNS:Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " from A is not the same in B. You need to fix it in the XLSX file");
-                            }
-                            else
-                            {
-                                if (critical)
-                                {
-                                    TcompError error;
-                                    error.code = "FNS";
-                                    error.table = eTable.toElement().attribute("name","");
-                                    error.field = eField.attribute("name","");
-                                    error.desc = "Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " from A is not the same in B";
-                                    error.from = getFieldDefinition(fieldFound.toElement());
-                                    error.to = getFieldDefinition(eField);
-                                    errorList.append(error);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (increased)
-                            {
-                                if (outputType == "h")
-                                {
-                                    if (eField.attribute("type","") != "decimal")
-                                        log("FIC: Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " will be increased from " + fieldFound.toElement().attribute("size",0) + " to " + eField.toElement().attribute("size","0"));
-                                    else
-                                        log("FIC: Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " will be increased from " + fieldFound.toElement().attribute("size",0) + " to " + eField.toElement().attribute("size","0") + ". Decimal size from " + fieldFound.toElement().attribute("decsize",0) + " to " + eField.toElement().attribute("decsize","0"));
-                                }
-                                addAlterFieldToDiff(eTable.attribute("name",""),eField,newSize,newDec);
-                            }
-                        }
+                        checkField(tablefound,field.toElement(),fieldFound.toElement());
                     }
                     else
                     {
                         if (outputType == "h")
-                            log("FNF:Field " + eField.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " from A is not found in B");
-                        addFieldToDiff( eTable.toElement().attribute("name",""),eField);
+                            log("FNF:Field " + eField.attribute("name","") + " in table " + tablefound.toElement().attribute("name","") + " from A is not found in B");
+                        addFieldToDiff(tablefound.toElement().attribute("name",""),eField);
                         tablefound.insertBefore(eField.cloneNode(true),tablefound.firstChild());
                     }
                 }
+
                 field = field.nextSibling();
             }
         }
@@ -617,37 +576,39 @@ int main(int argc, char *argv[])
 {
     QString title;
     title = title + "********************************************************************* \n";
-    title = title + " * Compare Create XML                                            * \n";
-    title = title + " * This tool compares two create XML files (A and B) for incremental * \n";
-    title = title + " * changes. A is consider an incremental version of B .              * \n";
-    title = title + " *                                                                   * \n";
-    title = title + " * The tool informs of tables and variables in A that are not in B.  * \n";
-    title = title + " * The tool can also create a combined file C that appends           * \n";
-    title = title + " * not found tables and variables with the following conditions:     * \n";
-    title = title + " *   1) If a table in A is not found in B then it will be added to B * \n";
-    title = title + " *      only if its parent exists in B.                              * \n";
-    title = title + " *                                                                   * \n";
-    title = title + " * C will have all of B plus all of A.                               * \n";
-    title = title + " *                                                                   * \n";
-    title = title + " * The tool WILL NOT fix the following:                              * \n";
-    title = title + " *   1) Inconsistencies in field definition like size, type,         * \n";
-    title = title + " *      parent table and parent field.                               * \n";
-    title = title + " *   2) Tables that do not share the same parent.                    * \n";
-    title = title + " *                                                                   * \n";
-    title = title + " * Nomenclature:                                                     * \n";
-    title = title + " *   TNF: Table not found.                                           * \n";
-    title = title + " *   TNS: The table does not have the same parent table.             * \n";
-    title = title + " *   FNF: Field not found.                                           * \n";
-    title = title + " *   FNS: The field is not the same.                                 * \n";
-    title = title + " *                                                                   * \n";
-    title = title + " * This tool is usefull when dealing with multiple versions of an    * \n";
-    title = title + " * ODK survey that must be combined in one common database.          * \n";
-    title = title + " *                                                                   * \n";
-    title = title + " * If a TNS nor a FNS are NOT encounter then this means that B can   * \n";
-    title = title + " * merge into A and a diff SQL script is issued.                     * \n";
-    title = title + " *                                                                   * \n";
-    title = title + " * Decrimental changes are not taken into account because this means * \n";
-    title = title + " * losing data between versions.                                     * \n";
+    title = title + " * Compare Create XML                                                   * \n";
+    title = title + " * This tool compares two create XML files (A and B) for incremental    * \n";
+    title = title + " * changes. A is consider an incremental version of B .                 * \n";
+    title = title + " *                                                                      * \n";
+    title = title + " * The tool informs of tables and variables in A that are not in B.     * \n";
+    title = title + " * The tool can also create a combined file C that appends              * \n";
+    title = title + " * not found tables and variables with the following conditions:        * \n";
+    title = title + " *   1) If a table in A is not found in B then it will be added to B    * \n";
+    title = title + " *      only if its parent exists in B.                                 * \n";
+    title = title + " *                                                                      * \n";
+    title = title + " * C will have all of B plus all of A.                                  * \n";
+    title = title + " *                                                                      * \n";
+    title = title + " * The tool WILL NOT fix the following:                                 * \n";
+    title = title + " *   1) Inconsistencies in field definition like size, type,            * \n";
+    title = title + " *      parent table and parent field.                                  * \n";
+    title = title + " *   2) Tables that do not share the same parent.                       * \n";
+    title = title + " *                                                                      * \n";
+    title = title + " * Nomenclature:                                                        * \n";
+    title = title + " *   TNF: Table not found.                                              * \n";
+    title = title + " *   TNS: The table does not have the same parent table. (Cannot merge) * \n";
+    title = title + " *   FNF: Field not found.                                              * \n";
+    title = title + " *   FNS: The field is not the same. (Cannot merge)                     * \n";
+    title = title + " *   FIC: The field will increase in size.                              * \n";
+    title = title + " *   FDC: The field decreased in in size. (Cannot merge)                * \n";
+    title = title + " *                                                                      * \n";
+    title = title + " * This tool is usefull when dealing with multiple versions of an       * \n";
+    title = title + " * ODK survey that must be combined in one common database.             * \n";
+    title = title + " *                                                                      * \n";
+    title = title + " * If a TNS nor a FNS are NOT encounter then this means that A can      * \n";
+    title = title + " * merge into B and a diff SQL script is issued.                        * \n";
+    title = title + " *                                                                      * \n";
+    title = title + " * Decrimental changes are not taken into account because this means    * \n";
+    title = title + " * losing data between versions.                                        * \n";
     title = title + " ********************************************************************* \n";
 
     TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "2.0");
