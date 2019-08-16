@@ -32,8 +32,7 @@ int idx;
 
 struct compError
 {
-  QString code;
-  QString desc;
+  QString code;  
   QString table;
   QString field;
   QString from;
@@ -60,6 +59,7 @@ typedef rtableDef TrtableDef;
 
 QList<TrtableDef> rtables;
 
+QStringList dropTables;
 
 void addAlterFieldToDiff(QString table, QDomElement eField, int newSize, int newDec)
 {
@@ -83,6 +83,32 @@ void addAlterFieldToDiff(QString table, QDomElement eField, int newSize, int new
     }
 }
 
+void addTableToDrop(QString name)
+{
+    bool found = false;
+    if (dropTables.indexOf(name) >= 0)
+        found = true;
+    if (!found)
+    {
+        dropTables.append(name);
+    }
+}
+
+
+void changeLookupRelationship(QString table, QDomElement a, QDomElement b)
+{
+    QString sql;
+    QString oldcntname;
+    QString newcntname;
+    oldcntname = b.attribute("rname");
+    newcntname = a.attribute("rname");
+    sql = "ALTER TABLE " + table + " DROP CONSTRAINT " + oldcntname + ";\n\n";
+    diff.append(sql);
+    sql = "ALTER TABLE " + table + " ADD CONSTRAINT " + newcntname + " FOREIGN KEY (" + a.attribute("name") + ") REFERENCES " + a.attribute("rtable") + " (" + a.attribute("rfield") + ") ON DELETE RESTRICT  ON UPDATE NO ACTION;\n\n";
+    diff.append(sql);
+    addTableToDrop(b.attribute("rtable"));
+}
+
 //This adds the modifications to a table to the diff list
 void addFieldToDiff(QString table, QDomElement eField)
 {
@@ -99,13 +125,10 @@ void addFieldToDiff(QString table, QDomElement eField)
     }
     diff.append(sql);
     if (eField.attribute("rtable","") != "")
-    {
-        QUuid recordUUID=QUuid::createUuid();
-        QString strRecordUUID=recordUUID.toString().replace("{","").replace("}","").right(12);
-
-        sql = "ALTER TABLE " + table + " ADD INDEX DIDX" + strRecordUUID  + " (" + eField.attribute("name","") + ");\n";
+    {        
+        sql = "ALTER TABLE " + table + " ADD INDEX " + eField.attribute("rname","")  + " (" + eField.attribute("name","") + ");\n";
         diff.append(sql);
-        sql = "ALTER TABLE " + table + " ADD CONSTRAINT DFK" + strRecordUUID + " FOREIGN KEY (";
+        sql = "ALTER TABLE " + table + " ADD CONSTRAINT " + eField.attribute("rname","") + " FOREIGN KEY (";
         sql = sql + eField.attribute("name","") + ") REFERENCES " + eField.attribute("rtable","") + "(";
         sql = sql + eField.attribute("rfield","") + ") ON DELETE RESTRICT ON UPDATE NO ACTION;\n" ;
         diff.append(sql);
@@ -256,11 +279,15 @@ void addTableToSDiff(QDomNode table, bool lookUp)
     if (hasRelatedTables)
         sql = sql.left(sql.length()-2);
     sql = sql + ")\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + eTable.attribute("desc","") + "\";\n";
-    sql = sql + "CREATE UNIQUE INDEX DXROWUUID" + strRecordUUID + " ON " + eTable.attribute("name","") + "(rowuuid);\n";
-    if (lookUp)
-        sql = sql + "CREATE TRIGGER uudi_" + eTable.attribute("name","") + " BEFORE INSERT ON " + eTable.attribute("name","") + " FOR EACH ROW SET new.rowuuid = uuid();\n\n";
-    else
-        sql = sql + "\n";
+    sql = sql + "CREATE UNIQUE INDEX DXROWUUID" + strRecordUUID + " ON " + eTable.attribute("name","") + "(rowuuid);\n\n";
+
+    QUuid TriggerUUID=QUuid::createUuid();
+    QString strTriggerUUID=TriggerUUID.toString().replace("{","").replace("}","");
+
+    sql = sql + "delimiter $$\n\n";
+    sql = sql + "CREATE TRIGGER T" + strTriggerUUID + " BEFORE INSERT ON " + eTable.attribute("name","") + " FOR EACH ROW BEGIN IF (new.rowuuid IS NULL) THEN SET new.rowuuid = uuid(); ELSE IF (new.rowuuid NOT REGEXP '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}') THEN SET new.rowuuid = uuid(); END IF; END IF; END;$$\n\n";
+    sql = sql + "delimiter ;\n\n";
+
     diff.append(sql);
     for (int pos = 0; pos <= childTables.count()-1;pos++)
         addTableToSDiff(childTables[pos],lookUp);
@@ -310,13 +337,18 @@ QDomNode findTable(QDomDocument docB,QString tableName)
 QString compareFields(QDomElement a, QDomElement b, int &newSize, int &newDec)
 {    
     newSize = a.attribute("size","0").toInt();
-    newDec = a.attribute("decsize","0").toInt();
+    newDec = a.attribute("decsize","0").toInt();    
     if (a.attribute("key","") != b.attribute("key",""))
         return "KNS";
-    if (a.attribute("rtable","") != b.attribute("rtable",""))
-        return "RTNS";
-    if (a.attribute("rfield","") != b.attribute("rfield",""))
-        return "RFNS";
+    if ((a.attribute("rtable","") != b.attribute("rtable","")) || (a.attribute("rfield","") != b.attribute("rfield","")))
+    {
+        if (a.attribute("mergefine","false") == "true")
+        {
+            return "CHR";
+        }
+        else
+            return "RNS";
+    }
     if (a.attribute("type","") != b.attribute("type",""))
         return "TNS";
 
@@ -396,18 +428,29 @@ void checkField(QDomNode eTable, QDomElement a, QDomElement b)
     result = compareFields(a,b,newSize,newDec);
     if (result != "")
     {
-        if (result == "FIC")
+        if ((result == "FIC") || (result == "CHR"))
         {
-            if (outputType == "h")
+            if (result == "FIC")
             {
-                if (a.attribute("type","") != "decimal")
-                    log("FIC: The size of field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " will be increased from " + b.attribute("size",0) + " to " + a.attribute("size","0"));
-                else
-                    log("FIC: The size of field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " will be increased from " + b.attribute("size",0) + " to " + a.attribute("size","0") + ". Decimal size from " + b.attribute("decsize",0) + " to " + a.attribute("decsize","0"));
+                if (outputType == "h")
+                {
+                    if (a.attribute("type","") != "decimal")
+                        log("FIC: The size of field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " will be increased from " + b.attribute("size",0) + " to " + a.attribute("size","0"));
+                    else
+                        log("FIC: The size of field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " will be increased from " + b.attribute("size",0) + " to " + a.attribute("size","0") + ". Decimal size from " + b.attribute("decsize",0) + " to " + a.attribute("decsize","0"));
+                }
+                b.setAttribute("size",newSize);
+                b.setAttribute("decsize",newDec);
+                addAlterFieldToDiff(eTable.toElement().attribute("name",""),a,newSize,newDec);
             }
-            b.setAttribute("size",newSize);
-            b.setAttribute("decsize",newDec);
-            addAlterFieldToDiff(eTable.toElement().attribute("name",""),a,newSize,newDec);
+            else
+            {
+                if (outputType == "h")
+                {
+                    log("CHR: The relationship of field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " will be changed from " + b.attribute("rtable") + "." + b.attribute("rfield") + " to " + a.attribute("rtable") + "." + a.attribute("rfield"));
+                }
+                changeLookupRelationship(eTable.toElement().attribute("name",""),a,b);
+            }
         }
         else
         {
@@ -415,26 +458,23 @@ void checkField(QDomNode eTable, QDomElement a, QDomElement b)
             {
                 if (result == "KNS")
                     fatal("KNS: Field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed key from B to A. ODK Tools cannot fix this. You need to fix it in the Excel file");
-                if (result == "RTNS")
-                    fatal("RTNS: The relational table for field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed from B to A. ODK Tools cannot fix this. You need to fix it in the Excel file");
-                if (result == "RFNS")
-                    fatal("RFNS: The relational field for field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed from B to A. ODK Tools cannot fix this. You need to fix it in the Excel file");
+                if (result == "RNS")
+                    fatal("RNS: The relationship for field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed from B to A. ODK Tools cannot fix this. You need to fix it in the Excel file");
                 if (result == "TNS")
                     fatal("TNS: Field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed type from B to A. ODK Tools cannot fix this. You need to fix it in the Excel file");
                 if (result == "FDC")
                     log("FDC: The field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " has descreased in size. This change will be ignored");
-            }
-            else
-            {
-                TcompError error;
-                error.code = result;
-                error.table = eTable.toElement().attribute("name","");
-                error.field = a.attribute("name","");
-                error.desc = "";
-                error.from = getFieldDefinition(b);
-                error.to = getFieldDefinition(a);
-                errorList.append(error);
-            }
+            }            
+        }
+        if (outputType != "h")
+        {
+            TcompError error;
+            error.code = result;
+            error.table = eTable.toElement().attribute("name","");
+            error.field = a.attribute("name","");
+            error.from = getFieldDefinition(b);
+            error.to = getFieldDefinition(a);
+            errorList.append(error);
         }
     }
 }
@@ -466,6 +506,16 @@ void compareLKPTables(QDomNode table,QDomDocument &docB)
                    {
                        if (outputType == "h")
                            log("FNF:Field " + eField.attribute("name","") + " in table " + tablefound.toElement().attribute("name","") + " from A is not found in B");
+                       else
+                       {
+                           TcompError error;
+                           error.code = "FNF";
+                           error.table = tablefound.toElement().attribute("name","");
+                           error.field = eField.attribute("name","");
+                           error.from = "NULL";
+                           error.to = getFieldDefinition(eField);
+                           errorList.append(error);
+                       }
                        addFieldToDiff(tablefound.toElement().attribute("name",""),eField);
                        tablefound.insertBefore(eField.cloneNode(true),tablefound.firstChild());
                    }
@@ -478,6 +528,16 @@ void compareLKPTables(QDomNode table,QDomDocument &docB)
        {
            if (outputType == "h")
                log("TNF:Lookup table " + node.toElement().attribute("name","") + " from A not found in B");
+           else
+           {
+               TcompError error;
+               error.code = "TNF";
+               error.table = "NA";
+               error.field = "NA";
+               error.from = "NULL";
+               error.to = node.toElement().attribute("name","");
+               errorList.append(error);
+           }
            addTableToSDiff(node,true);
            //Now adds the lookup table
            docB.documentElement().firstChild().appendChild(node.cloneNode(true));
@@ -514,6 +574,16 @@ void compareTables(QDomNode table,QDomDocument &docB)
                     {
                         if (outputType == "h")
                             log("FNF:Field " + eField.attribute("name","") + " in table " + tablefound.toElement().attribute("name","") + " from A is not found in B");
+                        else
+                        {
+                            TcompError error;
+                            error.code = "FNF";
+                            error.table = tablefound.toElement().attribute("name","");
+                            error.field = eField.attribute("name","");
+                            error.from = "NULL";
+                            error.to = getFieldDefinition(eField);
+                            errorList.append(error);
+                        }
                         addFieldToDiff(tablefound.toElement().attribute("name",""),eField);
                         tablefound.insertBefore(eField.cloneNode(true),tablefound.firstChild());
                     }
@@ -531,8 +601,7 @@ void compareTables(QDomNode table,QDomDocument &docB)
                 TcompError error;
                 error.code = "TNS";
                 error.table = "NA";
-                error.field = "NA";
-                error.desc = "Table " + eTable.toElement().attribute("name","") + " from A does not have the same parent in B";
+                error.field = "NA";                
                 error.from = tablefound.parentNode().toElement().attribute("name","");
                 error.to = table.parentNode().toElement().attribute("name","");
                 errorList.append(error);
@@ -550,20 +619,29 @@ void compareTables(QDomNode table,QDomDocument &docB)
         {
             if (outputType == "h")
                 log("TNF:Table " + eTable.toElement().attribute("name","") + " from A not found in B");
-            addTableToSDiff(eTable,false);
-            parentfound.appendChild(table.cloneNode(true));
-        }
-        else
-        {
-            if (outputType == "h")
-                fatal("TNF:Table " + eTable.toElement().attribute("name","") + " from A not found in B. Its parent in A is not found in B");
             else
             {
                 TcompError error;
                 error.code = "TNF";
                 error.table = "NA";
                 error.field = "NA";
-                error.desc = "Table " + eTable.toElement().attribute("name","") + " from A not found in B. Its parent in A is not found in B";
+                error.from = "NULL";
+                error.to = eTable.toElement().attribute("name","");
+                errorList.append(error);
+            }
+            addTableToSDiff(eTable,false);
+            parentfound.appendChild(table.cloneNode(true));
+        }
+        else
+        {
+            if (outputType == "h")
+                fatal("TWP:Table " + eTable.toElement().attribute("name","") + " from A not found in B. Its parent in A is not found in B");
+            else
+            {
+                TcompError error;
+                error.code = "TWP";
+                error.table = "NA";
+                error.field = "NA";
                 error.from = "NULL";
                 error.to = parentTableName;
                 errorList.append(error);
@@ -683,6 +761,11 @@ int main(int argc, char *argv[])
                 compareLKPTables(rootA.firstChild().firstChild(),docB);
                 //Comparing tables
                 compareTables(rootA.firstChild().nextSibling().firstChild(),docB);
+                //Process drops
+                for (int pos = 0; pos < dropTables.count(); pos++)
+                {
+                    diff.append("DROP TABLE IF EXISTS " + dropTables[pos] + ";\n\n");
+                }
 
                 if (outputType == "m")
                 {
@@ -702,8 +785,7 @@ int main(int argc, char *argv[])
                         anError = XMLResult.createElement("error");
                         anError.setAttribute("table",errorList[pos].table);
                         anError.setAttribute("field",errorList[pos].field);
-                        anError.setAttribute("code",errorList[pos].code);
-                        anError.setAttribute("desc",errorList[pos].desc);
+                        anError.setAttribute("code",errorList[pos].code);                        
                         anError.setAttribute("from",errorList[pos].from);
                         anError.setAttribute("to",errorList[pos].to);
                         eErrors.appendChild(anError);
