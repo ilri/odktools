@@ -1654,7 +1654,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
     XMLSchemaStructure = QDomDocument("XMLSchemaStructure");
     QDomElement XMLRoot;
     XMLRoot = XMLSchemaStructure.createElement("XMLSchemaStructure");
-    XMLRoot.setAttribute("version", "1.0");
+    XMLRoot.setAttribute("version", "2.0");
     XMLSchemaStructure.appendChild(XMLRoot);
 
     QDomElement XMLLKPTables;
@@ -1938,7 +1938,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                             {
                                 createFieldNode.setAttribute("rlookup","true");
                                 if (tables[pos].fields[clm].mergeFine)
-                                    createFieldNode.setAttribute("mergeFine","true");
+                                    createFieldNode.setAttribute("mergefine","true");
                             }
 
                         }
@@ -1969,7 +1969,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                             {
                                 createFieldNode.setAttribute("rlookup","true");
                                 if (tables[pos].fields[clm].mergeFine)
-                                    createFieldNode.setAttribute("mergeFine","true");
+                                    createFieldNode.setAttribute("mergefine","true");
                             }
                         }
                         tables[pos].tableCreteElement.appendChild(createFieldNode);
@@ -2001,7 +2001,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         {
                             createFieldNode.setAttribute("rlookup","true");
                             if (tables[pos].fields[clm].mergeFine)
-                                createFieldNode.setAttribute("mergeFine","true");
+                                createFieldNode.setAttribute("mergefine","true");
                         }
                     }
                     tables[pos].tableCreteElement.appendChild(createFieldNode);
@@ -3528,7 +3528,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
                     lkpTable.fields.append(lkpDesc);
                     aField.rTable = lkpTable.name;
                     aField.rField = lkpCode.name;
-                    aField.rName = getUUIDCode();
+                    aField.rName = getUUIDCode();                    
                     tables.append(lkpTable);
                 }
                 else
@@ -3918,7 +3918,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         lkpTable.fields.append(lkpDesc);
                         aField.rTable = lkpTable.name;
                         aField.rField = lkpCode.name;
-                        aField.rName = getUUIDCode();
+                        aField.rName = getUUIDCode();                        
                         tables.append(lkpTable);
                     }
                     else
@@ -4887,7 +4887,7 @@ void loadMergingCreateFile(QDomNode lkptable, QDomNode insertStartNode)
         TtableDef lkpTable;
         lkpTable.isLoop = false;
         lkpTable.isOSM = false;
-        lkpTable.isGroup = false;
+        lkpTable.isGroup = false;        
 
         lkpTable.name = tableName;
 
@@ -5655,6 +5655,12 @@ int main(int argc, char *argv[])
         if (Createroot.tagName() != "XMLSchemaStructure")
         {
             log("Create file used for merging is not valid");
+            mergingFile.close();
+            return 1;
+        }
+        if (Createroot.attribute("version","1.0") != "2.0")
+        {
+            log("Cannot merge files. Only Version 2 are allowed for merging");
             mergingFile.close();
             return 1;
         }
