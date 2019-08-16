@@ -9,7 +9,7 @@ mainClass::mainClass(QObject *parent) : QObject(parent)
     returnCode = 0;
 }
 
-void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString outputDirectory)
+void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString outputDirectory, QStringList tables)
 {
     this->host = host;
     this->port = port;
@@ -17,6 +17,8 @@ void mainClass::setParameters(QString host, QString port, QString user, QString 
     this->pass = pass;
     this->schema = schema;
     this->outputDirectory = outputDirectory;
+    for (int pos = 0; pos < tables.count(); pos++)
+        this->tables.append("'" + tables[pos] + "'");
 }
 
 void mainClass::log(QString message)
@@ -72,7 +74,13 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
     TriggerLite << "PRIMARY KEY (audit_id) );";
     TriggerLite << "";
 
-    sql = "SELECT table_name FROM information_schema.tables WHERE table_type = 'BASE TABLE' and TABLE_SCHEMA = '" + schema + "'"; //Excluse views in audit
+    if (tables.count() == 0)
+        sql = "SELECT table_name FROM information_schema.tables WHERE table_type = 'BASE TABLE' and TABLE_SCHEMA = '" + schema + "'"; //Excluse views in audit
+    else
+    {
+        sql = "SELECT table_name FROM information_schema.tables WHERE table_type = 'BASE TABLE' and TABLE_SCHEMA = '" + schema + "'";
+        sql = sql + " AND table_name IN (" + tables.join(",") + ")";
+    }
     if (query.exec(sql))
     {
         while (query.next())

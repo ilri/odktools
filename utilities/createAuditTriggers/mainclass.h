@@ -10,7 +10,7 @@ class mainClass : public QObject
     Q_OBJECT
 public:
     explicit mainClass(QObject *parent = nullptr);
-    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString outputDirectory);
+    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString outputDirectory, QStringList tables);
     int returnCode;
 signals:
     void finished();
@@ -23,6 +23,7 @@ private:
     QString pass;
     QString schema;
     QString outputDirectory;
+    QStringList tables;
     void log(QString message);
     int createAudit(QSqlDatabase mydb, QString auditDir, QStringList ignoreTables);
 
