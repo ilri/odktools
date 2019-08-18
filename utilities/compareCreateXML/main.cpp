@@ -102,7 +102,12 @@ void changeLookupRelationship(QString table, QDomElement a, QDomElement b)
     QString newcntname;
     oldcntname = b.attribute("rname");
     newcntname = a.attribute("rname");
-    sql = "ALTER TABLE " + table + " DROP CONSTRAINT " + oldcntname + ";\n\n";
+    sql = "ALTER TABLE " + table + " DROP CONSTRAINT " + oldcntname + ";\n";
+    diff.append(sql);
+    sql = "ALTER TABLE " + table + " DROP INDEX " + oldcntname + ";\n\n";
+    diff.append(sql);
+    addAlterFieldToDiff(table,a,a.attribute("size","0").toInt(),0);
+    sql = "ALTER TABLE " + table + " ADD INDEX " + newcntname + ";\n";
     diff.append(sql);
     sql = "ALTER TABLE " + table + " ADD CONSTRAINT " + newcntname + " FOREIGN KEY (" + a.attribute("name") + ") REFERENCES " + a.attribute("rtable") + " (" + a.attribute("rfield") + ") ON DELETE RESTRICT  ON UPDATE NO ACTION;\n\n";
     diff.append(sql);
@@ -282,7 +287,7 @@ void addTableToSDiff(QDomNode table, bool lookUp)
     sql = sql + "CREATE UNIQUE INDEX DXROWUUID" + strRecordUUID + " ON " + eTable.attribute("name","") + "(rowuuid);\n\n";
 
     QUuid TriggerUUID=QUuid::createUuid();
-    QString strTriggerUUID=TriggerUUID.toString().replace("{","").replace("}","");
+    QString strTriggerUUID=TriggerUUID.toString().replace("{","").replace("}","").replace("-","_");
 
     sql = sql + "delimiter $$\n\n";
     sql = sql + "CREATE TRIGGER T" + strTriggerUUID + " BEFORE INSERT ON " + eTable.attribute("name","") + " FOR EACH ROW BEGIN IF (new.rowuuid IS NULL) THEN SET new.rowuuid = uuid(); ELSE IF (new.rowuuid NOT REGEXP '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}') THEN SET new.rowuuid = uuid(); END IF; END IF; END;$$\n\n";
@@ -350,7 +355,24 @@ QString compareFields(QDomElement a, QDomElement b, int &newSize, int &newDec)
             return "RNS";
     }
     if (a.attribute("type","") != b.attribute("type",""))
-        return "TNS";
+    {
+        if ((b.attribute("type") == "int") && (a.attribute("type") == "varchar"))
+        {
+            if (a.attribute("size","0").toInt() >= b.attribute("size","0").toInt())
+            {
+                if (a.attribute("decsize","0").toInt() > b.attribute("decsize","0").toInt())
+                {
+                    newSize = a.attribute("size","0").toInt();
+                    newDec = a.attribute("decsize","0").toInt();
+                }
+                return "FTC";
+            }
+            else
+                return "FNS";
+        }
+        else
+            return "FNS";
+    }
 
     if (a.attribute("size","") != b.attribute("size",""))
     {        
@@ -428,7 +450,7 @@ void checkField(QDomNode eTable, QDomElement a, QDomElement b)
     result = compareFields(a,b,newSize,newDec);
     if (result != "")
     {
-        if ((result == "FIC") || (result == "CHR"))
+        if ((result == "FIC") || (result == "CHR") || (result == "FTC"))
         {
             if (result == "FIC")
             {
@@ -445,11 +467,29 @@ void checkField(QDomNode eTable, QDomElement a, QDomElement b)
             }
             else
             {
-                if (outputType == "h")
+                if (result == "CHR")
                 {
-                    log("CHR: The relationship of field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " will be changed from " + b.attribute("rtable") + "." + b.attribute("rfield") + " to " + a.attribute("rtable") + "." + a.attribute("rfield"));
+                    if (outputType == "h")
+                    {
+                        log("CHR: The relationship of field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " will be changed from " + b.attribute("rtable") + "." + b.attribute("rfield") + " to " + a.attribute("rtable") + "." + a.attribute("rfield"));
+                    }                    
+                    changeLookupRelationship(eTable.toElement().attribute("name",""),a,b);
+                    b.setAttribute("rtable",a.attribute("rtable"));
+                    b.setAttribute("rfield",a.attribute("rfield"));
+                    b.setAttribute("type",a.attribute("type"));
+                    b.setAttribute("size",a.attribute("size"));
                 }
-                changeLookupRelationship(eTable.toElement().attribute("name",""),a,b);
+                else
+                {
+                    if (outputType == "h")
+                    {
+                        log("FTC: The field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed type from " + b.attribute("type") + " to " + a.attribute("type") + " which is allowed");
+                        b.setAttribute("size",newSize);
+                        b.setAttribute("decsize",newDec);
+                        b.setAttribute("type",a.attribute("type"));
+                        addAlterFieldToDiff(eTable.toElement().attribute("name",""),a,newSize,newDec);
+                    }
+                }
             }
         }
         else
@@ -460,8 +500,8 @@ void checkField(QDomNode eTable, QDomElement a, QDomElement b)
                     fatal("KNS: Field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed key from B to A. ODK Tools cannot fix this. You need to fix it in the Excel file");
                 if (result == "RNS")
                     fatal("RNS: The relationship for field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed from B to A. ODK Tools cannot fix this. You need to fix it in the Excel file");
-                if (result == "TNS")
-                    fatal("TNS: Field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed type from B to A. ODK Tools cannot fix this. You need to fix it in the Excel file");
+                if (result == "FNS")
+                    fatal("FNS: Field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed type from B to A. ODK Tools cannot fix this. You need to fix it in the Excel file");
                 if (result == "FDC")
                     log("FDC: The field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " has descreased in size. This change will be ignored");
             }            
@@ -674,10 +714,11 @@ int main(int argc, char *argv[])
     title = title + " * Nomenclature:                                                        * \n";
     title = title + " *   TNF: Table not found.                                              * \n";
     title = title + " *   TNS: The table does not have the same parent table. (Cannot merge) * \n";
+    title = title + " *   TWP: The parent table is not found in B. (Cannot merge).           * \n";
     title = title + " *   FNF: Field not found.                                              * \n";
     title = title + " *   FNS: The field is not the same. (Cannot merge)                     * \n";
     title = title + " *   FIC: The field will increase in size.                              * \n";
-    title = title + " *   FDC: The field decreased in in size. (Cannot merge)                * \n";
+    title = title + " *   FDC: The field decreased in in size. (Ignore)                      * \n";
     title = title + " *                                                                      * \n";
     title = title + " * This tool is usefull when dealing with multiple versions of an       * \n";
     title = title + " * ODK survey that must be combined in one common database.             * \n";
@@ -762,9 +803,18 @@ int main(int argc, char *argv[])
                 //Comparing tables
                 compareTables(rootA.firstChild().nextSibling().firstChild(),docB);
                 //Process drops
+                QDomNode lkpTables = rootB.firstChild();
                 for (int pos = 0; pos < dropTables.count(); pos++)
                 {
-                    diff.append("DROP TABLE IF EXISTS " + dropTables[pos] + ";\n\n");
+                    diff.append("DROP TABLE IF EXISTS " + dropTables[pos] + ";\n\n");                    
+                    QDomNode a_table = rootB.firstChild().firstChild();
+                    while (!a_table.isNull())
+                    {
+                        if (a_table.toElement().attribute("name") == dropTables[pos])
+                            break;
+                        a_table = a_table.nextSibling();
+                    }
+                    lkpTables.removeChild(a_table);
                 }
 
                 if (outputType == "m")
