@@ -1338,11 +1338,28 @@ int getMaxValueLength(QList<TlkpValue> values)
     return res;
 }
 
+//Return whether the values of a lookup table are numbers or strings. Used to determine the type of variables in the lookup tables
+bool areValuesStrings(QList<TlkpValue> values)
+{
+    bool ok;
+    int pos;
+    for (pos = 0; pos <= values.count()-1;pos++)
+    {
+        values[pos].code.toInt(&ok,10);
+        if (!ok)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 //This fuction checkd wheter a lookup table is duplicated.
 //If there is a match then returns such table
-TtableDef getDuplicatedLkpTable(QString lkptname, QList<TlkpValue> thisValues, bool &changeSize, int &newCodeSize, bool &changedRel, bool useMergedTables = true)
+TtableDef getDuplicatedLkpTable(QString lkptname, QList<TlkpValue> thisValues, bool &changeSize, int &newCodeSize, bool &changedRel, QString newCodeType, bool useMergedTables = true)
 {
     changeSize = false;
+    newCodeType = "";
     newCodeSize = -1;
     int pos2;
     bool same;
@@ -1451,19 +1468,29 @@ TtableDef getDuplicatedLkpTable(QString lkptname, QList<TlkpValue> thisValues, b
                                 bool nchangeSize;
                                 int nnewCodeSize;
                                 bool nchangedRel;
-                                TtableDef existing_table = getDuplicatedLkpTable(lkptname, merging_tables[pos].lkpValues,nchangeSize,nnewCodeSize,nchangedRel,false);
+                                QString nnewCodeType;
+                                TtableDef existing_table = getDuplicatedLkpTable(lkptname, merging_tables[pos].lkpValues,nchangeSize,nnewCodeSize,nchangedRel,nnewCodeType,false);
                                 if (existing_table.name != "EMPTY")
                                 {
                                     changeSize = true;
                                     changedRel = true;
                                     newCodeSize = getMaxValueLength(existing_table.lkpValues);
+                                    if (areValuesStrings(existing_table.lkpValues))
+                                        newCodeType = "varchar";
+                                    else
+                                        newCodeType = "int";
                                     return existing_table;
                                 }
                                 changeSize = true;
+                                if (areValuesStrings(merging_tables[pos].lkpValues))
+                                    newCodeType = "varchar";
+                                else
+                                    newCodeType = "int";
                                 newCodeSize = getMaxValueLength(merging_tables[pos].lkpValues);
                                 int newDescSize;
                                 newDescSize = getMaxDescLength(merging_tables[pos].lkpValues);
                                 merging_tables[pos].fields[0].size = newCodeSize;
+                                merging_tables[pos].fields[0].type = newCodeType;
                                 merging_tables[pos].fields[1].size = newDescSize;
                                 tables.append(merging_tables[pos]);
                                 return merging_tables[pos];
@@ -2645,22 +2672,6 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     return result;
 }
 
-//Return whether the values of a lookup table are numbers or strings. Used to determine the type of variables in the lookup tables
-bool areValuesStrings(QList<TlkpValue> values)
-{
-    bool ok;
-    int pos;
-    for (pos = 0; pos <= values.count()-1;pos++)
-    {
-        values[pos].code.toInt(&ok,10);
-        if (!ok)
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
 int getMaxMSelValueLength(QList<TlkpValue> values)
 {
     QString res;
@@ -3472,7 +3483,8 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
                 bool changeSize;
                 int newCodeSize;
                 bool changedRel;
-                TtableDef lkpTable = getDuplicatedLkpTable(table_name,values,changeSize,newCodeSize,changedRel);
+                QString newCodeType;
+                TtableDef lkpTable = getDuplicatedLkpTable(table_name,values,changeSize,newCodeSize,changedRel,newCodeType);
                 lkpTable.isLoop = false;
                 lkpTable.isOSM = false;
                 lkpTable.isGroup = false;
@@ -3540,6 +3552,8 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
                     aField.rName = getUUIDCode();
                     if (merge)
                     {
+                        if (newCodeType != "")
+                            aField.type = newCodeType;
                         if (changeSize)
                         {
                             aField.size = newCodeSize;
@@ -3862,7 +3876,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     bool changeSize;
                     int newCodeSize;
                     bool changedRel;
-                    TtableDef lkpTable = getDuplicatedLkpTable(table_name, values, changeSize, newCodeSize, changedRel);
+                    QString newCodeType;
+                    TtableDef lkpTable = getDuplicatedLkpTable(table_name, values, changeSize, newCodeSize, changedRel, newCodeType);
                     lkpTable.isLoop = false;
                     lkpTable.isOSM = false;
                     lkpTable.isGroup = false;
@@ -3930,6 +3945,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         aField.rName = getUUIDCode();
                         if (merge)
                         {
+                            if (newCodeType != "")
+                                aField.type = newCodeType;
                             if (changeSize)
                             {
                                 aField.size = newCodeSize;
@@ -4089,7 +4106,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 bool changeSize;
                 int newCodeSize;
                 bool changedRel;
-                TtableDef lkpTable = getDuplicatedLkpTable(table_name,values,changeSize,newCodeSize,changedRel);
+                QString newCodeType;
+                TtableDef lkpTable = getDuplicatedLkpTable(table_name,values,changeSize,newCodeSize,changedRel,newCodeType);
                 lkpTable.isLoop = false;
                 lkpTable.isOSM = false;
                 lkpTable.isGroup = false;
@@ -4162,6 +4180,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     mselKeyField.rName = getUUIDCode();
                     if (merge)
                     {
+                        if (newCodeType != "")
+                            aField.type = newCodeType;
                         if (changeSize)
                         {
                             aField.size = getMaxMSelValueLength(lkpTable.lkpValues);
@@ -4415,7 +4435,8 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
                 bool changeSize;
                 int newCodeSize;
                 bool changedRel;
-                TtableDef lkpTable = getDuplicatedLkpTable(table_name, values, changeSize, newCodeSize, changedRel);
+                QString newCodeType;
+                TtableDef lkpTable = getDuplicatedLkpTable(table_name, values, changeSize, newCodeSize, changedRel, newCodeType);
                 lkpTable.isLoop = false;
                 lkpTable.isOSM = false;
                 lkpTable.isGroup = false;
@@ -4483,6 +4504,8 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
                     aField.rName = getUUIDCode();
                     if (merge)
                     {
+                        if (newCodeType != "")
+                            aField.type = newCodeType;
                         if (changeSize)
                         {
                             aField.size = newCodeSize;
