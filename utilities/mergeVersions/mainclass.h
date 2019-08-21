@@ -22,6 +22,7 @@ License along with Merge Versions.  If not, see <http://www.gnu.org/licenses/lgp
 #define MAINCLASS_H
 
 #include <QObject>
+#include "generic.h"
 
 class mainClass : public QObject
 {
@@ -33,7 +34,7 @@ signals:
     void finished();
 public slots:
     void run();
-    void setParameters(QString createA, QString createB, QString insertA, QString insertB, QString createC, QString insertC, QString diffCreate, QString diffInsert, QString outputType);
+    void setParameters(QString createA, QString createB, QString insertA, QString insertB, QString createC, QString insertC, QString diffCreate, QString diffInsert, QString outputType, QList<TignoreTableValues> toIgnore);
 private:
     QString a_createXML;
     QString b_createXML ;
@@ -45,6 +46,7 @@ private:
     QString d_insertSQL;
     QString output_type;
     void log(QString message);
+    QList<TignoreTableValues> valuesToIgnore;
 };
 
 #endif // MAINCLASS_H

@@ -22,6 +22,8 @@ License along with Merge Versions.  If not, see <http://www.gnu.org/licenses/lgp
 #include <QTimer>
 #include <tclap/CmdLine.h>
 #include "mainclass.h"
+#include "generic.h"
+#include <QList>
 
 int main(int argc, char *argv[])
 {
@@ -84,6 +86,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> dArg("d","diff","Output diff SQL script for create",false,"./diff-create.sql","string");
     TCLAP::ValueArg<std::string> DArg("D","diff","Output diff SQL script for insert",false,"./diff-insert.sql","string");
     TCLAP::ValueArg<std::string> oArg("o","outputype","Output type: (h)uman readble or (m)achine readble",false,"m","string");
+    TCLAP::ValueArg<std::string> iArg("i","ignore","Ignore changes in value descriptions. Indicated like Table1:value1,value2,...;Table2:value1,value2,..;..",false,"","string");
 
     cmd.add(aArg);
     cmd.add(bArg);
@@ -93,6 +96,7 @@ int main(int argc, char *argv[])
     cmd.add(CArg);
     cmd.add(dArg);
     cmd.add(oArg);
+    cmd.add(iArg);
 
 
     //Parsing the command lines
@@ -109,13 +113,35 @@ int main(int argc, char *argv[])
     QString outputd = QString::fromUtf8(dArg.getValue().c_str());
     QString outputD = QString::fromUtf8(DArg.getValue().c_str());
     QString outputType = QString::fromUtf8(oArg.getValue().c_str());
+    QString ignoreString = QString::fromUtf8(iArg.getValue().c_str());
+
+    QStringList ignoreTables;
+    QList<TignoreTableValues> valuesToIgnore;
+    if (ignoreString != "")
+    {
+        ignoreTables = ignoreString.split(";",QString::SkipEmptyParts);
+        for (int pos =0; pos < ignoreTables.count(); pos++)
+        {
+            if (ignoreTables[pos].indexOf(":") > 0)
+            {
+                QStringList parts = ignoreTables[pos].split(":",QString::SkipEmptyParts);
+                if (parts.count() == 2)
+                {
+                    TignoreTableValues aIgnoreValue;
+                    aIgnoreValue.table = parts[0];
+                    aIgnoreValue.values = parts[1].split(",",QString::SkipEmptyParts);
+                    valuesToIgnore.append(aIgnoreValue);
+                }
+            }
+        }
+    }
 
     mainClass *task = new mainClass(&a);
-    task->setParameters(a_createXML,b_createXML,a_insertXML,b_insertXML,c_createXML,c_insertXML,outputd,outputD,outputType);
+    task->setParameters(a_createXML,b_createXML,a_insertXML,b_insertXML,c_createXML,c_insertXML,outputd,outputD,outputType,valuesToIgnore);
     QObject::connect(task, SIGNAL(finished()), &a, SLOT(quit()));
 
     QTimer::singleShot(0, task, SLOT(run()));
 
-    return a.exec();
+    a.exec();
     return task->returnCode;
 }

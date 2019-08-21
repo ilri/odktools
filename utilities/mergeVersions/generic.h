@@ -42,4 +42,11 @@ struct compError
 };
 typedef compError TcompError;
 
+struct ignoreTableValues
+{
+  QString table;
+  QStringList values;
+};
+typedef ignoreTableValues TignoreTableValues;
+
 #endif // GENERIC_H

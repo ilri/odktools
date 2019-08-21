@@ -26,13 +26,14 @@ compareInsert::compareInsert(QObject *parent) : QObject(parent)
     fatalError = false;
 }
 
-void compareInsert::setFiles(QString insertA, QString insertB, QString insertC, QString diffSQL, QString outputType)
+void compareInsert::setFiles(QString insertA, QString insertB, QString insertC, QString diffSQL, QString outputType, QList<TignoreTableValues> toIgnore)
 {
     inputA = insertA;
     inputB = insertB;
     outputC = insertC;
-    outputD = diffSQL;
+    outputD = diffSQL;    
     this->outputType = outputType;
+    valuesToIgnore = toIgnore;
 }
 
 QList<TtableDiff> compareInsert::getDiffs()
@@ -316,6 +317,24 @@ void compareInsert::changeValueInC(QDomNode table, QString code, QString newDesc
     }
 }
 
+bool compareInsert::ignoreChange(QString table, QString value)
+{
+    for (int pos =0; pos < valuesToIgnore.count(); pos++)
+    {
+        if (valuesToIgnore[pos].table == table)
+        {
+            for (int pos2 =0; pos2 < valuesToIgnore[pos].values.count(); pos2++)
+            {
+                if (valuesToIgnore[pos].values[pos2] == value)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 void compareInsert::compareLKPTables(QDomNode table,QDomDocument &docB)
 {
     QDomNode node;
@@ -333,33 +352,27 @@ void compareInsert::compareLKPTables(QDomNode table,QDomDocument &docB)
                 {
                     if (field.toElement().attribute("description","") != fieldFound.toElement().attribute("description",""))
                     {
-                        if (outputType == "h")
+                        if (!ignoreChange(node.toElement().attribute("name",""),field.toElement().attribute("code","")))
                         {
-                            fatal("VNS:Value " + field.toElement().attribute("code","") + " of lookup table " + node.toElement().attribute("name","") + " has changed from \"" + fieldFound.toElement().attribute("description","") + "\" to \"" + field.toElement().attribute("description","") + "\"");
-                            log("Do you want to change this value in the database? Y/N");
-                            std::string line;
-                            std::getline(std::cin, line);
-                            QString result = QString::fromStdString(line);
-                            if (std::cin.eof() || result.toLower() == "y")
-                            {
-                                fatalError = false;
-                                UpdateValue(node.toElement(),field.toElement());
-                                changeValueInC(tableFound,field.toElement().attribute("code",""),field.toElement().attribute("description",""));
-                            }
+                            if (outputType == "h")
+                                fatal("VNS:Value " + field.toElement().attribute("code","") + " of lookup table " + node.toElement().attribute("name","") + " has changed from \"" + fieldFound.toElement().attribute("description","") + "\" to \"" + field.toElement().attribute("description","") + "\"");
                             else
                             {
+                                TcompError error;
+                                error.code = "VNS";
+                                error.desc = "Value " + field.toElement().attribute("code","") + " of lookup table " + node.toElement().attribute("name","") + " from A not the same in B";
+                                error.table = node.toElement().attribute("name","");
+                                error.value = field.toElement().attribute("code","");
+                                error.from = fieldFound.toElement().attribute("description","");
+                                error.to = field.toElement().attribute("description","");
+                                errorList.append(error);
                                 fatalError = true;
                             }
                         }
+                        else
                         {
-                            TcompError error;
-                            error.code = "VNS";
-                            error.desc = "Value " + field.toElement().attribute("code","") + " of lookup table " + node.toElement().attribute("name","") + " from A not the same in B";
-                            error.table = node.toElement().attribute("name","");
-                            error.value = field.toElement().attribute("code","");
-                            error.from = fieldFound.toElement().attribute("description","");
-                            error.to = field.toElement().attribute("description","");
-                            errorList.append(error);
+                            UpdateValue(node.toElement(),field.toElement());
+                            changeValueInC(tableFound,field.toElement().attribute("code",""),field.toElement().attribute("description",""));
                         }
                     }
                 }

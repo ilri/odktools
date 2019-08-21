@@ -49,7 +49,7 @@ void mainClass::run()
     }
 
     compareInsert insert;
-    insert.setFiles(a_insertXML,b_insertXML,c_insertXML,d_insertSQL,output_type);
+    insert.setFiles(a_insertXML,b_insertXML,c_insertXML,d_insertSQL,output_type,valuesToIgnore);
     returnCode = insert.compare();
     if (output_type != "h")
     {
@@ -61,6 +61,7 @@ void mainClass::run()
             anError.setAttribute("table",errorList[pos].table);
             anError.setAttribute("field",errorList[pos].field);
             anError.setAttribute("code",errorList[pos].code);
+            anError.setAttribute("value",errorList[pos].value);
             anError.setAttribute("from",errorList[pos].from);
             anError.setAttribute("to",errorList[pos].to);
             eErrors.appendChild(anError);
@@ -85,6 +86,7 @@ void mainClass::run()
                     anError.setAttribute("table",errorList[pos].table);
                     anError.setAttribute("field",errorList[pos].field);
                     anError.setAttribute("code",errorList[pos].code);
+                    anError.setAttribute("value",errorList[pos].value);
                     anError.setAttribute("from",errorList[pos].from);
                     anError.setAttribute("to",errorList[pos].to);
                     eErrors.appendChild(anError);
@@ -107,10 +109,10 @@ void mainClass::run()
     if (output_type != "h")
     {
         log(XMLResult.toString());
-    }
+    }    
     emit finished();
 }
-void mainClass::setParameters(QString createA, QString createB, QString insertA, QString insertB, QString createC, QString insertC, QString diffCreate, QString diffInsert, QString outputType)
+void mainClass::setParameters(QString createA, QString createB, QString insertA, QString insertB, QString createC, QString insertC, QString diffCreate, QString diffInsert, QString outputType, QList<TignoreTableValues> toIgnore)
 {
     a_createXML = createA;
     b_createXML = createB;
@@ -121,4 +123,5 @@ void mainClass::setParameters(QString createA, QString createB, QString insertA,
     d_createSQL = diffCreate;
     d_insertSQL = diffInsert;
     output_type = outputType;
+    valuesToIgnore = toIgnore;
 }
