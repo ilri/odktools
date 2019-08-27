@@ -109,10 +109,25 @@ void mainClass::run()
     if (output_type != "h")
     {
         log(XMLResult.toString());
-    }    
+        if (save_to_file)
+        {
+            if (QFile::exists(error_file))
+                QFile::remove(error_file);
+            QFile file(error_file);
+            if (file.open(QIODevice::WriteOnly | QIODevice::Text))
+            {
+                QTextStream out(&file);
+                out.setCodec("UTF-8");
+                XMLResult.save(out,1,QDomNode::EncodingFromTextStream);
+                file.close();
+            }
+            else
+                log("Error: Cannot create xml error file");
+        }
+    }
     emit finished();
 }
-void mainClass::setParameters(QString createA, QString createB, QString insertA, QString insertB, QString createC, QString insertC, QString diffCreate, QString diffInsert, QString outputType, QList<TignoreTableValues> toIgnore)
+void mainClass::setParameters(QString createA, QString createB, QString insertA, QString insertB, QString createC, QString insertC, QString diffCreate, QString diffInsert, QString outputType, QList<TignoreTableValues> toIgnore, bool saveToFile, QString errorFile)
 {
     a_createXML = createA;
     b_createXML = createB;
@@ -124,4 +139,6 @@ void mainClass::setParameters(QString createA, QString createB, QString insertA,
     d_insertSQL = diffInsert;
     output_type = outputType;
     valuesToIgnore = toIgnore;
+    error_file = errorFile;
+    save_to_file = saveToFile;
 }

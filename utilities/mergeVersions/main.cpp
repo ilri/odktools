@@ -83,10 +83,12 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> BArg("B","inputB","Input insert XML file B (former)",true,"","string");
     TCLAP::ValueArg<std::string> cArg("c","outputc","Output create XML file C",false,"./combined-create.xml","string");
     TCLAP::ValueArg<std::string> CArg("C","outputC","Output insert XML file C",false,"./combined-insert.xml","string");
-    TCLAP::ValueArg<std::string> dArg("d","diff","Output diff SQL script for create",false,"./diff-create.sql","string");
-    TCLAP::ValueArg<std::string> DArg("D","diff","Output diff SQL script for insert",false,"./diff-insert.sql","string");
-    TCLAP::ValueArg<std::string> oArg("o","outputype","Output type: (h)uman readble or (m)achine readble",false,"m","string");
+    TCLAP::ValueArg<std::string> dArg("d","diffc","Output diff SQL script for create",false,"./diff-create.sql","string");
+    TCLAP::ValueArg<std::string> DArg("D","diffC","Output diff SQL script for insert",false,"./diff-insert.sql","string");
+    TCLAP::ValueArg<std::string> tArg("t","outputype","Output type: (h)uman readble or (m)achine readble",false,"m","string");
+    TCLAP::ValueArg<std::string> oArg("o","erroroutput","Error file ",false,"./error.xml","string");
     TCLAP::ValueArg<std::string> iArg("i","ignore","Ignore changes in value descriptions. Indicated like Table1:value1,value2,...;Table2:value1,value2,..;..",false,"","string");
+    TCLAP::SwitchArg saveErrorSwitch("s","saveerror","Save errors to file", cmd, false);
 
     cmd.add(aArg);
     cmd.add(bArg);
@@ -95,8 +97,10 @@ int main(int argc, char *argv[])
     cmd.add(cArg);
     cmd.add(CArg);
     cmd.add(dArg);
-    cmd.add(oArg);
+    cmd.add(DArg);
+    cmd.add(tArg);
     cmd.add(iArg);
+    cmd.add(oArg);
 
 
     //Parsing the command lines
@@ -112,8 +116,9 @@ int main(int argc, char *argv[])
     QString c_insertXML = QString::fromUtf8(CArg.getValue().c_str());
     QString outputd = QString::fromUtf8(dArg.getValue().c_str());
     QString outputD = QString::fromUtf8(DArg.getValue().c_str());
-    QString outputType = QString::fromUtf8(oArg.getValue().c_str());
+    QString outputType = QString::fromUtf8(tArg.getValue().c_str());
     QString ignoreString = QString::fromUtf8(iArg.getValue().c_str());
+    QString errorFile = QString::fromUtf8(oArg.getValue().c_str());
 
     QStringList ignoreTables;
     QList<TignoreTableValues> valuesToIgnore;
@@ -127,17 +132,36 @@ int main(int argc, char *argv[])
                 QStringList parts = ignoreTables[pos].split(":",QString::SkipEmptyParts);
                 if (parts.count() == 2)
                 {
-                    TignoreTableValues aIgnoreValue;
-                    aIgnoreValue.table = parts[0];
-                    aIgnoreValue.values = parts[1].split(",",QString::SkipEmptyParts);
-                    valuesToIgnore.append(aIgnoreValue);
+                    int index;
+                    index = -1;
+                    for (int tbl = 0; tbl < valuesToIgnore.count(); tbl++)
+                    {
+                        if (valuesToIgnore[tbl].table == parts[0])
+                        {
+                            index = tbl;
+                            break;
+                        }
+                    }
+                    if (index == -1)
+                    {
+                        TignoreTableValues aIgnoreValue;
+                        aIgnoreValue.table = parts[0];
+                        aIgnoreValue.values = parts[1].split(",",QString::SkipEmptyParts);
+                        valuesToIgnore.append(aIgnoreValue);
+                    }
+                    else
+                    {
+                        valuesToIgnore[index].values.append(parts[1].split(",",QString::SkipEmptyParts));
+                    }
                 }
             }
         }
     }
+    bool saveToFile = saveErrorSwitch.getValue();
+
 
     mainClass *task = new mainClass(&a);
-    task->setParameters(a_createXML,b_createXML,a_insertXML,b_insertXML,c_createXML,c_insertXML,outputd,outputD,outputType,valuesToIgnore);
+    task->setParameters(a_createXML,b_createXML,a_insertXML,b_insertXML,c_createXML,c_insertXML,outputd,outputD,outputType,valuesToIgnore,saveToFile,errorFile);
     QObject::connect(task, SIGNAL(finished()), &a, SLOT(quit()));
 
     QTimer::singleShot(0, task, SLOT(run()));

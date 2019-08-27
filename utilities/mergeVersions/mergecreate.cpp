@@ -19,6 +19,7 @@ License along with Merge Versions.  If not, see <http://www.gnu.org/licenses/lgp
 */
 
 #include "mergecreate.h"
+#include <QDomNodeList>
 
 mergeCreate::mergeCreate(QObject *parent) : QObject(parent)
 {
@@ -77,14 +78,22 @@ int mergeCreate::compare()
             }
             fileB.close();
 
-            QDomElement rootA = docA.documentElement();
-            QDomElement rootB = docB.documentElement();
+            rootA = docA.documentElement();
+            rootB = docB.documentElement();
             if ((rootA.tagName() == "XMLSchemaStructure") && (rootB.tagName() == "XMLSchemaStructure"))
             {
                 //Comparing lookup tables
                 compareLKPTables(rootA.firstChild().firstChild(),docB);
                 //Comparing tables
                 compareTables(rootA.firstChild().nextSibling().firstChild(),docB);
+                // Add foreign keys that were dropped earlier
+                diff.append("\n");
+                for (int pos = 0; pos < create_lookup_rels.count(); pos++)
+                {
+                    diff.append("ALTER TABLE " + create_lookup_rels[pos].table_name + " ADD INDEX " + create_lookup_rels[pos].rel_name + " (" + create_lookup_rels[pos].field_name + ");\n");
+                    diff.append("ALTER TABLE " + create_lookup_rels[pos].table_name + " ADD CONSTRAINT " + create_lookup_rels[pos].rel_name + " FOREIGN KEY (" + create_lookup_rels[pos].field_name + ") REFERENCES " + create_lookup_rels[pos].rel_table + " (" + create_lookup_rels[pos].rel_field + ") ON DELETE RESTRICT  ON UPDATE NO ACTION;\n\n");
+                }
+
                 //Process drops
                 QDomNode lkpTables = rootB.firstChild();
                 for (int pos = 0; pos < dropTables.count(); pos++)
@@ -99,6 +108,7 @@ int mergeCreate::compare()
                     }
                     lkpTables.removeChild(a_table);
                 }
+
 
                 //Do not create C and the Diff SQL if the merge cannot be done
                 if (fatalError == false)
@@ -191,11 +201,61 @@ void mergeCreate::setFiles(QString createA, QString createB, QString createC, QS
     this->outputType = outputType;
 }
 
-void mergeCreate::addAlterFieldToDiff(QString table, QDomElement eField, int newSize, int newDec)
+void mergeCreate::replace_lookup_relationships(QString table, QString field)
+{
+    QDomNodeList fields;
+    fields = rootB.elementsByTagName("field");
+    QString sql;
+    for (int pos = 0; pos < fields.count(); pos++)
+    {
+        if ((fields.item(pos).toElement().attribute("rtable","") == table) && ((fields.item(pos).toElement().attribute("rfield","") == field)))
+        {
+            dropped_rels.append(fields.item(pos).toElement().attribute("rname",""));
+            sql = "ALTER TABLE " + fields.item(pos).parentNode().toElement().attribute("name") + " DROP FOREIGN KEY " + fields.item(pos).toElement().attribute("rname","") + ";\n";
+            diff.append(sql);
+            sql = "ALTER TABLE " + fields.item(pos).parentNode().toElement().attribute("name") + " DROP INDEX " + fields.item(pos).toElement().attribute("rname","") + ";\n";
+            diff.append(sql);
+        }
+    }
+    fields = rootA.elementsByTagName("field");
+    for (int pos = 0; pos < fields.count(); pos++)
+    {
+        if ((fields.item(pos).toElement().attribute("rtable","") == table) && ((fields.item(pos).toElement().attribute("rfield","") == field)))
+        {
+            TreplaceRef a_replace;
+            a_replace.table_name = fields.item(pos).parentNode().toElement().attribute("name");
+            a_replace.rel_name = fields.item(pos).toElement().attribute("rname","");
+            a_replace.field_name = fields.item(pos).toElement().attribute("name","");
+            a_replace.rel_table = fields.item(pos).toElement().attribute("rtable","");
+            a_replace.rel_field = fields.item(pos).toElement().attribute("rfield","");
+            create_lookup_rels.append(a_replace);
+        }
+    }
+}
+
+bool mergeCreate::relation_is_dropped(QString name)
+{
+    for (int pos = 0; pos < dropped_rels.count() ; pos++)
+    {
+        if (dropped_rels[pos] == name)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void mergeCreate::addAlterFieldToDiff(QString table, QDomElement eField, int newSize, int newDec, bool islookup)
 {
     QString sql;
     QString fieldName;
     fieldName = eField.attribute("name","");
+
+    if (islookup && (eField.attribute("key","false") == "true"))
+    {
+        replace_lookup_relationships(table,fieldName);
+    }
+
     if (eField.attribute("type","") == "varchar")
     {
         sql = "ALTER TABLE " + table + " MODIFY " + fieldName + " varchar(" + QString::number(newSize) + ");\n";
@@ -224,20 +284,29 @@ void mergeCreate::ddTableToDrop(QString name)
     }
 }
 
-void mergeCreate::changeLookupRelationship(QString table, QDomElement a, QDomElement b)
+void mergeCreate::changeLookupRelationship(QString table, QDomElement a, QDomElement b, bool islookup)
 {
     QString sql;
     QString oldcntname;
     QString newcntname;
     oldcntname = b.attribute("rname");
     newcntname = a.attribute("rname");
-    sql = "ALTER TABLE " + table + " DROP CONSTRAINT " + oldcntname + ";\n";
-    diff.append(sql);
-    sql = "ALTER TABLE " + table + " DROP INDEX " + oldcntname + ";\n\n";
-    diff.append(sql);    
-    addAlterFieldToDiff(table,a,a.attribute("size","0").toInt(),0);
-    sql = "ALTER TABLE " + table + " ADD INDEX " + newcntname + ";\n";
-    diff.append(sql);
+    bool create_new_rel;
+    create_new_rel = false;
+    if (!relation_is_dropped(oldcntname))
+    {
+        create_new_rel = true;
+        sql = "ALTER TABLE " + table + " DROP FOREIGN KEY " + oldcntname + ";\n";
+        diff.append(sql);
+        sql = "ALTER TABLE " + table + " DROP INDEX " + oldcntname + ";\n\n";
+        diff.append(sql);
+    }
+    addAlterFieldToDiff(table,a,a.attribute("size","0").toInt(),0,islookup);
+    if (create_new_rel)
+    {
+        sql = "ALTER TABLE " + table + " ADD INDEX " + newcntname + " (" + a.attribute("name") + ");\n";
+        diff.append(sql);
+    }
     for (int pos = 0; pos < insert_diff.count(); pos++)
     {
         if (insert_diff[pos].table == a.attribute("rtable"))
@@ -251,8 +320,11 @@ void mergeCreate::changeLookupRelationship(QString table, QDomElement a, QDomEle
             diff.append("\n");
         }
     }
-    sql = "ALTER TABLE " + table + " ADD CONSTRAINT " + newcntname + " FOREIGN KEY (" + a.attribute("name") + ") REFERENCES " + a.attribute("rtable") + " (" + a.attribute("rfield") + ") ON DELETE RESTRICT  ON UPDATE NO ACTION;\n\n";
-    diff.append(sql);
+    if (create_new_rel)
+    {
+        sql = "ALTER TABLE " + table + " ADD CONSTRAINT " + newcntname + " FOREIGN KEY (" + a.attribute("name") + ") REFERENCES " + a.attribute("rtable") + " (" + a.attribute("rfield") + ") ON DELETE RESTRICT  ON UPDATE NO ACTION;\n\n";
+        diff.append(sql);
+    }
     addTableToDrop(b.attribute("rtable"));
 }
 
@@ -642,7 +714,7 @@ QString mergeCreate::getFieldDefinition(QDomElement field)
     return result;
 }
 
-void mergeCreate::checkField(QDomNode eTable, QDomElement a, QDomElement b)
+void mergeCreate::checkField(QDomNode eTable, QDomElement a, QDomElement b, bool islookup = false)
 {
     int newSize;
     int newDec;
@@ -650,6 +722,16 @@ void mergeCreate::checkField(QDomNode eTable, QDomElement a, QDomElement b)
     result = compareFields(a,b,newSize,newDec);
     if (result != "")
     {
+        if (outputType != "h")
+        {
+            TcompError error;
+            error.code = result;
+            error.table = eTable.toElement().attribute("name","");
+            error.field = a.attribute("name","");
+            error.from = getFieldDefinition(b);
+            error.to = getFieldDefinition(a);
+            errorList.append(error);
+        }
         if ((result == "FIC") || (result == "CHR") || (result == "FTC"))
         {
             if (result == "FIC")
@@ -663,7 +745,7 @@ void mergeCreate::checkField(QDomNode eTable, QDomElement a, QDomElement b)
                 }
                 b.setAttribute("size",newSize);
                 b.setAttribute("decsize",newDec);
-                addAlterFieldToDiff(eTable.toElement().attribute("name",""),a,newSize,newDec);
+                addAlterFieldToDiff(eTable.toElement().attribute("name",""),a,newSize,newDec,islookup);
             }
             else
             {
@@ -673,7 +755,7 @@ void mergeCreate::checkField(QDomNode eTable, QDomElement a, QDomElement b)
                     {
                         log("CHR: The relationship of field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " will be changed from " + b.attribute("rtable") + "." + b.attribute("rfield") + " to " + a.attribute("rtable") + "." + a.attribute("rfield"));
                     }
-                    changeLookupRelationship(eTable.toElement().attribute("name",""),a,b);
+                    changeLookupRelationship(eTable.toElement().attribute("name",""),a,b,islookup);
                     b.setAttribute("rtable",a.attribute("rtable"));
                     b.setAttribute("rfield",a.attribute("rfield"));
                     b.setAttribute("type",a.attribute("type"));
@@ -684,12 +766,12 @@ void mergeCreate::checkField(QDomNode eTable, QDomElement a, QDomElement b)
                 {
                     if (outputType == "h")
                     {
-                        log("FTC: The field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed type from " + b.attribute("type") + " to " + a.attribute("type") + " which is allowed");
-                        b.setAttribute("size",newSize);
-                        b.setAttribute("decsize",newDec);
-                        b.setAttribute("type",a.attribute("type"));
-                        addAlterFieldToDiff(eTable.toElement().attribute("name",""),a,newSize,newDec);
+                        log("FTC: The field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed type from " + b.attribute("type") + " to " + a.attribute("type") + " which is allowed");                        
                     }
+                    b.setAttribute("size",newSize);
+                    b.setAttribute("decsize",newDec);
+                    b.setAttribute("type",a.attribute("type"));
+                    addAlterFieldToDiff(eTable.toElement().attribute("name",""),a,newSize,newDec,islookup);
                 }
             }
         }
@@ -706,16 +788,6 @@ void mergeCreate::checkField(QDomNode eTable, QDomElement a, QDomElement b)
                 if (result == "FDC")
                     log("FDC: The field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " has descreased in size. This change will be ignored");
             }
-        }
-        if (outputType != "h")
-        {
-            TcompError error;
-            error.code = result;
-            error.table = eTable.toElement().attribute("name","");
-            error.field = a.attribute("name","");
-            error.from = getFieldDefinition(b);
-            error.to = getFieldDefinition(a);
-            errorList.append(error);
         }
     }
 }
@@ -741,7 +813,7 @@ void mergeCreate::compareLKPTables(QDomNode table,QDomDocument &docB)
                    QDomNode fieldFound = findField(tablefound,eField.attribute("name",""));
                    if (!fieldFound.isNull())
                    {
-                       checkField(tablefound,field.toElement(),fieldFound.toElement());
+                       checkField(tablefound,field.toElement(),fieldFound.toElement(),true);
                    }
                    else
                    {
@@ -841,7 +913,7 @@ void mergeCreate::compareTables(QDomNode table,QDomDocument &docB)
             {
                 TcompError error;
                 error.code = "TNS";
-                error.table = "NA";
+                error.table = eTable.toElement().attribute("name","");
                 error.field = "NA";
                 error.from = tablefound.parentNode().toElement().attribute("name","");
                 error.to = table.parentNode().toElement().attribute("name","");
@@ -881,10 +953,10 @@ void mergeCreate::compareTables(QDomNode table,QDomDocument &docB)
             {
                 TcompError error;
                 error.code = "TWP";
-                error.table = "NA";
+                error.table = eTable.toElement().attribute("name","");
                 error.field = "NA";
-                error.from = "NULL";
-                error.to = parentTableName;
+                error.from = parentTableName;
+                error.to = "NULL";
                 errorList.append(error);
             }
         }
