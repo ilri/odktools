@@ -45,8 +45,6 @@ bool debug;
 QString command;
 QString outputType;
 QString default_language;
-QString strYes; //Yes string for comparing Yes/No lookup tables
-QString strNo; //No string for comparing Yes/No lookup tables
 QStringList variableStack; //This is a stack of groups or repeats for a variable. Used to get /xxx/xxx/xxx structures
 QStringList repeatStack; //This is a stack of repeats. So we know in which repeat we are
 QString prefix; //Table prefix
@@ -2633,34 +2631,6 @@ int getMaxMSelValueLength(QList<TlkpValue> values)
     return res.length();
 }
 
-//Returns wheter or not a the values of a lookup table are yes/no values.
-bool isLookUpYesNo(QList<TlkpValue> values)
-{
-    bool hasNo;
-    bool hasYes;
-    int lkp;    
-    QString defLang;    
-    defLang = getLanguageCode(getDefLanguage());
-    if (values.count() == 2 )
-    {
-        hasNo = false;
-        hasYes = false;
-        for (lkp = 0; lkp <= values.count()-1;lkp++)
-        {                        
-            if (values[lkp].code.trimmed().toLower() == strYes.trimmed().toLower())
-                hasNo = true;
-            if (values[lkp].code.trimmed().toLower() == strNo.trimmed().toLower())
-                hasYes = true;
-        }
-        if (hasYes && hasNo)
-            return true;
-        else
-            return false;
-    }
-    else
-        return false;
-}
-
 //Return the index of table in the list using its name
 int getTableIndex(QString name)
 {
@@ -3498,75 +3468,73 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
         if (values.count() > 0) //If the lookup table has values
         {
             //Creating the lookp table if its neccesary
-            if (isLookUpYesNo(values) == false) //Do not process yes/no values as lookup tables
+            QString table_name = "lkp" + fixField(variableName.toLower());
+            TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
+            lkpTable.isLoop = false;
+            lkpTable.isOSM = false;
+            lkpTable.isGroup = false;
+            if (lkpTable.name == "EMPTY")
             {
-                QString table_name = "lkp" + fixField(variableName.toLower());                
-                TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
-                lkpTable.isLoop = false;
-                lkpTable.isOSM = false;
-                lkpTable.isGroup = false;
-                if (lkpTable.name == "EMPTY")
+                lkpTable.name = table_name;
+                for (int lang = 0; lang < aField.desc.count(); lang++)
                 {
-                    lkpTable.name = table_name;
-                    for (int lang = 0; lang < aField.desc.count(); lang++)
-                    {
-                        TlngLkpDesc fieldDesc;
-                        fieldDesc.langCode = aField.desc[lang].langCode;
-                        fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
-                        lkpTable.desc.append(fieldDesc);
-                    }
-                    lkpTable.pos = -1;
-                    lkpTable.islookup = true;
-                    lkpTable.isOneToOne = false;
-                    lkpTable.lkpValues.append(values);
-                    //Creates the field for code in the lookup
-                    TfieldDef lkpCode;
-                    lkpCode.name = fixField(variableName.toLower()) + "_cod";
-                    lkpCode.selectSource = "NONE";
-                    lkpCode.selectListName = "NONE";
-                    for (int lang = 0; lang <= languages.count()-1;lang++)
-                    {
-                        TlngLkpDesc langDesc;
-                        langDesc.langCode = languages[lang].code;
-                        langDesc.desc = "Code";
-                        lkpCode.desc.append(langDesc);
-                    }
-                    lkpCode.key = true;
-                    lkpCode.sensitive = false;
-                    lkpCode.type = aField.type;
-                    lkpCode.size = aField.size;
-                    lkpCode.decSize = aField.decSize;
-                    lkpTable.fields.append(lkpCode);
-                    //Creates the field for description in the lookup
-                    TfieldDef lkpDesc;
-                    lkpDesc.name = fixField(variableName.toLower()) + "_des";
-                    lkpDesc.selectSource = "NONE";
-                    lkpDesc.selectListName = "NONE";
-                    for (int lang = 0; lang <= languages.count()-1;lang++)
-                    {
-                        TlngLkpDesc langDesc;
-                        langDesc.langCode = languages[lang].code;
-                        langDesc.desc = "Description";
-                        lkpDesc.desc.append(langDesc);
-                    }
-                    lkpDesc.key = false;
-                    lkpDesc.sensitive = false;
-                    lkpDesc.type = "varchar";
-                    lkpDesc.size = getMaxDescLength(values);
-                    lkpDesc.decSize = 0;
-                    lkpTable.fields.append(lkpDesc);
-                    aField.rTable = lkpTable.name;
-                    aField.rField = lkpCode.name;
-                    aField.rName = getUUIDCode();
-                    tables.append(lkpTable);
+                    TlngLkpDesc fieldDesc;
+                    fieldDesc.langCode = aField.desc[lang].langCode;
+                    fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
+                    lkpTable.desc.append(fieldDesc);
                 }
-                else
+                lkpTable.pos = -1;
+                lkpTable.islookup = true;
+                lkpTable.isOneToOne = false;
+                lkpTable.lkpValues.append(values);
+                //Creates the field for code in the lookup
+                TfieldDef lkpCode;
+                lkpCode.name = fixField(variableName.toLower()) + "_cod";
+                lkpCode.selectSource = "NONE";
+                lkpCode.selectListName = "NONE";
+                for (int lang = 0; lang <= languages.count()-1;lang++)
                 {
-                    aField.rName = getUUIDCode();
-                    aField.rTable = lkpTable.name;
-                    aField.rField = getKeyField(lkpTable.name);
+                    TlngLkpDesc langDesc;
+                    langDesc.langCode = languages[lang].code;
+                    langDesc.desc = "Code";
+                    lkpCode.desc.append(langDesc);
                 }
+                lkpCode.key = true;
+                lkpCode.sensitive = false;
+                lkpCode.type = aField.type;
+                lkpCode.size = aField.size;
+                lkpCode.decSize = aField.decSize;
+                lkpTable.fields.append(lkpCode);
+                //Creates the field for description in the lookup
+                TfieldDef lkpDesc;
+                lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                lkpDesc.selectSource = "NONE";
+                lkpDesc.selectListName = "NONE";
+                for (int lang = 0; lang <= languages.count()-1;lang++)
+                {
+                    TlngLkpDesc langDesc;
+                    langDesc.langCode = languages[lang].code;
+                    langDesc.desc = "Description";
+                    lkpDesc.desc.append(langDesc);
+                }
+                lkpDesc.key = false;
+                lkpDesc.sensitive = false;
+                lkpDesc.type = "varchar";
+                lkpDesc.size = getMaxDescLength(values);
+                lkpDesc.decSize = 0;
+                lkpTable.fields.append(lkpDesc);
+                aField.rTable = lkpTable.name;
+                aField.rField = lkpCode.name;
+                aField.rName = getUUIDCode();
+                tables.append(lkpTable);
             }
+            else
+            {
+                aField.rName = getUUIDCode();
+                aField.rTable = lkpTable.name;
+                aField.rField = getKeyField(lkpTable.name);
+            }
+
         }
         else
         {
@@ -3873,81 +3841,80 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             if (values.count() > 0) //If the lookup table has values
             {
                 //Creating the lookp table if its neccesary
-                if (isLookUpYesNo(values) == false) //Do not process yes/no values as lookup tables
+
+                QString listName;
+                QJsonValue listValue = fieldObject.value("query");
+                if (!listValue.isUndefined())
+                    listName = fixField(listValue.toString().toLower());
+                else
+                    listName = fixField(variableName.toLower());
+                QString table_name = "lkp" + listName;
+                TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
+                lkpTable.isLoop = false;
+                lkpTable.isOSM = false;
+                lkpTable.isGroup = false;
+                if (lkpTable.name == "EMPTY")
                 {
-                    QString listName;
-                    QJsonValue listValue = fieldObject.value("query");
-                    if (!listValue.isUndefined())
-                        listName = fixField(listValue.toString().toLower());
-                    else
-                        listName = fixField(variableName.toLower());
-                    QString table_name = "lkp" + listName;
-                    TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
-                    lkpTable.isLoop = false;
-                    lkpTable.isOSM = false;
-                    lkpTable.isGroup = false;
-                    if (lkpTable.name == "EMPTY")
+                    lkpTable.name = table_name;
+                    for (int lang = 0; lang < aField.desc.count(); lang++)
                     {
-                        lkpTable.name = table_name;
-                        for (int lang = 0; lang < aField.desc.count(); lang++)
-                        {
-                            TlngLkpDesc fieldDesc;
-                            fieldDesc.langCode = aField.desc[lang].langCode;
-                            fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
-                            lkpTable.desc.append(fieldDesc);
-                        }
-                        lkpTable.pos = -1;
-                        lkpTable.islookup = true;
-                        lkpTable.isOneToOne = false;
-                        lkpTable.lkpValues.append(values);
-                        //Creates the field for code in the lookup
-                        TfieldDef lkpCode;
-                        lkpCode.name = fixField(variableName.toLower()) + "_cod";
-                        lkpCode.selectSource = "NONE";
-                        lkpCode.selectListName = "NONE";
-                        for (int lang = 0; lang <= languages.count()-1;lang++)
-                        {
-                            TlngLkpDesc langDesc;
-                            langDesc.langCode = languages[lang].code;
-                            langDesc.desc = "Code";
-                            lkpCode.desc.append(langDesc);
-                        }
-                        lkpCode.key = true;
-                        lkpCode.sensitive = false;
-                        lkpCode.type = aField.type;
-                        lkpCode.size = aField.size;
-                        lkpCode.decSize = aField.decSize;
-                        lkpTable.fields.append(lkpCode);
-                        //Creates the field for description in the lookup
-                        TfieldDef lkpDesc;
-                        lkpDesc.name = fixField(variableName.toLower()) + "_des";
-                        lkpDesc.selectSource = "NONE";
-                        lkpDesc.selectListName = "NONE";
-                        for (int lang = 0; lang <= languages.count()-1;lang++)
-                        {
-                            TlngLkpDesc langDesc;
-                            langDesc.langCode = languages[lang].code;
-                            langDesc.desc = "Description";
-                            lkpDesc.desc.append(langDesc);
-                        }
-                        lkpDesc.key = false;
-                        lkpDesc.sensitive = false;
-                        lkpDesc.type = "varchar";
-                        lkpDesc.size = getMaxDescLength(values);
-                        lkpDesc.decSize = 0;
-                        lkpTable.fields.append(lkpDesc);
-                        aField.rTable = lkpTable.name;
-                        aField.rField = lkpCode.name;
-                        aField.rName = getUUIDCode();
-                        tables.append(lkpTable);
+                        TlngLkpDesc fieldDesc;
+                        fieldDesc.langCode = aField.desc[lang].langCode;
+                        fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
+                        lkpTable.desc.append(fieldDesc);
                     }
-                    else
+                    lkpTable.pos = -1;
+                    lkpTable.islookup = true;
+                    lkpTable.isOneToOne = false;
+                    lkpTable.lkpValues.append(values);
+                    //Creates the field for code in the lookup
+                    TfieldDef lkpCode;
+                    lkpCode.name = fixField(variableName.toLower()) + "_cod";
+                    lkpCode.selectSource = "NONE";
+                    lkpCode.selectListName = "NONE";
+                    for (int lang = 0; lang <= languages.count()-1;lang++)
                     {
-                        aField.rName = getUUIDCode();
-                        aField.rTable = lkpTable.name;
-                        aField.rField = getKeyField(lkpTable.name);
+                        TlngLkpDesc langDesc;
+                        langDesc.langCode = languages[lang].code;
+                        langDesc.desc = "Code";
+                        lkpCode.desc.append(langDesc);
                     }
+                    lkpCode.key = true;
+                    lkpCode.sensitive = false;
+                    lkpCode.type = aField.type;
+                    lkpCode.size = aField.size;
+                    lkpCode.decSize = aField.decSize;
+                    lkpTable.fields.append(lkpCode);
+                    //Creates the field for description in the lookup
+                    TfieldDef lkpDesc;
+                    lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                    lkpDesc.selectSource = "NONE";
+                    lkpDesc.selectListName = "NONE";
+                    for (int lang = 0; lang <= languages.count()-1;lang++)
+                    {
+                        TlngLkpDesc langDesc;
+                        langDesc.langCode = languages[lang].code;
+                        langDesc.desc = "Description";
+                        lkpDesc.desc.append(langDesc);
+                    }
+                    lkpDesc.key = false;
+                    lkpDesc.sensitive = false;
+                    lkpDesc.type = "varchar";
+                    lkpDesc.size = getMaxDescLength(values);
+                    lkpDesc.decSize = 0;
+                    lkpTable.fields.append(lkpDesc);
+                    aField.rTable = lkpTable.name;
+                    aField.rField = lkpCode.name;
+                    aField.rName = getUUIDCode();
+                    tables.append(lkpTable);
                 }
+                else
+                {
+                    aField.rName = getUUIDCode();
+                    aField.rTable = lkpTable.name;
+                    aField.rField = getKeyField(lkpTable.name);
+                }
+
             }
             else
             {
@@ -4409,81 +4376,80 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
         if (values.count() > 0) //If the lookup table has values
         {
             //Creating the lookp table if its neccesary
-            if (isLookUpYesNo(values) == false) //Do not process yes/no values as lookup tables
+
+            QString listName;
+            QJsonValue listValue = tableObject.value("query");
+            if (!listValue.isUndefined())
+                listName = fixField(listValue.toString().toLower());
+            else
+                listName = fixField(variableName.toLower());
+            QString table_name = "lkp" + listName;
+            TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
+            lkpTable.isLoop = false;
+            lkpTable.isOSM = false;
+            lkpTable.isGroup = false;
+            if (lkpTable.name == "EMPTY")
             {
-                QString listName;
-                QJsonValue listValue = tableObject.value("query");
-                if (!listValue.isUndefined())
-                    listName = fixField(listValue.toString().toLower());
-                else
-                    listName = fixField(variableName.toLower());
-                QString table_name = "lkp" + listName;
-                TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
-                lkpTable.isLoop = false;
-                lkpTable.isOSM = false;
-                lkpTable.isGroup = false;
-                if (lkpTable.name == "EMPTY")
+                lkpTable.name = table_name;
+                for (int lang = 0; lang < aField.desc.count(); lang++)
                 {
-                    lkpTable.name = table_name;
-                    for (int lang = 0; lang < aField.desc.count(); lang++)
-                    {
-                        TlngLkpDesc fieldDesc;
-                        fieldDesc.langCode = aField.desc[lang].langCode;
-                        fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
-                        lkpTable.desc.append(fieldDesc);
-                    }
-                    lkpTable.pos = -1;
-                    lkpTable.islookup = true;
-                    lkpTable.isOneToOne = false;
-                    lkpTable.lkpValues.append(values);
-                    //Creates the field for code in the lookup
-                    TfieldDef lkpCode;
-                    lkpCode.name = fixField(variableName.toLower()) + "_cod";
-                    lkpCode.selectSource = "NONE";
-                    lkpCode.selectListName = "NONE";
-                    for (int lang = 0; lang <= languages.count()-1;lang++)
-                    {
-                        TlngLkpDesc langDesc;
-                        langDesc.langCode = languages[lang].code;
-                        langDesc.desc = "Code";
-                        lkpCode.desc.append(langDesc);
-                    }
-                    lkpCode.key = true;
-                    lkpCode.sensitive = false;
-                    lkpCode.type = aField.type;
-                    lkpCode.size = aField.size;
-                    lkpCode.decSize = aField.decSize;
-                    lkpTable.fields.append(lkpCode);
-                    //Creates the field for description in the lookup
-                    TfieldDef lkpDesc;
-                    lkpDesc.name = fixField(variableName.toLower()) + "_des";
-                    lkpDesc.selectSource = "NONE";
-                    lkpDesc.selectListName = "NONE";
-                    for (int lang = 0; lang <= languages.count()-1;lang++)
-                    {
-                        TlngLkpDesc langDesc;
-                        langDesc.langCode = languages[lang].code;
-                        langDesc.desc = "Description";
-                        lkpDesc.desc.append(langDesc);
-                    }
-                    lkpDesc.key = false;
-                    lkpDesc.sensitive = false;
-                    lkpDesc.type = "varchar";
-                    lkpDesc.size = getMaxDescLength(values);
-                    lkpDesc.decSize = 0;
-                    lkpTable.fields.append(lkpDesc);
-                    aField.rTable = lkpTable.name;
-                    aField.rField = lkpCode.name;
-                    aField.rName = getUUIDCode();
-                    tables.append(lkpTable);
+                    TlngLkpDesc fieldDesc;
+                    fieldDesc.langCode = aField.desc[lang].langCode;
+                    fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
+                    lkpTable.desc.append(fieldDesc);
                 }
-                else
+                lkpTable.pos = -1;
+                lkpTable.islookup = true;
+                lkpTable.isOneToOne = false;
+                lkpTable.lkpValues.append(values);
+                //Creates the field for code in the lookup
+                TfieldDef lkpCode;
+                lkpCode.name = fixField(variableName.toLower()) + "_cod";
+                lkpCode.selectSource = "NONE";
+                lkpCode.selectListName = "NONE";
+                for (int lang = 0; lang <= languages.count()-1;lang++)
                 {
-                    aField.rName = getUUIDCode();
-                    aField.rTable = lkpTable.name;
-                    aField.rField = getKeyField(lkpTable.name);
+                    TlngLkpDesc langDesc;
+                    langDesc.langCode = languages[lang].code;
+                    langDesc.desc = "Code";
+                    lkpCode.desc.append(langDesc);
                 }
+                lkpCode.key = true;
+                lkpCode.sensitive = false;
+                lkpCode.type = aField.type;
+                lkpCode.size = aField.size;
+                lkpCode.decSize = aField.decSize;
+                lkpTable.fields.append(lkpCode);
+                //Creates the field for description in the lookup
+                TfieldDef lkpDesc;
+                lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                lkpDesc.selectSource = "NONE";
+                lkpDesc.selectListName = "NONE";
+                for (int lang = 0; lang <= languages.count()-1;lang++)
+                {
+                    TlngLkpDesc langDesc;
+                    langDesc.langCode = languages[lang].code;
+                    langDesc.desc = "Description";
+                    lkpDesc.desc.append(langDesc);
+                }
+                lkpDesc.key = false;
+                lkpDesc.sensitive = false;
+                lkpDesc.type = "varchar";
+                lkpDesc.size = getMaxDescLength(values);
+                lkpDesc.decSize = 0;
+                lkpTable.fields.append(lkpDesc);
+                aField.rTable = lkpTable.name;
+                aField.rField = lkpCode.name;
+                aField.rName = getUUIDCode();
+                tables.append(lkpTable);
             }
+            else
+            {
+                aField.rName = getUUIDCode();
+                aField.rTable = lkpTable.name;
+                aField.rField = getKeyField(lkpTable.name);
+            }
+
         }
         else
         {
@@ -5444,8 +5410,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> prefixArg("p","prefix","Prefix for each table. _ is added to the prefix. Default no prefix",false,"","string");    
     TCLAP::ValueArg<std::string> langArg("l","otherlanguages","Other languages. For example: (en)English,(es)Español. Required if ODK form has multiple languages",false,"","string");
     TCLAP::ValueArg<std::string> defLangArg("d","deflanguage","Default language. For example: (en)English. If not indicated then English will be asumed",false,"(en)English","string");
-    TCLAP::ValueArg<std::string> transFileArg("T","translationfile","Output translation file",false,"./iso639.sql","string");
-    TCLAP::ValueArg<std::string> yesNoStringArg("y","yesnostring","Yes and No values in the format \"Value|Value\". This will allow the tool to identify Yes/No lookup tables and exclude them. For example, \"1|0\".",true,"","string");
+    TCLAP::ValueArg<std::string> transFileArg("T","translationfile","Output translation file",false,"./iso639.sql","string");    
     TCLAP::ValueArg<std::string> tempDirArg("e","tempdirectory","Temporary directory. ./tmp by default",false,"./tmp","string");
     TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");    
     TCLAP::SwitchArg justCheckSwitch("K","justCheck","Just check of main inconsistencies and report back", cmd, false);    
@@ -5471,8 +5436,7 @@ int main(int argc, char *argv[])
     cmd.add(prefixArg);    
     cmd.add(langArg);
     cmd.add(defLangArg);
-    cmd.add(transFileArg);
-    cmd.add(yesNoStringArg);
+    cmd.add(transFileArg);    
     cmd.add(tempDirArg);
     cmd.add(outputTypeArg);
     cmd.add(suppFiles);
@@ -5508,13 +5472,11 @@ int main(int argc, char *argv[])
     QString mainVar = QString::fromUtf8(mainVarArg.getValue().c_str());
     QString lang = QString::fromUtf8(langArg.getValue().c_str());
     QString defLang = QString::fromUtf8(defLangArg.getValue().c_str());
-    QString transFile = QString::fromUtf8(transFileArg.getValue().c_str());
-    QString yesNoString = QString::fromUtf8(yesNoStringArg.getValue().c_str());
+    QString transFile = QString::fromUtf8(transFileArg.getValue().c_str());    
     QString tempDirectory = QString::fromUtf8(tempDirArg.getValue().c_str());
 
     lang = lang.replace("'","");
     defLang = defLang.replace("'","");
-    yesNoString = yesNoString.replace("'","");
 
     outputType = QString::fromUtf8(outputTypeArg.getValue().c_str());
     mainVar = mainVar.trimmed().toLower();
@@ -5634,9 +5596,6 @@ int main(int argc, char *argv[])
     prefix = QString::fromUtf8(prefixArg.getValue().c_str());
     prefix = prefix + "_";
 
-    strYes = "1";
-    strNo = "0";
-
     if (prefix == "_")
         prefix = "";
 
@@ -5651,25 +5610,6 @@ int main(int argc, char *argv[])
         if (addLanguage(othLanguages[lng].replace("'",""),false) != 0)
             exit(6);
     
-    if (yesNoString == "")
-    {
-        log("You need to specify Yes and No values with the -y parameter";
-        exit(7);
-    }
-
-    if (yesNoString.indexOf("|") == -1)
-    {
-        log("Malformed yes|no language string");
-        exit(8);
-    }
-    if (yesNoString.length() == 1)
-    {
-        log("Malformed yes|no language string");
-        exit(8);
-    }
-    strYes = yesNoString.split("|",QString::SkipEmptyParts)[0];
-    strNo = yesNoString.split("|",QString::SkipEmptyParts)[1];
-
     int returnValue;
     returnValue = processJSON(input,mTable.trimmed(),mainVar.trimmed(),dir,dblite);
     if (returnValue == 0)
