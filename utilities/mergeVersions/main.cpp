@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
     title = title + " *        variable from categorical to continuous.                      * ";
     title = title + " *   VNS: The description of a lookup value changed from B to A. For    * ";
     title = title + " *        example 1-Male in B changed to 1-Female in A.                 * ";
+    title = title + " *   RNS: The related lookup table changed from B to A.                 * ";
     title = title + " *                                                                      * ";
     title = title + " * This tool is usefull when dealing with multiple versions of an       * ";
     title = title + " * ODK survey that must be combined in one common database.             * ";

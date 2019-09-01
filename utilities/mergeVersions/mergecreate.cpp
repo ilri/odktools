@@ -617,6 +617,17 @@ QString mergeCreate::compareFields(QDomElement a, QDomElement b, int &newSize, i
     newDec = a.attribute("decsize","0").toInt();
     if (a.attribute("key","") != b.attribute("key",""))
         return "KNS";
+//    if (a.attribute("key","true") == "true")
+//    {
+//        if (a.attribute("type") != b.attribute("type"))
+//            return "KNS";
+//        if (a.attribute("size") != b.attribute("size"))
+//            return "KNS";
+//        if (a.attribute("rtable") != b.attribute("rtable"))
+//            return "KNS";
+//        if (a.attribute("rfield") != b.attribute("rfield"))
+//            return "KNS";
+//    }
     if ((a.attribute("rtable","") != b.attribute("rtable","")) || (a.attribute("rfield","") != b.attribute("rfield","")))
     {
         if (a.attribute("mergefine","false") == "true")
@@ -787,6 +798,11 @@ void mergeCreate::checkField(QDomNode eTable, QDomElement a, QDomElement b, bool
                     fatal("FNS: Field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " changed type from B to A. ODK Tools cannot fix this. You need to fix it in the Excel file");
                 if (result == "FDC")
                     log("FDC: The field " + a.attribute("name","") + " in table " + eTable.toElement().attribute("name","") + " has descreased in size. This change will be ignored");
+            }
+            else
+            {
+                if (result != "FDC")
+                    fatalError = true;
             }
         }
     }
