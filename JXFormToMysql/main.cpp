@@ -5376,8 +5376,8 @@ int main(int argc, char *argv[])
     title = title + " * 4: Language not found. (XML)                                      * \n";
     title = title + " * 5: Malformed deflanguage option.                                  * \n";
     title = title + " * 6: Malformed otherlanguages option.                               * \n";
-    title = title + " * 7: English is not default but yesnostring option is not set.      * \n";
-    title = title + " * 8: Malformed yesnostring option.                                  * \n";
+    title = title + " * 7: Not used.                                                      * \n";
+    title = title + " * 8: Not used.                                                      * \n";
     title = title + " * 9: The ODK has duplicated choice options (XML).                   * \n";
     title = title + " * 10: Primary key not found.                                        * \n";
     title = title + " * 11: Resource XML file was not attached (XML).                     * \n";
