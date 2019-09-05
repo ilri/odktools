@@ -14,7 +14,7 @@ CONFIG   -= app_bundle
 
 TEMPLATE = app
 
-INCLUDEPATH += ../3rdparty
+INCLUDEPATH += ../../3rdparty
 
 SOURCES += \
     main.cpp
