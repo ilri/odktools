@@ -3843,7 +3843,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 //Creating the lookp table if its neccesary
 
                 QString listName;
-                QJsonValue listValue = fieldObject.value("query");
+                QJsonValue listValue = fieldObject.value("list_name");
                 if (!listValue.isUndefined())
                     listName = fixField(listValue.toString().toLower());
                 else
@@ -4062,7 +4062,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 mselKeyField.decSize = 0;
                 //Processing the lookup table if neccesary
                 QString listName;
-                QJsonValue listValue = fieldObject.value("query");
+                QJsonValue listValue = fieldObject.value("list_name");
                 if (!listValue.isUndefined())
                     listName = fixField(listValue.toString().toLower());
                 else
@@ -4378,7 +4378,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
             //Creating the lookp table if its neccesary
 
             QString listName;
-            QJsonValue listValue = tableObject.value("query");
+            QJsonValue listValue = tableObject.value("list_name");
             if (!listValue.isUndefined())
                 listName = fixField(listValue.toString().toLower());
             else
