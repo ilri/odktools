@@ -25,6 +25,7 @@ mergeCreate::mergeCreate(QObject *parent) : QObject(parent)
 {
     fatalError = false;
     idx = 1;
+    create_lookup_rels.clear();
 }
 
 void mergeCreate::setInsertDiff(QList<TtableDiff> diff)
@@ -89,7 +90,7 @@ int mergeCreate::compare()
                 // Add foreign keys that were dropped earlier
                 diff.append("\n");
                 for (int pos = 0; pos < create_lookup_rels.count(); pos++)
-                {
+                {                                            
                     diff.append("ALTER TABLE " + create_lookup_rels[pos].table_name + " ADD INDEX " + create_lookup_rels[pos].rel_name + " (" + create_lookup_rels[pos].field_name + ");\n");
                     diff.append("ALTER TABLE " + create_lookup_rels[pos].table_name + " ADD CONSTRAINT " + create_lookup_rels[pos].rel_name + " FOREIGN KEY (" + create_lookup_rels[pos].field_name + ") REFERENCES " + create_lookup_rels[pos].rel_table + " (" + create_lookup_rels[pos].rel_field + ") ON DELETE RESTRICT  ON UPDATE NO ACTION;\n\n");
                 }
@@ -203,6 +204,9 @@ void mergeCreate::setFiles(QString createA, QString createB, QString createC, QS
 
 void mergeCreate::replace_lookup_relationships(QString table, QString field)
 {
+    QStringList affected_tables;
+
+
     QDomNodeList fields;
     fields = rootB.elementsByTagName("field");
     QString sql;
@@ -210,6 +214,10 @@ void mergeCreate::replace_lookup_relationships(QString table, QString field)
     {
         if ((fields.item(pos).toElement().attribute("rtable","") == table) && ((fields.item(pos).toElement().attribute("rfield","") == field)))
         {
+            QString affected_table = fields.item(pos).parentNode().toElement().attribute("name");
+            if (affected_tables.indexOf(affected_table) == -1)
+                affected_tables.append(affected_table);
+
             dropped_rels.append(fields.item(pos).toElement().attribute("rname",""));
             sql = "ALTER TABLE " + fields.item(pos).parentNode().toElement().attribute("name") + " DROP FOREIGN KEY " + fields.item(pos).toElement().attribute("rname","") + ";\n";
             diff.append(sql);
@@ -222,13 +230,17 @@ void mergeCreate::replace_lookup_relationships(QString table, QString field)
     {
         if ((fields.item(pos).toElement().attribute("rtable","") == table) && ((fields.item(pos).toElement().attribute("rfield","") == field)))
         {
-            TreplaceRef a_replace;
-            a_replace.table_name = fields.item(pos).parentNode().toElement().attribute("name");
-            a_replace.rel_name = fields.item(pos).toElement().attribute("rname","");
-            a_replace.field_name = fields.item(pos).toElement().attribute("name","");
-            a_replace.rel_table = fields.item(pos).toElement().attribute("rtable","");
-            a_replace.rel_field = fields.item(pos).toElement().attribute("rfield","");
-            create_lookup_rels.append(a_replace);
+            QString affected_table = fields.item(pos).parentNode().toElement().attribute("name");
+            if (affected_tables.indexOf(affected_table) >= 0)
+            {
+                TreplaceRef a_replace;
+                a_replace.table_name = fields.item(pos).parentNode().toElement().attribute("name");
+                a_replace.rel_name = fields.item(pos).toElement().attribute("rname","");
+                a_replace.field_name = fields.item(pos).toElement().attribute("name","");
+                a_replace.rel_table = fields.item(pos).toElement().attribute("rtable","");
+                a_replace.rel_field = fields.item(pos).toElement().attribute("rfield","");
+                create_lookup_rels.append(a_replace);
+            }
         }
     }
 }
@@ -390,6 +402,7 @@ void mergeCreate::addFieldToRTables(QString parentTable, QString rTable, QString
         TrtableDef table;
         table.parentTable = parentTable;
         table.name = rTable;
+        table.isLookUp = isLookUp;
         TrfieldDef aField;
         aField.name = field;
         aField.rname = rField;
@@ -476,34 +489,27 @@ void mergeCreate::addTableToSDiff(QDomNode table, bool lookUp)
     for (pos = 0; pos < rtables.count();pos++)
     {
         if (rtables[pos].parentTable == eTable.attribute("name",""))
-        {
-            bool isLookup = false;
-            QString rname;
-            for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
-            {
-                if (rtables[pos].rfields[pos2].isLookUp)
-                {
-                    isLookup = true;
-                    rname = rtables[pos].rfields[pos2].rcode;
-                    break;
-                }
-            }
+        {            
 
-            if (!isLookup)
+            if (!rtables[pos].isLookUp)
             {
                 QUuid idxUUID=QUuid::createUuid();
                 QString strIdxUUID=idxUUID.toString().replace("{","").replace("}","").right(12);
                 sql = sql + "INDEX DIDX"  + strIdxUUID + "(";
+                for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
+                {
+                    sql = sql + rtables[pos].rfields[pos2].name + ",";
+                }
+                sql = sql.left(sql.length()-1) + "),\n";
             }
             else
             {
-                sql = sql + "INDEX "  + rname + "(";
-            }
-            for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
-            {
-                sql = sql + rtables[pos].rfields[pos2].name + ",";
-            }
-            sql = sql.left(sql.length()-1) + "),\n";
+                for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
+                {
+                    sql = sql + "INDEX "  + rtables[pos].rfields[pos2].rcode + " (";
+                    sql = sql + rtables[pos].rfields[pos2].name + "),\n";
+                }
+            }                        
             idx++;
 
         }
@@ -512,40 +518,39 @@ void mergeCreate::addTableToSDiff(QDomNode table, bool lookUp)
     for (pos = 0; pos < rtables.count();pos++)
     {
         if (rtables[pos].parentTable == eTable.attribute("name",""))
-        {
-            bool isLookup = false;
-            QString rname;
-            for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
-            {
-                if (rtables[pos].rfields[pos2].isLookUp)
-                {
-                    isLookup = true;
-                    rname = rtables[pos].rfields[pos2].rcode;
-                    break;
-                }
-            }
-            if (!isLookup)
+        {            
+            if (!rtables[pos].isLookUp)
             {
                 QUuid cntUUID=QUuid::createUuid();
                 QString strCntUUID=cntUUID.toString().replace("{","").replace("}","").right(12);
                 sql = sql + "CONSTRAINT DFK"  + strCntUUID + "\n";
+
+                sql = sql + "FOREIGN KEY (";
+                for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
+                {
+                    sql = sql + rtables[pos].rfields[pos2].name + ",";
+                }
+                sql = sql.left(sql.length()-1) + ")\n";
+                sql = sql + "REFERENCES " + rtables[pos].name + "(";
+                for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
+                {
+                    sql = sql + rtables[pos].rfields[pos2].rname + ",";
+                }
+                sql = sql.left(sql.length()-1) + ")\nON DELETE CASCADE\nON UPDATE NO ACTION,\n";
+
             }
             else
             {
-                sql = sql + "CONSTRAINT "  + rname + "\n";
+                for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
+                {
+                    sql = sql + "CONSTRAINT "  + rtables[pos].rfields[pos2].rcode + "\n";
+                    sql = sql + "FOREIGN KEY (";
+                    sql = sql + rtables[pos].rfields[pos2].name + ")\n";
+                    sql = sql + "REFERENCES " + rtables[pos].name + "(";
+                    sql = sql + rtables[pos].rfields[pos2].rname + ")\nON DELETE RESTRICT\nON UPDATE NO ACTION,\n";
+                }
             }
-            sql = sql + "FOREIGN KEY (";
-            for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
-            {
-                sql = sql + rtables[pos].rfields[pos2].name + ",";
-            }
-            sql = sql.left(sql.length()-1) + ")\n";
-            sql = sql + "REFERENCES " + rtables[pos].name + "(";
-            for (pos2 = 0; pos2 < rtables[pos].rfields.count();pos2++)
-            {
-                sql = sql + rtables[pos].rfields[pos2].rname + ",";
-            }
-            sql = sql.left(sql.length()-1) + ")\nON DELETE RESTRICT\nON UPDATE NO ACTION,\n";
+
             idx++;
         }
     }

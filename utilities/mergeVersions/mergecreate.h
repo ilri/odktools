@@ -45,6 +45,7 @@ class mergeCreate : public QObject
     {
       QString parentTable;
       QString name;
+      bool isLookUp = false;
       QList<TrfieldDef> rfields;
     };
     typedef rtableDef TrtableDef;
