@@ -3847,7 +3847,13 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 if (!listValue.isUndefined())
                     listName = fixField(listValue.toString().toLower());
                 else
-                    listName = fixField(variableName.toLower());
+                {
+                    listValue = fieldObject.value("query");
+                    if (!listValue.isUndefined())
+                        listName = fixField(listValue.toString().toLower());
+                    else
+                        listName = fixField(variableName.toLower());
+                }
                 QString table_name = "lkp" + listName;
                 TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
                 lkpTable.isLoop = false;
@@ -3860,7 +3866,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     {
                         TlngLkpDesc fieldDesc;
                         fieldDesc.langCode = aField.desc[lang].langCode;
-                        fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
+                        fieldDesc.desc = "Lookup table for list name \"" + listName + "\"";
                         lkpTable.desc.append(fieldDesc);
                     }
                     lkpTable.pos = -1;
@@ -3869,7 +3875,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.lkpValues.append(values);
                     //Creates the field for code in the lookup
                     TfieldDef lkpCode;
-                    lkpCode.name = fixField(variableName.toLower()) + "_cod";
+                    lkpCode.name = fixField(listName.toLower()) + "_cod";
                     lkpCode.selectSource = "NONE";
                     lkpCode.selectListName = "NONE";
                     for (int lang = 0; lang <= languages.count()-1;lang++)
@@ -3887,7 +3893,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.fields.append(lkpCode);
                     //Creates the field for description in the lookup
                     TfieldDef lkpDesc;
-                    lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                    lkpDesc.name = fixField(listName.toLower()) + "_des";
                     lkpDesc.selectSource = "NONE";
                     lkpDesc.selectListName = "NONE";
                     for (int lang = 0; lang <= languages.count()-1;lang++)
@@ -4066,7 +4072,13 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 if (!listValue.isUndefined())
                     listName = fixField(listValue.toString().toLower());
                 else
-                    listName = fixField(variableName.toLower());
+                {
+                    listValue = fieldObject.value("query");
+                    if (!listValue.isUndefined())
+                        listName = fixField(listValue.toString().toLower());
+                    else
+                        listName = fixField(variableName.toLower());
+                }
                 QString table_name = "lkp" + listName;
 
                 TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
@@ -4080,7 +4092,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     {
                         TlngLkpDesc fieldDesc;
                         fieldDesc.langCode = aField.desc[lang].langCode;
-                        fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
+                        fieldDesc.desc = "Lookup table for list name \"" + listName + "\"";
                         lkpTable.desc.append(fieldDesc);
                     }
                     lkpTable.pos = -1;
@@ -4088,7 +4100,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.isOneToOne = false;
                     //Creates the field for code in the lookup
                     TfieldDef lkpCode;
-                    lkpCode.name = fixField(variableName.toLower()) + "_cod";
+                    lkpCode.name = fixField(listName.toLower()) + "_cod";
                     lkpCode.selectSource = "NONE";
                     lkpCode.selectListName = "NONE";
                     int lang;
@@ -4107,7 +4119,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.fields.append(lkpCode);
                     //Creates the field for description in the lookup
                     TfieldDef lkpDesc;
-                    lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                    lkpDesc.name = fixField(listName.toLower()) + "_des";
                     lkpDesc.selectSource = "NONE";
                     lkpDesc.selectListName = "NONE";
                     for (lang = 0; lang <= languages.count()-1;lang++)
@@ -4382,7 +4394,13 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
             if (!listValue.isUndefined())
                 listName = fixField(listValue.toString().toLower());
             else
-                listName = fixField(variableName.toLower());
+            {
+                listValue = tableObject.value("query");
+                if (!listValue.isUndefined())
+                    listName = fixField(listValue.toString().toLower());
+                else
+                    listName = fixField(variableName.toLower());
+            }
             QString table_name = "lkp" + listName;
             TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
             lkpTable.isLoop = false;
@@ -4395,7 +4413,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
                 {
                     TlngLkpDesc fieldDesc;
                     fieldDesc.langCode = aField.desc[lang].langCode;
-                    fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
+                    fieldDesc.desc = "Lookup table for list name \"" + listName + "\"";
                     lkpTable.desc.append(fieldDesc);
                 }
                 lkpTable.pos = -1;
@@ -4404,7 +4422,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
                 lkpTable.lkpValues.append(values);
                 //Creates the field for code in the lookup
                 TfieldDef lkpCode;
-                lkpCode.name = fixField(variableName.toLower()) + "_cod";
+                lkpCode.name = fixField(listName.toLower()) + "_cod";
                 lkpCode.selectSource = "NONE";
                 lkpCode.selectListName = "NONE";
                 for (int lang = 0; lang <= languages.count()-1;lang++)
@@ -4422,7 +4440,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
                 lkpTable.fields.append(lkpCode);
                 //Creates the field for description in the lookup
                 TfieldDef lkpDesc;
-                lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                lkpDesc.name = fixField(listName.toLower()) + "_des";
                 lkpDesc.selectSource = "NONE";
                 lkpDesc.selectListName = "NONE";
                 for (int lang = 0; lang <= languages.count()-1;lang++)
