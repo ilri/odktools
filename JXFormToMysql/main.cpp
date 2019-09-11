@@ -5111,6 +5111,32 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         f_submitted_by.selectListName = "NONE";
         maintable.fields.append(f_submitted_by);
 
+        //Append the _xform_id_stringy field to the main table
+        TfieldDef f_xform_id_string;
+        f_xform_id_string.name = "_xform_id_string";
+        for (lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "XForm ID";
+            f_xform_id_string.desc.append(langDesc);
+        }
+        f_xform_id_string.type = "varchar";
+        f_xform_id_string.size = 255;
+        f_xform_id_string.decSize = 0;
+        f_xform_id_string.rField = "";
+        f_xform_id_string.rTable = "";
+        f_xform_id_string.key = false;
+        f_xform_id_string.sensitive = false;
+        f_xform_id_string.isMultiSelect = false;
+        f_xform_id_string.xmlCode = "_submitted_by";
+        f_xform_id_string.odktype = "text";
+        f_xform_id_string.calculateWithSelect = false;
+        f_xform_id_string.formula = "";
+        f_xform_id_string.selectSource = "NONE";
+        f_xform_id_string.selectListName = "NONE";
+        maintable.fields.append(f_xform_id_string);
+
         //Append the Submmited date field to the main table
         TfieldDef f_submitted_date;
         f_submitted_date.name = "_submitted_date";
