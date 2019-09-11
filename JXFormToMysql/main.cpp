@@ -5129,7 +5129,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         f_xform_id_string.key = false;
         f_xform_id_string.sensitive = false;
         f_xform_id_string.isMultiSelect = false;
-        f_xform_id_string.xmlCode = "_submitted_by";
+        f_xform_id_string.xmlCode = "_xform_id_string";
         f_xform_id_string.odktype = "text";
         f_xform_id_string.calculateWithSelect = false;
         f_xform_id_string.formula = "";
