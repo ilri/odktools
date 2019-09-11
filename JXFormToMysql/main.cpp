@@ -5096,7 +5096,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
             f_submitted_by.desc.append(langDesc);
         }
         f_submitted_by.type = "varchar";
-        f_submitted_by.size = 0;
+        f_submitted_by.size = 255;
         f_submitted_by.decSize = 0;
         f_submitted_by.rField = "";
         f_submitted_by.rTable = "";
