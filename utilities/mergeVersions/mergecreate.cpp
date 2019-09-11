@@ -813,6 +813,30 @@ void mergeCreate::checkField(QDomNode eTable, QDomElement a, QDomElement b, bool
     }
 }
 
+QDomNode getLastField(QDomNode table)
+{
+    QDomNode child = table.firstChild();
+    QDomNode res;
+    while (!child.isNull())
+    {
+        res = child;
+        child = child.nextSibling();
+    }
+    return res;
+}
+
+QDomNode findNodeByName(QDomNode table, QString name)
+{
+    QDomNode child = table.firstChild();
+    while (!child.isNull())
+    {
+        if (child.toElement().attribute("name","") == name)
+            return child;
+        child = child.nextSibling();
+    }
+    return QDomNode();
+}
+
 void mergeCreate::compareLKPTables(QDomNode table,QDomDocument &docB)
 {
    QDomNode node;
@@ -851,7 +875,46 @@ void mergeCreate::compareLKPTables(QDomNode table,QDomDocument &docB)
                            errorList.append(error);
                        }
                        addFieldToDiff(tablefound.toElement().attribute("name",""),eField);
-                       tablefound.insertBefore(eField.cloneNode(true),tablefound.firstChild());
+                       QDomNode node_before = eField.previousSibling();
+                       if (!node_before.isNull())
+                       {
+                           if (node_before.toElement().tagName() != "field")
+                               node_before = QDomNode();
+                       }
+                       QDomNode node_after = eField.previousSibling();
+                       if (!node_after.isNull())
+                       {
+                           if (node_after.toElement().tagName() != "field")
+                               node_after = QDomNode();
+                       }
+                       QDomNode reference;
+                       bool after = true;
+                       if (node_before.isNull() && node_after.isNull())
+                           reference = getLastField(tablefound);
+                       else
+                       {
+                           if (!node_before.isNull())
+                           {
+                               reference = findNodeByName(tablefound,node_before.toElement().attribute("name"));
+                               if (reference.isNull())
+                                   reference = getLastField(tablefound);
+                           }
+                           else
+                           {
+                               reference = findNodeByName(tablefound,node_after.toElement().attribute("name"));
+                               if (reference.isNull())
+                               {
+                                   reference = getLastField(tablefound);
+                               }
+                               else
+                                   after = false;
+                           }
+                       }
+
+                       if (after)
+                           tablefound.insertAfter(eField.cloneNode(true),reference);
+                       else
+                           tablefound.insertBefore(eField.cloneNode(true),reference);
                    }
                }
 
@@ -902,7 +965,7 @@ void mergeCreate::compareTables(QDomNode table,QDomDocument &docB)
                     QDomNode fieldFound = findField(tablefound,eField.attribute("name",""));
                     if (!fieldFound.isNull())
                     {
-                        checkField(tablefound,field.toElement(),fieldFound.toElement());
+                        checkField(tablefound,field.toElement(),fieldFound.toElement(),false);
                     }
                     else
                     {
@@ -919,7 +982,47 @@ void mergeCreate::compareTables(QDomNode table,QDomDocument &docB)
                             errorList.append(error);
                         }
                         addFieldToDiff(tablefound.toElement().attribute("name",""),eField);
-                        tablefound.insertBefore(eField.cloneNode(true),tablefound.firstChild());
+                        QDomNode node_before = eField.previousSibling();
+                        if (!node_before.isNull())
+                        {
+                            if (node_before.toElement().tagName() != "field")
+                                node_before = QDomNode();
+                        }
+                        QDomNode node_after = eField.previousSibling();
+                        if (!node_after.isNull())
+                        {
+                            if (node_after.toElement().tagName() != "field")
+                                node_after = QDomNode();
+                        }
+                        QDomNode reference;
+                        bool after = true;
+                        if (node_before.isNull() && node_after.isNull())
+                            reference = getLastField(tablefound);
+                        else
+                        {
+                            if (!node_before.isNull())
+                            {
+                                reference = findNodeByName(tablefound,node_before.toElement().attribute("name"));
+                                if (reference.isNull())
+                                    reference = getLastField(tablefound);
+                            }
+                            else
+                            {
+                                reference = findNodeByName(tablefound,node_after.toElement().attribute("name"));
+                                if (reference.isNull())
+                                {
+                                    reference = getLastField(tablefound);
+                                }
+                                else
+                                    after = false;
+                            }
+                        }
+
+                        if (after)
+                            tablefound.insertAfter(eField.cloneNode(true),reference);
+                        else
+                            tablefound.insertBefore(eField.cloneNode(true),reference);
+
                     }
                 }
 
