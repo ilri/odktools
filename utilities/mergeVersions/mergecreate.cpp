@@ -356,15 +356,26 @@ void mergeCreate::addFieldToDiff(QString table, QDomElement eField)
 {
     QString sql;
     sql = "ALTER TABLE " + table + " ADD COLUMN " + eField.attribute("name","");
-    if (eField.attribute("type","") == "decimal")
-        sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + "," + eField.attribute("decsize","0") + ");\n";
+
+    if ((eField.attribute("type","") == "varchar") || (eField.attribute("type","") == "int"))
+        sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + ");\n";
     else
     {
-        if (eField.attribute("type","") != "text")
-            sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + ");\n";
+        if (eField.attribute("type","") == "decimal")
+            sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + "," + eField.attribute("decsize","0") + ");\n";
         else
             sql = sql + " " + eField.attribute("type","") + ";\n";
     }
+
+//    if (eField.attribute("type","") == "decimal")
+//        sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + "," + eField.attribute("decsize","0") + ");\n";
+//    else
+//    {
+//        if (eField.attribute("type","") != "text")
+//            sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + ");\n";
+//        else
+//            sql = sql + " " + eField.attribute("type","") + ";\n";
+//    }
     diff.append(sql);
     if (eField.attribute("rtable","") != "")
     {
