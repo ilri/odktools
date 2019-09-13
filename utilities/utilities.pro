@@ -2,13 +2,12 @@ TEMPLATE = subdirs
 
 CONFIG += debug
 
-SUBDIRS = compareCreateXML \
-    compareInsertXML \
-    createFromXML \
+SUBDIRS = createFromXML \
     insertFromXML \
     MySQLDenormalize \
     JSONToCSV \
     MySQLToXLSX \
     createAuditTriggers \
     createDummyJSON \
-    MySQLToSQLite
+    MySQLToSQLite \
+    mergeVersions

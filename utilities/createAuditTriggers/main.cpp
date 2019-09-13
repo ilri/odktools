@@ -21,6 +21,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> passArg("p","password","MySQL Password",true,"","string");
     TCLAP::ValueArg<std::string> schemaArg("s","schema","MySQL Schema",true,"","string");
     TCLAP::ValueArg<std::string> outputArg("o","output","Output directory",false,".","string");
+    TCLAP::ValueArg<std::string> tablesArg("t","tables","Coma separated list of tables to generare audit. Empty (default) means all",false,"","string");
 
     //These two parameters should be removed once the external script code works
 
@@ -33,6 +34,7 @@ int main(int argc, char *argv[])
     cmd.add(passArg);
     cmd.add(schemaArg);
     cmd.add(outputArg);
+    cmd.add(tablesArg);
 
     //Parsing the command lines
     cmd.parse( argc, argv );
@@ -45,10 +47,11 @@ int main(int argc, char *argv[])
     QString password = QString::fromUtf8(passArg.getValue().c_str());
     QString schema = QString::fromUtf8(schemaArg.getValue().c_str());
     QString output = QString::fromUtf8(outputArg.getValue().c_str());
+    QString tables = QString::fromUtf8(tablesArg.getValue().c_str());
 
     mainClass *task = new mainClass(&app);
 
-    task->setParameters(host,port,user,password,schema,output);
+    task->setParameters(host,port,user,password,schema,output,tables.split(",",QString::SkipEmptyParts));
 
     QObject::connect(task, SIGNAL(finished()), &app, SLOT(quit()));
 

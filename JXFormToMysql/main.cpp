@@ -36,6 +36,7 @@ License along with JXFormToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QSqlRecord>
 #include <QRegularExpression>
 #include <QUuid>
 
@@ -44,8 +45,6 @@ bool debug;
 QString command;
 QString outputType;
 QString default_language;
-QString strYes; //Yes string for comparing Yes/No lookup tables
-QString strNo; //No string for comparing Yes/No lookup tables
 QStringList variableStack; //This is a stack of groups or repeats for a variable. Used to get /xxx/xxx/xxx structures
 QStringList repeatStack; //This is a stack of repeats. So we know in which repeat we are
 QString prefix; //Table prefix
@@ -66,6 +65,15 @@ QStringList requiredFiles;
 //********************************************Global structures****************************************
 
 //Structure that holds the description of each lkpvalue separated by language
+
+struct duplicatedLookUp
+{
+    QStringList tables;
+    QString sameas;
+};
+typedef duplicatedLookUp TduplicatedLookUp;
+
+QList< TduplicatedLookUp> duplicated_lookups;
 
 struct tblwitherror
 {
@@ -110,6 +118,7 @@ struct fieldDef
   QString formula;
   QString rTable; //Related table
   QString rField; //Related field
+  QString rName; //Contraint name
   bool key; //Whether the field is key
   QString xmlCode; //The field XML code /xx/xx/xx/xx
   QString xmlFullPath; //The field XML code /xx/xx/xx/xx with groups
@@ -183,6 +192,7 @@ struct tableDef
 typedef tableDef TtableDef;
 
 QList<TtableDef> tables; //List of tables
+QList<TtableDef> merging_tables; //List of tables
 
 struct duplicatedSelectValue
 {
@@ -1056,6 +1066,20 @@ void log(QString message)
     printf("%s", temp.toUtf8().data());
 }
 
+void report_file_error(QString file_name)
+{
+    QDomDocument XMLResult;
+    XMLResult = QDomDocument("XMLResult");
+    QDomElement XMLRoot;
+    XMLRoot = XMLResult.createElement("XMLResult");
+    XMLResult.appendChild(XMLRoot);
+    QDomElement eFileError;
+    eFileError = XMLResult.createElement("file");
+    eFileError.setAttribute("name",file_name);
+    XMLRoot.appendChild(eFileError);
+    log(XMLResult.toString());
+}
+
 void cb1(void *s, size_t, void *)
 {
     char* charData;
@@ -1126,7 +1150,7 @@ void cb2(int , void *)
 }
 
 int convertCSVToSQLite(QString fileName, QDir tempDirectory, QSqlDatabase database)
-{
+{    
     FILE *fp;
     struct csv_parser p;
     char buf[4096];
@@ -1173,7 +1197,12 @@ int convertCSVToSQLite(QString fileName, QDir tempDirectory, QSqlDatabase databa
 
     if (CSVColumError)
     {
-        log("The CSV \"" + fileName + "\" has invalid characters. Only : and _ are allowed");
+        if (outputType == "h")
+            log("The CSV \"" + fileName + "\" has invalid characters. Only : and _ are allowed");
+        else
+        {
+            report_file_error(fileName);
+        }
         exit(14);
     }
 
@@ -1279,6 +1308,16 @@ QString getDefLanguage()
     return "";
 }
 
+QString getDefLanguageCode()
+{
+    for (int pos = 0; pos <= languages.count()-1; pos++)
+    {
+        if (languages[pos].deflang == true)
+            return languages[pos].code;
+    }
+    return "";
+}
+
 //This function returns the language code for a given name
 QString getLanguageCode(QString languageName)
 {
@@ -1290,56 +1329,164 @@ QString getLanguageCode(QString languageName)
     return "";
 }
 
+int getMaxDescLength(QList<TlkpValue> values)
+{
+    int res;
+    res = 0;
+    int pos;
+    int lng;
+    for (pos = 0; pos <= values.count()-1;pos++)
+    {
+        for (lng = 0; lng < values[pos].desc.count();lng++)
+        {
+            if (values[pos].desc[lng].desc.length() >= res)
+                res = values[pos].desc[lng].desc.length();
+        }
+    }
+    return res;
+}
+
+//Return the maximum lenght of the values in a lookup table so the size is not excesive for primary keys
+int getMaxValueLength(QList<TlkpValue> values)
+{
+    int res;
+    res = 0;
+    int pos;
+    for (pos = 0; pos <= values.count()-1;pos++)
+    {
+        if (values[pos].code.length() >= res)
+            res = values[pos].code.length();
+    }
+    return res;
+}
+
+//Return whether the values of a lookup table are numbers or strings. Used to determine the type of variables in the lookup tables
+bool areValuesStrings(QList<TlkpValue> values)
+{
+    bool ok;
+    int pos;
+    for (pos = 0; pos <= values.count()-1;pos++)
+    {
+        values[pos].code.toInt(&ok,10);
+        if (!ok)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+QString get_related_usage(QString table)
+{
+    for (int pos = 0; pos < tables.count(); pos++)
+    {
+        for (int pos2 = 0; pos2 < tables[pos].fields.count(); pos2++)
+        {
+            if (tables[pos].fields[pos2].rTable == table)
+                return tables[pos].fields[pos2].name;
+        }
+    }
+    return "";
+}
+
 //This fuction checkd wheter a lookup table is duplicated.
 //If there is a match then returns such table
-TtableDef getDuplicatedLkpTable(QList<TlkpValue> thisValues)
-{
-    int pos2;
-    bool same;
+TtableDef checkDuplicatedLkpTable(QString table, QList<TlkpValue> thisValues)
+{    
     TtableDef empty;
     empty.name = "EMPTY";
     empty.isLoop = false;
     empty.isOSM = false;
     empty.isGroup = false;
+
+    bool found;
     QList<TlkpValue> currentValues;
     QString thisDesc;
     QString currenDesc;
-
     //Move the new list of values to a new list and sort it by code    
     qSort(thisValues.begin(),thisValues.end(),lkpComp);
 
     QString defLangCode;
     defLangCode = getLanguageCode(getDefLanguage());
 
-    for (int pos = 0; pos <= tables.count()-1; pos++)
-    {
+    for (int pos = 0; pos < tables.count(); pos++)
+    {        
         if (tables[pos].islookup)
         {
-            //Move the current list of values to a new list and sort it by code
-            currentValues.clear();
-            currentValues.append(tables[pos].lkpValues);
-            qSort(currentValues.begin(),currentValues.end(),lkpComp);
+            if (tables[pos].name != table)
+            {
+                //Move the current list of values to a new list and sort it by code
+                currentValues.clear();
+                currentValues.append(tables[pos].lkpValues);
+                qSort(currentValues.begin(),currentValues.end(),lkpComp);
 
-            if (currentValues.count() == thisValues.count()) //Same number of values
-            {                
-                same = true;
-                for (pos2 = 0; pos2 <= tables[pos].lkpValues.count()-1;pos2++)
+                if (currentValues.count() == thisValues.count()) //Same number of values
                 {
-                    //Compares if an item in the list dont have same code or same description
-                    thisDesc = getDescForLanguage(thisValues[pos2].desc,defLangCode);
-                    currenDesc = getDescForLanguage(currentValues[pos2].desc,defLangCode);
+                    found = true;
+                    for (int pos2 = 0; pos2 < currentValues.count(); pos2++)
+                    {
+                        //Compares if an item in the list dont have same code or same description
+                        thisDesc = getDescForLanguage(thisValues[pos2].desc,defLangCode);
+                        currenDesc = getDescForLanguage(currentValues[pos2].desc,defLangCode);
 
-                    if ((currentValues[pos2].code.simplified().toLower() != thisValues[pos2].code.simplified().toLower()) ||
-                            (currenDesc.simplified().toLower() != thisDesc.simplified().toLower()))
-                    {                        
-                        same = false;
-                        break;
+                        if ((currentValues[pos2].code.simplified().toLower() != thisValues[pos2].code.simplified().toLower()) ||
+                                (currenDesc.simplified().toLower() != thisDesc.simplified().toLower()))
+                        {
+                            found = false;
+                            break;
+                        }
+                    }
+                    if (found)
+                    {
+                        int idx;
+                        idx = -1;
+                        for (int pos2=0; pos2 < duplicated_lookups.count(); pos2++)
+                        {
+                            if (duplicated_lookups[pos2].sameas == tables[pos].name)
+                            {
+                                idx = pos2;
+                                break;
+                            }
+                            found = false;
+                            for (int pos3 = 0; pos3 < duplicated_lookups[pos2].tables.count(); pos3++)
+                            {
+                                if (duplicated_lookups[pos2].tables[pos3] == table)
+                                {
+                                    idx = pos2;
+                                    break;
+                                }
+                            }
+                            if (found)
+                                break;
+                        }
+                        if (idx == -1)
+                        {
+                            found = false;
+                            TduplicatedLookUp duplicated;
+                            duplicated.sameas = tables[pos].name;
+                            duplicated.tables.append(table);
+                            duplicated_lookups.append(duplicated);
+                        }
+                        else
+                        {
+                            found = false;
+                            for (int pos2 = 0; pos2 < duplicated_lookups[idx].tables.count(); pos2++)
+                            {
+                                if (duplicated_lookups[idx].tables[pos2] == table)
+                                {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found)
+                                duplicated_lookups[idx].tables.append(table);
+                        }
                     }
                 }
-                if (same)
-                {
-                    return tables[pos];
-                }
+            }
+            else
+            {
+                return tables[pos];
             }
         }
     }
@@ -1488,7 +1635,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
     XMLSchemaStructure = QDomDocument("XMLSchemaStructure");
     QDomElement XMLRoot;
     XMLRoot = XMLSchemaStructure.createElement("XMLSchemaStructure");
-    XMLRoot.setAttribute("version", "1.0");
+    XMLRoot.setAttribute("version", "2.0");
     XMLSchemaStructure.appendChild(XMLRoot);
 
     QDomElement XMLLKPTables;
@@ -1766,10 +1913,11 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         {
                             createFieldNode.setAttribute("rtable",prefix + tables[pos].fields[clm].rTable);
                             createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);
+                            createFieldNode.setAttribute("rname","fk_" + tables[pos].fields[clm].rName);
 
                             if (isRelatedTableLookUp(tables[pos].fields[clm].rTable))
                             {
-                                createFieldNode.setAttribute("rlookup","true");
+                                createFieldNode.setAttribute("rlookup","true");                                
                             }
 
                         }
@@ -1794,7 +1942,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         if (tables[pos].fields[clm].rTable != "")
                         {
                             createFieldNode.setAttribute("rtable",prefix + tables[pos].fields[clm].rTable);
-                            createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);                            
+                            createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);
+                            createFieldNode.setAttribute("rname","fk_" + tables[pos].fields[clm].rName);
                             if (isRelatedTableLookUp(tables[pos].fields[clm].rTable))
                             {
                                 createFieldNode.setAttribute("rlookup","true");
@@ -1824,9 +1973,10 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                     {
                         createFieldNode.setAttribute("rtable",prefix + tables[pos].fields[clm].rTable);
                         createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);
+                        createFieldNode.setAttribute("rname","fk_" + tables[pos].fields[clm].rName);
                         if (isRelatedTableLookUp(tables[pos].fields[clm].rTable))
                         {
-                            createFieldNode.setAttribute("rlookup","true");
+                            createFieldNode.setAttribute("rlookup","true");                            
                         }
                     }
                     tables[pos].tableCreteElement.appendChild(createFieldNode);
@@ -1852,7 +2002,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 if (tables[pos].fields[clm].rTable != "")
                 {
                     createFieldNode.setAttribute("rtable",prefix + tables[pos].fields[clm].rTable);
-                    createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);                    
+                    createFieldNode.setAttribute("rfield",tables[pos].fields[clm].rField);
+                    createFieldNode.setAttribute("rname","fk_" + tables[pos].fields[clm].rName);
                 }
                 tables[pos].tableCreteElement.appendChild(createFieldNode);
             }
@@ -1898,13 +2049,13 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
             if (!tables[pos].fields[clm].rTable.isEmpty())
             {
                 if (isRelatedTableLookUp(tables[pos].fields[clm].rTable))
-                {
+                {                    
                     idx++;
-                    index = "INDEX fk" + QString::number(idx) + "_" + prefix + tables[pos].name.toLower() + "_" + prefix + tables[pos].fields[clm].rTable.toLower() ;
-                    indexes << index.left(64) + " (" + tables[pos].fields[clm].name.toLower() + ") , " << "\n";
+                    index = "INDEX fk_" + tables[pos].fields[clm].rName ;
+                    indexes << index + " (" + tables[pos].fields[clm].name.toLower() + ") , " << "\n";
 
-                    constraint = "CONSTRAINT fk" + QString::number(idx) + "_" + prefix + tables[pos].name.toLower() + "_" + prefix + tables[pos].fields[clm].rTable.toLower();
-                    rels << constraint.left(64) << "\n";
+                    constraint = "CONSTRAINT fk_" + tables[pos].fields[clm].rName;
+                    rels << constraint << "\n";
                     rels << "FOREIGN KEY (" + tables[pos].fields[clm].name.toLower() + ")" << "\n";
                     rels << "REFERENCES " + prefix + tables[pos].fields[clm].rTable.toLower() + " (" + tables[pos].fields[clm].rField.toLower() + ")" << "\n";
 
@@ -2019,7 +2170,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
 
         // Append UUIDs triggers to the file but only if the UUID is null or if it is not an uuid
         sql = sql + "delimiter $$\n\n";
-        sql = sql + "CREATE TRIGGER T" + strTriggerUUID + " BEFORE INSERT ON " + tables[pos].name + " FOR EACH ROW BEGIN IF (new.rowuuid IS NULL) THEN SET new.rowuuid = uuid(); ELSE IF (new.rowuuid NOT REGEXP '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}') THEN SET new.rowuuid = uuid(); END IF; END IF; END;$$\n";
+        sql = sql + "CREATE TRIGGER T" + strTriggerUUID + " BEFORE INSERT ON " + tables[pos].name + " FOR EACH ROW BEGIN IF (new.rowuuid IS NULL) THEN SET new.rowuuid = uuid(); ELSE IF (new.rowuuid NOT REGEXP '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{}') THEN SET new.rowuuid = uuid(); END IF; END IF; END;$$\n";
         sql = sql + "delimiter ;\n\n";
         sqlCreateStrm << sql; //Add the triggers to the SQL DDL file
 
@@ -2469,22 +2620,6 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     return result;
 }
 
-//Return whether the values of a lookup table are numbers or strings. Used to determine the type of variables in the lookup tables
-bool areValuesStrings(QList<TlkpValue> values)
-{
-    bool ok;
-    int pos;
-    for (pos = 0; pos <= values.count()-1;pos++)
-    {
-        values[pos].code.toInt(&ok,10);
-        if (!ok)
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
 int getMaxMSelValueLength(QList<TlkpValue> values)
 {
     QString res;
@@ -2494,84 +2629,6 @@ int getMaxMSelValueLength(QList<TlkpValue> values)
     }
     res = res.left(res.length()-1);
     return res.length();
-}
-
-//Return the maximum lenght of the values in a lookup table so the size is not excesive for primary keys
-int getMaxValueLength(QList<TlkpValue> values)
-{
-    int res;
-    res = 0;
-    int pos;
-    for (pos = 0; pos <= values.count()-1;pos++)
-    {
-        if (values[pos].code.length() >= res)
-            res = values[pos].code.length();
-    }
-    return res;
-}
-
-int getMaxDescLength(QList<TlkpValue> values)
-{
-    int res;
-    res = 0;
-    int pos;
-    int lng;
-    for (pos = 0; pos <= values.count()-1;pos++)
-    {
-        for (lng = 0; lng < values[pos].desc.count();lng++)
-        {
-            if (values[pos].desc[lng].desc.length() >= res)
-                res = values[pos].desc[lng].desc.length();
-        }
-    }
-    return res;
-}
-
-
-//Returns wheter or not a the values of a lookup table are yes/no values. Used in combination to yes/no lookup values to
-//create or not a lookup table of yes/no.
-// NOTE this is a very crude function and only catches a couple of cases...
-bool isLookUpYesNo(QList<TlkpValue> values)
-{
-    bool hasNo;
-    bool hasYes;
-    int lkp;
-    QString lkpValue;
-    QString defLang;
-    defLang = getLanguageCode(getDefLanguage());
-    if (values.count() == 2 )
-    {
-        hasNo = false;
-        hasYes = false;
-        for (lkp = 0; lkp <= values.count()-1;lkp++)
-        {
-            lkpValue = getDescForLanguage(values[lkp].desc,defLang);
-
-            //Evaluate 0 = No, 1 = yes
-            if ((values[lkp].code.toInt() == 0) && ((lkpValue.trimmed().toLower() == strNo.toLower()) || (lkpValue.trimmed().toLower() == "0-" + strNo.toLower()) || (lkpValue.trimmed().toLower() == "0- " + strNo.toLower())))
-                hasNo = true;
-            if ((values[lkp].code.toInt() == 1) && ((lkpValue.trimmed().toLower() == strYes.toLower()) || (lkpValue.trimmed().toLower() == "1-" + strYes.toLower()) || (lkpValue.trimmed().toLower() == "1- " + strYes.toLower())))
-                hasYes = true;
-
-            //Evalues 1 = yes, 2 = no
-            if ((values[lkp].code.toInt() == 1) && ((lkpValue.trimmed().toLower() == strYes.toLower()) || (lkpValue.trimmed().toLower() == "1-"+ strYes.toLower()) || (lkpValue.trimmed().toLower() == "1- "+ strYes.toLower())))
-                hasNo = true;
-            if ((values[lkp].code.toInt() == 2) && ((lkpValue.trimmed().toLower() == strNo.toLower()) || (lkpValue.trimmed().toLower() == "2-" + strNo.toLower()) || (lkpValue.trimmed().toLower() == "2- " + strNo.toLower())))
-                hasYes = true;
-
-            //Evalues 1 = no, 2 = Yes
-            if ((values[lkp].code.toInt() == 2) && ((lkpValue.trimmed().toLower() == strYes.toLower()) || (lkpValue.trimmed().toLower() == "2-"+ strYes.toLower()) || (lkpValue.trimmed().toLower() == "2- "+ strYes.toLower())))
-                hasNo = true;
-            if ((values[lkp].code.toInt() == 1) && ((lkpValue.trimmed().toLower() == strNo.toLower()) || (lkpValue.trimmed().toLower() == "1-" + strNo.toLower()) || (lkpValue.trimmed().toLower() == "1- " + strNo.toLower())))
-                hasYes = true;
-        }
-        if (hasYes && hasNo)
-            return true;
-        else
-            return false;
-    }
-    else
-        return false;
 }
 
 //Return the index of table in the list using its name
@@ -2829,14 +2886,14 @@ QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, 
         if (!file.open(QIODevice::ReadOnly))
         {
             log("Cannot open XML resource file: "+ xmlFile);
-            result = 21;
+            exit(1);
         }
 
         if (!xmlDocument.setContent(&file))
         {
             log("Cannot parse XML resource file: "+ xmlFile);
             file.close();
-            result = 21;
+            exit(1);
         }
         file.close();
         QDomNodeList items;
@@ -2871,10 +2928,26 @@ QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, 
                                     value.desc.append(desc);
                                 }
                                 else
-                                {
-                                    if (!justCheck)
+                                {                                    
+                                    if (outputType == "m")
                                         log("Language " + parts[1] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
-                                    result = 4;
+                                    else
+                                    {
+                                        QDomDocument XMLResult;
+                                        XMLResult = QDomDocument("XMLResult");
+                                        QDomElement XMLRoot;
+                                        XMLRoot = XMLResult.createElement("XMLResult");
+                                        XMLResult.appendChild(XMLRoot);
+                                        QDomElement eLanguages;
+                                        eLanguages = XMLResult.createElement("languages");
+                                        QDomElement eLanguage;
+                                        eLanguage = XMLResult.createElement("language");
+                                        eLanguage.setAttribute("name",parts[1]);
+                                        eLanguages.appendChild(eLanguage);
+                                        XMLRoot.appendChild(eLanguages);
+                                        log(XMLResult.toString());
+                                    }
+                                    exit(4);
                                 }
                             }
                             else
@@ -2890,10 +2963,14 @@ QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, 
                     res.append(value);
                 }
                 else
-                {
-                    if (!justCheck)
+                {                    
+                    if (outputType == "h")
                         log("Unable to find the column called name in the XML file \"" + fileName + "\". Is this a valid XML resource");
-                    result = 12;
+                    else
+                    {
+                        report_file_error(fileName);
+                    }
+                    exit(12);
                 }
             }
             if (hasOrOther)
@@ -2915,17 +2992,28 @@ QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, 
             }
         }
         else
-        {
-            if (!justCheck)
+        {            
+            if (outputType == "h")
                 log("Unable to retreive items from the XML file \"" + fileName + "\". Is this a valid XML resource");
-            result = 12;
+            else
+            {
+                report_file_error(fileName);
+            }
+            exit(12);
         }
     }
     else
     {        
         if (!justCheck)
-            log("There is no XML file for \"" + fileName + "\". Did you add it when you ran JXFormToMySQL?");
-        result = 13;
+        {
+            if (outputType == "h")
+                log("There is no XML file for \"" + fileName + "\". Did you add it when you ran JXFormToMySQL?");
+            else
+            {
+                report_file_error(fileName);
+            }
+            exit(11);
+        }
     }
     return res;
 }
@@ -2976,36 +3064,55 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
                         TlkpValue value;
                         value.code = query.value(fixColumnName(codeColumn)).toString();
                         for (int pos = 0; pos <= descColumns.count()-1; pos++)
-                        {
-                            queryValue = query.value(fixColumnName(descColumns[pos]));
-                            if (queryValue.isValid())
+                        {                            
+                            if (query.record().contains(fixColumnName(descColumns[pos])))
                             {
-                                if (descColumns[pos].indexOf("::") >= 0)
+                                queryValue = query.value(fixColumnName(descColumns[pos]));
+                                if (queryValue.isValid())
                                 {
-                                    QStringList parts;
-                                    parts = descColumns[pos].split("::",QString::SkipEmptyParts);
-                                    QString langCode;
-                                    langCode = getLanguageCode(parts[1]);
-                                    if (langCode != "")
+                                    if (descColumns[pos].indexOf("::") >= 0)
                                     {
-                                        TlngLkpDesc desc;
-                                        desc.desc = queryValue.toString();
-                                        desc.langCode = langCode;
-                                        value.desc.append(desc);
+                                        QStringList parts;
+                                        parts = descColumns[pos].split("::",QString::SkipEmptyParts);
+                                        QString langCode;
+                                        langCode = getLanguageCode(parts[1]);
+                                        if (langCode != "")
+                                        {
+                                            TlngLkpDesc desc;
+                                            desc.desc = queryValue.toString();
+                                            desc.langCode = langCode;
+                                            value.desc.append(desc);
+                                        }
+                                        else
+                                        {
+                                            if (outputType == "m")
+                                                log("Language " + parts[1] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
+                                            else
+                                            {
+                                                QDomDocument XMLResult;
+                                                XMLResult = QDomDocument("XMLResult");
+                                                QDomElement XMLRoot;
+                                                XMLRoot = XMLResult.createElement("XMLResult");
+                                                XMLResult.appendChild(XMLRoot);
+                                                QDomElement eLanguages;
+                                                eLanguages = XMLResult.createElement("languages");
+                                                QDomElement eLanguage;
+                                                eLanguage = XMLResult.createElement("language");
+                                                eLanguage.setAttribute("name",parts[1]);
+                                                eLanguages.appendChild(eLanguage);
+                                                XMLRoot.appendChild(eLanguages);
+                                                log(XMLResult.toString());
+                                            }
+                                            exit(4);
+                                        }
                                     }
                                     else
                                     {
-                                        if (!justCheck)
-                                            log("Language " + parts[1] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
-                                        result = 4;
+                                        TlngLkpDesc desc;
+                                        desc.desc = queryValue.toString();
+                                        desc.langCode = getLanguageCode(getDefLanguage());
+                                        value.desc.append(desc);
                                     }
-                                }
-                                else
-                                {
-                                    TlngLkpDesc desc;
-                                    desc.desc = queryValue.toString();
-                                    desc.langCode = getLanguageCode(getDefLanguage());
-                                    value.desc.append(desc);
                                 }
                             }
                         }
@@ -3013,10 +3120,14 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
                         res.append(value);
                     }
                     else
-                    {
-                        if (!justCheck)
+                    {                        
+                        if (outputType == "h")
                             log("The file " + fileName + "is not a valid ODK resource file");
-                        result = 20;
+                        else
+                        {
+                            report_file_error(fileName);
+                        }
+                        exit(15);
                     }
                 }
                 if (hasOrOther)
@@ -3040,24 +3151,34 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
                 return res;
             }
             else
-            {
-                if (!justCheck)
+            {                
+                if (outputType == "h")
                     log("Unable to retreive data for search \"" + fileName + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
-                result = 12;
+                else
+                {
+                    report_file_error(fileName);
+                }
+                exit(15);
             }
         }
         else
-        {
-            if (!justCheck)
-                log("Cannot create SQLite database " + sqliteFile);
-            result = 1;
+        {            
+            log("Cannot create SQLite database " + sqliteFile);
+            exit(1);
         }
     }
     else
     {        
         if (!justCheck)
-            log("There is no SQLite file for file \"" + fileName + "\". Did you add it as CSV when you ran JXFormToMySQL?");
-        result = 13;
+        {
+            if (outputType == "h")
+                log("There is no SQLite file for file \"" + fileName + "\". Did you add it as CSV when you ran JXFormToMySQL?");
+            else
+            {
+                report_file_error(fileName);
+            }
+            exit(13);
+        }
     }
     return res;
 }
@@ -3158,30 +3279,56 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
                 {
                     if (!justCheck)
                         log("Unable to retreive data for search \"" + file + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
-                    result = 12;
+                    exit(15);
                 }
             }
             else
-            {
-                if (!justCheck)
-                    log("Cannot create SQLite database " + sqliteFile);
-                result = 1;
+            {                
+                log("Cannot create SQLite database " + sqliteFile);
+                exit(1);
             }
         }
         else
         {            
             if (!justCheck)
-                log("There is no SQLite file for search \"" + file + "\". Did you add it as CSV when you ran JXFormToMySQL?");
-            result = 13;
+            {
+                if (outputType == "h")
+                    log("There is no SQLite file for search \"" + file + "\". Did you add it as CSV when you ran JXFormToMySQL?");
+                else
+                {
+                    report_file_error(file);
+                }
+                exit(13);
+            }
         }
     }
     else
     {
-        if (codeColumn != "")
-            log("Cannot locate the code column for the search select \"" + variableName + "\"");
-        if (descColumns.count() == 0)
-            log("Cannot locate a description column for the search select \"" + variableName + "\"");
-        result = 16;
+        if (outputType == "h")
+        {
+            if (codeColumn != "")
+                log("Cannot locate the code column for the search select \"" + variableName + "\"");
+            if (descColumns.count() == 0)
+                log("Cannot locate a description column for the search select \"" + variableName + "\"");
+        }
+        else
+        {
+            QDomDocument XMLResult;
+            XMLResult = QDomDocument("XMLResult");
+            QDomElement XMLRoot;
+            XMLRoot = XMLResult.createElement("XMLResult");
+            XMLResult.appendChild(XMLRoot);
+            QDomElement eFileError;
+            eFileError = XMLResult.createElement("search");
+            eFileError.setAttribute("name",variableName);
+            if (codeColumn != "")
+                eFileError.setAttribute("codenotfound","true");
+            if (descColumns.count() == 0)
+                eFileError.setAttribute("descnotfound","true");
+            XMLRoot.appendChild(eFileError);
+            log(XMLResult.toString());
+        }
+        exit(16);
     }
     return res;
 }
@@ -3277,6 +3424,16 @@ void getReferenceForSelectAt(QString calculateExpresion,QString &fieldType, int 
     }
 }
 
+QString getUUIDCode(bool last = false)
+{
+    QUuid triggerUUID=QUuid::createUuid();
+    QString strTriggerUUID=triggerUUID.toString().replace("{","").replace("}","").replace("-","_");
+    if (last)
+        return strTriggerUUID.left(12);
+    else
+        return strTriggerUUID;
+}
+
 //Adds OSM tags as columns to a OSM table
 void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
 {
@@ -3287,7 +3444,6 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
     {
         QList<TlkpValue> values;
         values.append(getSelectValues(variableName,fieldObject.value("choices").toArray(),false));
-
         TfieldDef aField;
         aField.selectSource = "NONE";
         aField.name = fixField(variableName.toLower());
@@ -3312,74 +3468,73 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
         if (values.count() > 0) //If the lookup table has values
         {
             //Creating the lookp table if its neccesary
-            if (isLookUpYesNo(values) == false) //Do not process yes/no values as lookup tables
+            QString table_name = "lkp" + fixField(variableName.toLower());
+            TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
+            lkpTable.isLoop = false;
+            lkpTable.isOSM = false;
+            lkpTable.isGroup = false;
+            if (lkpTable.name == "EMPTY")
             {
-                TtableDef lkpTable = getDuplicatedLkpTable(values);
-                lkpTable.isLoop = false;
-                lkpTable.isOSM = false;
-                lkpTable.isGroup = false;
-                if (lkpTable.name == "EMPTY")
+                lkpTable.name = table_name;
+                for (int lang = 0; lang < aField.desc.count(); lang++)
                 {
-                    lkpTable.name = "lkp" + fixField(variableName.toLower());
-                    for (int lang = 0; lang < aField.desc.count(); lang++)
-                    {
-                        TlngLkpDesc fieldDesc;
-                        fieldDesc.langCode = aField.desc[lang].langCode;
-                        fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
-                        lkpTable.desc.append(fieldDesc);
-                    }
-                    lkpTable.pos = -1;
-                    lkpTable.islookup = true;
-                    lkpTable.isOneToOne = false;
-                    lkpTable.lkpValues.append(values);
-                    //Creates the field for code in the lookup
-                    TfieldDef lkpCode;
-                    lkpCode.name = fixField(variableName.toLower()) + "_cod";
-                    lkpCode.selectSource = "NONE";
-                    lkpCode.selectListName = "NONE";
-                    for (int lang = 0; lang <= languages.count()-1;lang++)
-                    {
-                        TlngLkpDesc langDesc;
-                        langDesc.langCode = languages[lang].code;
-                        langDesc.desc = "Code";
-                        lkpCode.desc.append(langDesc);
-                    }
-                    lkpCode.key = true;
-                    lkpCode.sensitive = false;
-                    lkpCode.type = aField.type;
-                    lkpCode.size = aField.size;
-                    lkpCode.decSize = aField.decSize;
-                    lkpTable.fields.append(lkpCode);
-                    //Creates the field for description in the lookup
-                    TfieldDef lkpDesc;
-                    lkpDesc.name = fixField(variableName.toLower()) + "_des";
-                    lkpDesc.selectSource = "NONE";
-                    lkpDesc.selectListName = "NONE";
-                    for (int lang = 0; lang <= languages.count()-1;lang++)
-                    {
-                        TlngLkpDesc langDesc;
-                        langDesc.langCode = languages[lang].code;
-                        langDesc.desc = "Description";
-                        lkpDesc.desc.append(langDesc);
-                    }
-                    lkpDesc.key = false;
-                    lkpDesc.sensitive = false;
-                    lkpDesc.type = "varchar";
-                    lkpDesc.size = getMaxDescLength(values);
-                    lkpDesc.decSize = 0;
-                    lkpTable.fields.append(lkpDesc);
-                    aField.rTable = lkpTable.name;
-                    aField.rField = lkpCode.name;
-                    tables.append(lkpTable);
+                    TlngLkpDesc fieldDesc;
+                    fieldDesc.langCode = aField.desc[lang].langCode;
+                    fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
+                    lkpTable.desc.append(fieldDesc);
                 }
-                else
+                lkpTable.pos = -1;
+                lkpTable.islookup = true;
+                lkpTable.isOneToOne = false;
+                lkpTable.lkpValues.append(values);
+                //Creates the field for code in the lookup
+                TfieldDef lkpCode;
+                lkpCode.name = fixField(variableName.toLower()) + "_cod";
+                lkpCode.selectSource = "NONE";
+                lkpCode.selectListName = "NONE";
+                for (int lang = 0; lang <= languages.count()-1;lang++)
                 {
-                    if (outputType == "h")
-                        log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
-                    aField.rTable = lkpTable.name;
-                    aField.rField = getKeyField(lkpTable.name);
+                    TlngLkpDesc langDesc;
+                    langDesc.langCode = languages[lang].code;
+                    langDesc.desc = "Code";
+                    lkpCode.desc.append(langDesc);
                 }
+                lkpCode.key = true;
+                lkpCode.sensitive = false;
+                lkpCode.type = aField.type;
+                lkpCode.size = aField.size;
+                lkpCode.decSize = aField.decSize;
+                lkpTable.fields.append(lkpCode);
+                //Creates the field for description in the lookup
+                TfieldDef lkpDesc;
+                lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                lkpDesc.selectSource = "NONE";
+                lkpDesc.selectListName = "NONE";
+                for (int lang = 0; lang <= languages.count()-1;lang++)
+                {
+                    TlngLkpDesc langDesc;
+                    langDesc.langCode = languages[lang].code;
+                    langDesc.desc = "Description";
+                    lkpDesc.desc.append(langDesc);
+                }
+                lkpDesc.key = false;
+                lkpDesc.sensitive = false;
+                lkpDesc.type = "varchar";
+                lkpDesc.size = getMaxDescLength(values);
+                lkpDesc.decSize = 0;
+                lkpTable.fields.append(lkpDesc);
+                aField.rTable = lkpTable.name;
+                aField.rField = lkpCode.name;
+                aField.rName = getUUIDCode();
+                tables.append(lkpTable);
             }
+            else
+            {
+                aField.rName = getUUIDCode();
+                aField.rTable = lkpTable.name;
+                aField.rField = getKeyField(lkpTable.name);
+            }
+
         }
         else
         {
@@ -3396,6 +3551,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
         aField.selectSource = "NONE";
         aField.selectListName = "NONE";
         aField.odktype = "NONE";
+        aField.key = false;
         aField.type = "text";
         aField.size = 255;
         aField.decSize = 0;
@@ -3618,7 +3774,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 int result;
                 values.append(getSelectValuesFromCSV2(fixField(variableName),"itemsets.csv",selectHasOrOther(variableType),result,dir,database,queryField));
                 if (result != 0)
-                    exit(19);
+                    exit(15);
             }
         }
 
@@ -3685,74 +3841,86 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             if (values.count() > 0) //If the lookup table has values
             {
                 //Creating the lookp table if its neccesary
-                if (isLookUpYesNo(values) == false) //Do not process yes/no values as lookup tables
+
+                QString listName;
+                QJsonValue listValue = fieldObject.value("list_name");
+                if (!listValue.isUndefined())
+                    listName = fixField(listValue.toString().toLower());
+                else
                 {
-                    TtableDef lkpTable = getDuplicatedLkpTable(values);
-                    lkpTable.isLoop = false;
-                    lkpTable.isOSM = false;
-                    lkpTable.isGroup = false;
-                    if (lkpTable.name == "EMPTY")
-                    {
-                        lkpTable.name = "lkp" + fixField(variableName.toLower());
-                        for (int lang = 0; lang < aField.desc.count(); lang++)
-                        {
-                            TlngLkpDesc fieldDesc;
-                            fieldDesc.langCode = aField.desc[lang].langCode;
-                            fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
-                            lkpTable.desc.append(fieldDesc);
-                        }
-                        lkpTable.pos = -1;
-                        lkpTable.islookup = true;
-                        lkpTable.isOneToOne = false;
-                        lkpTable.lkpValues.append(values);
-                        //Creates the field for code in the lookup
-                        TfieldDef lkpCode;
-                        lkpCode.name = fixField(variableName.toLower()) + "_cod";
-                        lkpCode.selectSource = "NONE";
-                        lkpCode.selectListName = "NONE";
-                        for (int lang = 0; lang <= languages.count()-1;lang++)
-                        {
-                            TlngLkpDesc langDesc;
-                            langDesc.langCode = languages[lang].code;
-                            langDesc.desc = "Code";
-                            lkpCode.desc.append(langDesc);
-                        }
-                        lkpCode.key = true;
-                        lkpCode.sensitive = false;
-                        lkpCode.type = aField.type;
-                        lkpCode.size = aField.size;
-                        lkpCode.decSize = aField.decSize;
-                        lkpTable.fields.append(lkpCode);
-                        //Creates the field for description in the lookup
-                        TfieldDef lkpDesc;
-                        lkpDesc.name = fixField(variableName.toLower()) + "_des";
-                        lkpDesc.selectSource = "NONE";
-                        lkpDesc.selectListName = "NONE";
-                        for (int lang = 0; lang <= languages.count()-1;lang++)
-                        {
-                            TlngLkpDesc langDesc;
-                            langDesc.langCode = languages[lang].code;
-                            langDesc.desc = "Description";
-                            lkpDesc.desc.append(langDesc);
-                        }
-                        lkpDesc.key = false;
-                        lkpDesc.sensitive = false;
-                        lkpDesc.type = "varchar";
-                        lkpDesc.size = getMaxDescLength(values);
-                        lkpDesc.decSize = 0;
-                        lkpTable.fields.append(lkpDesc);
-                        aField.rTable = lkpTable.name;
-                        aField.rField = lkpCode.name;
-                        tables.append(lkpTable);
-                    }
+                    listValue = fieldObject.value("query");
+                    if (!listValue.isUndefined())
+                        listName = fixField(listValue.toString().toLower());
                     else
-                    {
-                        if (outputType == "h")
-                            log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);                        
-                        aField.rTable = lkpTable.name;
-                        aField.rField = getKeyField(lkpTable.name);                        
-                    }
+                        listName = fixField(variableName.toLower());
                 }
+                QString table_name = "lkp" + listName;
+                TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
+                lkpTable.isLoop = false;
+                lkpTable.isOSM = false;
+                lkpTable.isGroup = false;
+                if (lkpTable.name == "EMPTY")
+                {
+                    lkpTable.name = table_name;
+                    for (int lang = 0; lang < aField.desc.count(); lang++)
+                    {
+                        TlngLkpDesc fieldDesc;
+                        fieldDesc.langCode = aField.desc[lang].langCode;
+                        fieldDesc.desc = "Lookup table for list name \"" + listName + "\"";
+                        lkpTable.desc.append(fieldDesc);
+                    }
+                    lkpTable.pos = -1;
+                    lkpTable.islookup = true;
+                    lkpTable.isOneToOne = false;
+                    lkpTable.lkpValues.append(values);
+                    //Creates the field for code in the lookup
+                    TfieldDef lkpCode;
+                    lkpCode.name = fixField(listName.toLower()) + "_cod";
+                    lkpCode.selectSource = "NONE";
+                    lkpCode.selectListName = "NONE";
+                    for (int lang = 0; lang <= languages.count()-1;lang++)
+                    {
+                        TlngLkpDesc langDesc;
+                        langDesc.langCode = languages[lang].code;
+                        langDesc.desc = "Code";
+                        lkpCode.desc.append(langDesc);
+                    }
+                    lkpCode.key = true;
+                    lkpCode.sensitive = false;
+                    lkpCode.type = aField.type;
+                    lkpCode.size = aField.size;
+                    lkpCode.decSize = aField.decSize;
+                    lkpTable.fields.append(lkpCode);
+                    //Creates the field for description in the lookup
+                    TfieldDef lkpDesc;
+                    lkpDesc.name = fixField(listName.toLower()) + "_des";
+                    lkpDesc.selectSource = "NONE";
+                    lkpDesc.selectListName = "NONE";
+                    for (int lang = 0; lang <= languages.count()-1;lang++)
+                    {
+                        TlngLkpDesc langDesc;
+                        langDesc.langCode = languages[lang].code;
+                        langDesc.desc = "Description";
+                        lkpDesc.desc.append(langDesc);
+                    }
+                    lkpDesc.key = false;
+                    lkpDesc.sensitive = false;
+                    lkpDesc.type = "varchar";
+                    lkpDesc.size = getMaxDescLength(values);
+                    lkpDesc.decSize = 0;
+                    lkpTable.fields.append(lkpDesc);
+                    aField.rTable = lkpTable.name;
+                    aField.rField = lkpCode.name;
+                    aField.rName = getUUIDCode();
+                    tables.append(lkpTable);
+                }
+                else
+                {
+                    aField.rName = getUUIDCode();
+                    aField.rTable = lkpTable.name;
+                    aField.rField = getKeyField(lkpTable.name);
+                }
+
             }
             else
             {
@@ -3785,7 +3953,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 oField.multiSelectTable = "";
                 oField.rField = "";
                 oField.rTable = "";
-                oField.size = 120;
+                oField.size = 0;
                 oField.type = "varchar";
                 tables[tblIndex].fields.append(oField);
             }
@@ -3853,6 +4021,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         relField.sensitive = false;
                         relField.rTable = tables[tblIndex].name;
                         relField.rField = tables[tblIndex].fields[field].name;
+                        relField.rName = getUUIDCode();
                         relField.xmlCode = "NONE";
                         relField.isMultiSelect = false;
                         relField.formula = "";
@@ -3898,19 +4067,32 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 mselKeyField.size = getMaxValueLength(values);
                 mselKeyField.decSize = 0;
                 //Processing the lookup table if neccesary
-                TtableDef lkpTable = getDuplicatedLkpTable(values);
+                QString listName;
+                QJsonValue listValue = fieldObject.value("list_name");
+                if (!listValue.isUndefined())
+                    listName = fixField(listValue.toString().toLower());
+                else
+                {
+                    listValue = fieldObject.value("query");
+                    if (!listValue.isUndefined())
+                        listName = fixField(listValue.toString().toLower());
+                    else
+                        listName = fixField(variableName.toLower());
+                }
+                QString table_name = "lkp" + listName;
+
+                TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
                 lkpTable.isLoop = false;
                 lkpTable.isOSM = false;
                 lkpTable.isGroup = false;
                 if (lkpTable.name == "EMPTY")
                 {
-                    lkpTable.name = "lkp" + fixField(variableName.toLower());
-
+                    lkpTable.name = table_name;
                     for (int lang = 0; lang < aField.desc.count(); lang++)
                     {
                         TlngLkpDesc fieldDesc;
                         fieldDesc.langCode = aField.desc[lang].langCode;
-                        fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
+                        fieldDesc.desc = "Lookup table for list name \"" + listName + "\"";
                         lkpTable.desc.append(fieldDesc);
                     }
                     lkpTable.pos = -1;
@@ -3918,7 +4100,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.isOneToOne = false;
                     //Creates the field for code in the lookup
                     TfieldDef lkpCode;
-                    lkpCode.name = fixField(variableName.toLower()) + "_cod";
+                    lkpCode.name = fixField(listName.toLower()) + "_cod";
                     lkpCode.selectSource = "NONE";
                     lkpCode.selectListName = "NONE";
                     int lang;
@@ -3937,7 +4119,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.fields.append(lkpCode);
                     //Creates the field for description in the lookup
                     TfieldDef lkpDesc;
-                    lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                    lkpDesc.name = fixField(listName.toLower()) + "_des";
                     lkpDesc.selectSource = "NONE";
                     lkpDesc.selectListName = "NONE";
                     for (lang = 0; lang <= languages.count()-1;lang++)
@@ -3952,24 +4134,23 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpDesc.sensitive = false;
                     lkpDesc.type = "varchar";
                     lkpDesc.size = getMaxDescLength(values);
-                    lkpDesc.decSize = 0;                    
-                    lkpTable.fields.append(lkpDesc);                    
+                    lkpDesc.decSize = 0;
+                    lkpTable.fields.append(lkpDesc);
                     //Linking the multiselect field to this lookup table
                     mselKeyField.rTable = lkpTable.name;
                     mselKeyField.rField = lkpCode.name;
+                    mselKeyField.rName = getUUIDCode();
                     lkpTable.lkpValues.append(values);
                     tables.append(lkpTable); //Append the lookup table to the list of tables
+                    mselTable.fields.append(mselKeyField); //Add the multiselect key now linked to the looktable to the multiselect table
+                    tables.append(mselTable); //Append the multiselect to the list of tables
                 }
                 else
                 {
-                    if (outputType == "h")
-                        log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
-                    //Linkin the multiselect table to the existing lookup table
                     mselKeyField.rTable = lkpTable.name;
                     mselKeyField.rField = getKeyField(lkpTable.name);
+                    mselKeyField.rName = getUUIDCode();
                 }
-                mselTable.fields.append(mselKeyField); //Add the multiselect key now linked to the looktable to the multiselect table
-                tables.append(mselTable); //Append the multiselect to the list of tables
             }
             else
             {
@@ -4006,7 +4187,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 oField.multiSelectTable = "";
                 oField.rField = "";
                 oField.rTable = "";
-                oField.size = 120;
+                oField.size = 0;
                 oField.type = "varchar";
                 tables[tblIndex].fields.append(oField);
             }
@@ -4121,6 +4302,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
             relField.sensitive = false;
             relField.rTable = parentTable.name;
             relField.rField = parentTable.fields[field].name;
+            relField.rName = getUUIDCode();
             relField.xmlCode = "NONE";
             relField.xmlFullPath = "NONE";
             relField.selectSource = "NONE";
@@ -4206,74 +4388,86 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
         if (values.count() > 0) //If the lookup table has values
         {
             //Creating the lookp table if its neccesary
-            if (isLookUpYesNo(values) == false) //Do not process yes/no values as lookup tables
+
+            QString listName;
+            QJsonValue listValue = tableObject.value("list_name");
+            if (!listValue.isUndefined())
+                listName = fixField(listValue.toString().toLower());
+            else
             {
-                TtableDef lkpTable = getDuplicatedLkpTable(values);
-                lkpTable.isLoop = false;
-                lkpTable.isOSM = false;
-                lkpTable.isGroup = false;
-                if (lkpTable.name == "EMPTY")
-                {
-                    lkpTable.name = "lkp" + fixField(variableName.toLower());
-                    for (int lang = 0; lang < aField.desc.count(); lang++)
-                    {
-                        TlngLkpDesc fieldDesc;
-                        fieldDesc.langCode = aField.desc[lang].langCode;
-                        fieldDesc.desc = "Lookup table (" + aField.desc[lang].desc + ")";
-                        lkpTable.desc.append(fieldDesc);
-                    }
-                    lkpTable.pos = -1;
-                    lkpTable.islookup = true;
-                    lkpTable.isOneToOne = false;
-                    lkpTable.lkpValues.append(values);
-                    //Creates the field for code in the lookup
-                    TfieldDef lkpCode;
-                    lkpCode.name = fixField(variableName.toLower()) + "_cod";
-                    lkpCode.selectSource = "NONE";
-                    lkpCode.selectListName = "NONE";
-                    for (int lang = 0; lang <= languages.count()-1;lang++)
-                    {
-                        TlngLkpDesc langDesc;
-                        langDesc.langCode = languages[lang].code;
-                        langDesc.desc = "Code";
-                        lkpCode.desc.append(langDesc);
-                    }
-                    lkpCode.key = true;
-                    lkpCode.sensitive = false;
-                    lkpCode.type = aField.type;
-                    lkpCode.size = aField.size;
-                    lkpCode.decSize = aField.decSize;
-                    lkpTable.fields.append(lkpCode);
-                    //Creates the field for description in the lookup
-                    TfieldDef lkpDesc;
-                    lkpDesc.name = fixField(variableName.toLower()) + "_des";
-                    lkpDesc.selectSource = "NONE";
-                    lkpDesc.selectListName = "NONE";
-                    for (int lang = 0; lang <= languages.count()-1;lang++)
-                    {
-                        TlngLkpDesc langDesc;
-                        langDesc.langCode = languages[lang].code;
-                        langDesc.desc = "Description";
-                        lkpDesc.desc.append(langDesc);
-                    }
-                    lkpDesc.key = false;
-                    lkpDesc.sensitive = false;
-                    lkpDesc.type = "varchar";
-                    lkpDesc.size = getMaxDescLength(values);
-                    lkpDesc.decSize = 0;
-                    lkpTable.fields.append(lkpDesc);
-                    aField.rTable = lkpTable.name;
-                    aField.rField = lkpCode.name;
-                    tables.append(lkpTable);
-                }
+                listValue = tableObject.value("query");
+                if (!listValue.isUndefined())
+                    listName = fixField(listValue.toString().toLower());
                 else
-                {
-                    if (outputType == "h")
-                        log("Lookup table for field " + variableName + " is the same as " + lkpTable.name + ". Using " + lkpTable.name);
-                    aField.rTable = lkpTable.name;
-                    aField.rField = getKeyField(lkpTable.name);
-                }
+                    listName = fixField(variableName.toLower());
             }
+            QString table_name = "lkp" + listName;
+            TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
+            lkpTable.isLoop = false;
+            lkpTable.isOSM = false;
+            lkpTable.isGroup = false;
+            if (lkpTable.name == "EMPTY")
+            {
+                lkpTable.name = table_name;
+                for (int lang = 0; lang < aField.desc.count(); lang++)
+                {
+                    TlngLkpDesc fieldDesc;
+                    fieldDesc.langCode = aField.desc[lang].langCode;
+                    fieldDesc.desc = "Lookup table for list name \"" + listName + "\"";
+                    lkpTable.desc.append(fieldDesc);
+                }
+                lkpTable.pos = -1;
+                lkpTable.islookup = true;
+                lkpTable.isOneToOne = false;
+                lkpTable.lkpValues.append(values);
+                //Creates the field for code in the lookup
+                TfieldDef lkpCode;
+                lkpCode.name = fixField(listName.toLower()) + "_cod";
+                lkpCode.selectSource = "NONE";
+                lkpCode.selectListName = "NONE";
+                for (int lang = 0; lang <= languages.count()-1;lang++)
+                {
+                    TlngLkpDesc langDesc;
+                    langDesc.langCode = languages[lang].code;
+                    langDesc.desc = "Code";
+                    lkpCode.desc.append(langDesc);
+                }
+                lkpCode.key = true;
+                lkpCode.sensitive = false;
+                lkpCode.type = aField.type;
+                lkpCode.size = aField.size;
+                lkpCode.decSize = aField.decSize;
+                lkpTable.fields.append(lkpCode);
+                //Creates the field for description in the lookup
+                TfieldDef lkpDesc;
+                lkpDesc.name = fixField(listName.toLower()) + "_des";
+                lkpDesc.selectSource = "NONE";
+                lkpDesc.selectListName = "NONE";
+                for (int lang = 0; lang <= languages.count()-1;lang++)
+                {
+                    TlngLkpDesc langDesc;
+                    langDesc.langCode = languages[lang].code;
+                    langDesc.desc = "Description";
+                    lkpDesc.desc.append(langDesc);
+                }
+                lkpDesc.key = false;
+                lkpDesc.sensitive = false;
+                lkpDesc.type = "varchar";
+                lkpDesc.size = getMaxDescLength(values);
+                lkpDesc.decSize = 0;
+                lkpTable.fields.append(lkpDesc);
+                aField.rTable = lkpTable.name;
+                aField.rField = lkpCode.name;
+                aField.rName = getUUIDCode();
+                tables.append(lkpTable);
+            }
+            else
+            {
+                aField.rName = getUUIDCode();
+                aField.rTable = lkpTable.name;
+                aField.rField = getKeyField(lkpTable.name);
+            }
+
         }
         else
         {
@@ -4630,6 +4824,34 @@ void reportSelectDuplicates()
         log(XMLResult.toString());
 }
 
+QList<TlkpValue> getValuesFromInsertFile(QString tableName, QDomNode startNode, QString &clmCode, QString &cmlDesc)
+{
+    QDomNode lkptable = startNode;
+    QList<TlkpValue> res;
+    while (!lkptable.isNull())
+    {
+        if (lkptable.toElement().attribute("name") == tableName)
+        {
+            clmCode = lkptable.toElement().attribute("clmcode");
+            cmlDesc = lkptable.toElement().attribute("clmdesc");
+            QDomNode nodeValue = lkptable.firstChild();
+            while (!nodeValue.isNull())
+            {
+                TlkpValue value;
+                value.code = nodeValue.toElement().attribute("code");
+                TlngLkpDesc valueDesc;
+                valueDesc.langCode = getDefLanguageCode();
+                valueDesc.desc = nodeValue.toElement().attribute("description");
+                value.desc.append(valueDesc);
+                res.append(value);
+                nodeValue = nodeValue.nextSibling();
+            }
+        }
+        lkptable = lkptable.nextSibling();
+    }
+    return res;
+}
+
 //Reads the input JSON file and converts it to a MySQL database
 int processJSON(QString inputFile, QString mainTable, QString mainField, QDir dir, QSqlDatabase database)
 {
@@ -4714,7 +4936,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
             if (invalidKeyTypes.indexOf(surveyVariables[mainFieldIndex].object.value("type").toString()) >= 0)
             {
                 log("The type of the primary key field is invalid");
-                exit(18);
+                exit(17);
             }
         }
 
@@ -4741,9 +4963,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                     {
                         QDomElement eLanguage;
                         eLanguage = XMLResult.createElement("language");
-                        QDomText vSepFile;
-                        vSepFile = XMLResult.createTextNode(ODKLanguages[pos]);
-                        eLanguage.appendChild(vSepFile);
+                        eLanguage.setAttribute("name",ODKLanguages[pos]);
                         eLanguages.appendChild(eLanguage);
                     }
                     XMLRoot.appendChild(eLanguages);
@@ -4776,9 +4996,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                     languageNotFound = true;
                     QDomElement eLanguage;
                     eLanguage = XMLResult.createElement("language");
-                    QDomText vSepFile;
-                    vSepFile = XMLResult.createTextNode(ODKLanguages[lng]);
-                    eLanguage.appendChild(vSepFile);
+                    eLanguage.setAttribute("name",ODKLanguages[lng]);
                     eLanguages.appendChild(eLanguage);
                 }
             }
@@ -4791,7 +5009,8 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                     log(XMLResult.toString());
                 exit(4);
             }
-        }
+        }        
+
         int lang;
         //Creating the main table
         tableIndex = tableIndex + 1;
@@ -4877,7 +5096,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
             f_submitted_by.desc.append(langDesc);
         }
         f_submitted_by.type = "varchar";
-        f_submitted_by.size = 120;
+        f_submitted_by.size = 255;
         f_submitted_by.decSize = 0;
         f_submitted_by.rField = "";
         f_submitted_by.rTable = "";
@@ -4892,6 +5111,32 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         f_submitted_by.selectListName = "NONE";
         maintable.fields.append(f_submitted_by);
 
+        //Append the _xform_id_stringy field to the main table
+        TfieldDef f_xform_id_string;
+        f_xform_id_string.name = "_xform_id_string";
+        for (lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "XForm ID";
+            f_xform_id_string.desc.append(langDesc);
+        }
+        f_xform_id_string.type = "varchar";
+        f_xform_id_string.size = 255;
+        f_xform_id_string.decSize = 0;
+        f_xform_id_string.rField = "";
+        f_xform_id_string.rTable = "";
+        f_xform_id_string.key = false;
+        f_xform_id_string.sensitive = false;
+        f_xform_id_string.isMultiSelect = false;
+        f_xform_id_string.xmlCode = "_xform_id_string";
+        f_xform_id_string.odktype = "text";
+        f_xform_id_string.calculateWithSelect = false;
+        f_xform_id_string.formula = "";
+        f_xform_id_string.selectSource = "NONE";
+        f_xform_id_string.selectListName = "NONE";
+        maintable.fields.append(f_xform_id_string);
+
         //Append the Submmited date field to the main table
         TfieldDef f_submitted_date;
         f_submitted_date.name = "_submitted_date";
@@ -4903,7 +5148,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
             f_submitted_date.desc.append(langDesc);
         }
         f_submitted_date.type = "datetime";
-        f_submitted_date.size = 120;
+        f_submitted_date.size = 0;
         f_submitted_date.decSize = 0;
         f_submitted_date.rField = "";
         f_submitted_date.rTable = "";
@@ -4976,12 +5221,12 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         if (duplicatedTables.count() > 0)
         {
             reportDuplicatedTables();
-            exit(22);
+            exit(18);
         }
         if (duplicatedFields.count() > 0)
         {
             reportDuplicatedFields();
-            exit(23);
+            exit(19);
         }
         if (duplicatedSelectValues.count() > 0)
         {
@@ -5112,8 +5357,7 @@ int addLanguage(QString langCode, bool defLang)
     QString code = reEngLetterOnly.cap(1);
     if (genLangIndex(code) == -1)
     {
-        QString name = reEngLetterOnly.cap(2);
-        name = name;
+        QString name = reEngLetterOnly.cap(2);        
         TlangDef language;
         language.code = code.toLower();
         language.desc = name.toLower();
@@ -5168,6 +5412,31 @@ int main(int argc, char *argv[])
     title = title + " * JSON XForm To MySQL                                               * \n";
     title = title + " * This tool generates a MySQL schema from a PyXForm JSON file.      * \n";
     title = title + " * JXFormToMySQL generates full relational MySQL databases.          * \n";
+    title = title + " *                                                                   * \n";
+    title = title + " * Exit codes:                                                       * \n";
+    title = title + " * 1: General processing error.                                      * \n";
+    title = title + " * 2: Tables with more than 64 relationhips. (XML)                   * \n";
+    title = title + " * 3: otherlanguages option is empty (XML).                          * \n";
+    title = title + " * 4: Language not found. (XML)                                      * \n";
+    title = title + " * 5: Malformed deflanguage option.                                  * \n";
+    title = title + " * 6: Malformed otherlanguages option.                               * \n";
+    title = title + " * 7: Not used.                                                      * \n";
+    title = title + " * 8: Not used.                                                      * \n";
+    title = title + " * 9: The ODK has duplicated choice options (XML).                   * \n";
+    title = title + " * 10: Primary key not found.                                        * \n";
+    title = title + " * 11: Resource XML file was not attached (XML).                     * \n";
+    title = title + " * 12: Error parsing resource XML file (XML).                        * \n";
+    title = title + " * 13: Resource CSV file was not attached (XML).                     * \n";
+    title = title + " * 14: Resource CSV file has invalid characters (XML).               * \n";
+    title = title + " * 15: Error parsing CSV file (XML).                                 * \n";
+    title = title + " * 16: Error parsing search expression (XML).                        * \n";
+    title = title + " * 17: Primary key is invalid.                                       * \n";
+    title = title + " * 18: Duplicated tables (XML).                                      * \n";
+    title = title + " * 19: Duplicated field (XML).                                       * \n";
+    title = title + " * 20: Invalid fields (XML).                                         * \n";
+    title = title + " * 21: Duplicated lookups (XML).                                     * \n";
+    title = title + " *                                                                   * \n";
+    title = title + " * XML = XML oputput is available.                                   * \n";
     title = title + " ********************************************************************* \n";
 
     TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "2.0");
@@ -5185,11 +5454,10 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> prefixArg("p","prefix","Prefix for each table. _ is added to the prefix. Default no prefix",false,"","string");    
     TCLAP::ValueArg<std::string> langArg("l","otherlanguages","Other languages. For example: (en)English,(es)Español. Required if ODK form has multiple languages",false,"","string");
     TCLAP::ValueArg<std::string> defLangArg("d","deflanguage","Default language. For example: (en)English. If not indicated then English will be asumed",false,"(en)English","string");
-    TCLAP::ValueArg<std::string> transFileArg("T","translationfile","Output translation file",false,"./iso639.sql","string");
-    TCLAP::ValueArg<std::string> yesNoStringArg("y","yesnostring","Yes and No strings in the default language in the format \"String|String\". This will allow the tool to identify Yes/No lookup tables and exclude them. This is not case sensitive. For example, if the default language is Spanish this value should be indicated as \"Si|No\". If empty English \"Yes|No\" will be assumed",false,"Yes|No","string");
+    TCLAP::ValueArg<std::string> transFileArg("T","translationfile","Output translation file",false,"./iso639.sql","string");    
     TCLAP::ValueArg<std::string> tempDirArg("e","tempdirectory","Temporary directory. ./tmp by default",false,"./tmp","string");
     TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");    
-    TCLAP::SwitchArg justCheckSwitch("K","justCheck","Just check of main inconsistencies and report back", cmd, false);
+    TCLAP::SwitchArg justCheckSwitch("K","justCheck","Just check of main inconsistencies and report back", cmd, false);    
     TCLAP::UnlabeledMultiArg<std::string> suppFiles("supportFile", "support files", false, "string");
 
     debug = false;
@@ -5212,10 +5480,9 @@ int main(int argc, char *argv[])
     cmd.add(prefixArg);    
     cmd.add(langArg);
     cmd.add(defLangArg);
-    cmd.add(transFileArg);
-    cmd.add(yesNoStringArg);
+    cmd.add(transFileArg);    
     cmd.add(tempDirArg);
-    cmd.add(outputTypeArg);    
+    cmd.add(outputTypeArg);
     cmd.add(suppFiles);
 
     //Parsing the command lines
@@ -5235,7 +5502,7 @@ int main(int argc, char *argv[])
         }
     }
     loadInvalidFieldNames();
-    justCheck = justCheckSwitch.getValue();
+    justCheck = justCheckSwitch.getValue();    
     //Getting the variables from the command
     QString input = QString::fromUtf8(inputArg.getValue().c_str());
     QString ddl = QString::fromUtf8(ddlArg.getValue().c_str());
@@ -5249,9 +5516,12 @@ int main(int argc, char *argv[])
     QString mainVar = QString::fromUtf8(mainVarArg.getValue().c_str());
     QString lang = QString::fromUtf8(langArg.getValue().c_str());
     QString defLang = QString::fromUtf8(defLangArg.getValue().c_str());
-    QString transFile = QString::fromUtf8(transFileArg.getValue().c_str());
-    QString yesNoString = QString::fromUtf8(yesNoStringArg.getValue().c_str());
+    QString transFile = QString::fromUtf8(transFileArg.getValue().c_str());    
     QString tempDirectory = QString::fromUtf8(tempDirArg.getValue().c_str());
+
+    lang = lang.replace("'","");
+    defLang = defLang.replace("'","");
+
     outputType = QString::fromUtf8(outputTypeArg.getValue().c_str());
     mainVar = mainVar.trimmed().toLower();
     QDir currdir(".");
@@ -5370,16 +5640,13 @@ int main(int argc, char *argv[])
     prefix = QString::fromUtf8(prefixArg.getValue().c_str());
     prefix = prefix + "_";
 
-    strYes = "Yes";
-    strNo = "No";
-
     if (prefix == "_")
         prefix = "";
 
     tableIndex = 0;
 
     if (addLanguage(defLang.replace("'",""),true) != 0)
-        return 1;
+        exit(5);
     
     QStringList othLanguages;
     othLanguages = lang.split(",",QString::SkipEmptyParts);
@@ -5387,32 +5654,6 @@ int main(int argc, char *argv[])
         if (addLanguage(othLanguages[lng].replace("'",""),false) != 0)
             exit(6);
     
-    if (isDefaultLanguage("english") == false)
-    {
-        if (yesNoString == "")
-        {
-            log("English is not the default language. You need to specify Yes and No values with the -y parameter in " + getDefLanguage());
-            exit(7);
-        }
-        if (yesNoString.indexOf("|") == -1)
-        {
-            log("Malformed yes|no language string1");
-            exit(8);
-        }
-        if (yesNoString.length() == 1)
-        {
-            log("Malformed yes|no language string2");
-            exit(8);
-        }
-        strYes = yesNoString.split("|",QString::SkipEmptyParts)[0];
-        strNo = yesNoString.split("|",QString::SkipEmptyParts)[1];
-    }
-    else
-    {
-        strYes = yesNoString.split("|",QString::SkipEmptyParts)[0];
-        strNo = yesNoString.split("|",QString::SkipEmptyParts)[1];
-    }
-
     int returnValue;
     returnValue = processJSON(input,mTable.trimmed(),mainVar.trimmed(),dir,dblite);
     if (returnValue == 0)
@@ -5455,8 +5696,35 @@ int main(int argc, char *argv[])
             }
             log(XMLResult.toString());
         }
-        exit(24);
+        exit(20);
     }
+
+
+    if (duplicated_lookups.count() > 0)
+    {
+        QDomDocument XMLResult;
+        XMLResult = QDomDocument("XMLResult");
+        QDomElement XMLRoot;
+        XMLRoot = XMLResult.createElement("XMLResult");
+        XMLResult.appendChild(XMLRoot);
+        for (int item = 0; item < duplicated_lookups.count(); item++)
+        {
+            QDomElement eDuplicatedTable;
+            eDuplicatedTable = XMLResult.createElement("table");
+            eDuplicatedTable.setAttribute("name",duplicated_lookups[item].sameas.right(duplicated_lookups[item].sameas.length()-3));
+            for (int item2 = 0; item2 < duplicated_lookups[item].tables.count(); item2++)
+            {
+                QDomElement eDuplicatedItem;
+                eDuplicatedItem = XMLResult.createElement("duplicate");
+                eDuplicatedItem.setAttribute("name",duplicated_lookups[item].tables[item2].right(duplicated_lookups[item].tables[item2].length()-3));
+                eDuplicatedTable.appendChild(eDuplicatedItem);
+            }
+            XMLRoot.appendChild(eDuplicatedTable);
+        }
+        log(XMLResult.toString());
+        exit(21);
+    }
+
 
     if (justCheck)
     {
