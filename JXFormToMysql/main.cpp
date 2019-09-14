@@ -237,6 +237,21 @@ void isFieldValid(QString field)
             return;
         }
     }
+    if (field.indexOf("_msel_") >= 0)
+    {
+        bool found = false;
+        for (int pos2 = 0; pos2 < invalidFields.count(); pos2++)
+        {
+            if (invalidFields[pos2] == field)
+            {
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            invalidFields.append(field);
+        return;
+    }
 }
 
 void loadInvalidFieldNames()
@@ -3581,7 +3596,10 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
     variableType = fieldObject.value("type").toString("text");
     QString variableName;
     variableName = fieldObject.value("name").toString();    
-    //log("\tProcessing field:" + variableName);
+//    if (variableName == "d233_whotranslvstck")
+//        log("d233_whotranslvstck");
+
+
     QString tableType = "NotLoop";
     if (tables[tblIndex].isLoop)
         tableType = "loop";
@@ -4150,6 +4168,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     mselKeyField.rTable = lkpTable.name;
                     mselKeyField.rField = getKeyField(lkpTable.name);
                     mselKeyField.rName = getUUIDCode();
+                    mselTable.fields.append(mselKeyField);
+                    tables.append(mselTable);
                 }
             }
             else
