@@ -3,6 +3,8 @@ ODK Tools is a toolbox for processing [ODK](https://opendatakit.org/) survey dat
 
 ODK Tools comprises of four command line tools performing different tasks and eight utility programs. The toolbox is cross-platform and can be built in Windows, Linux, and Mac.
 
+This documentation is based on version 2.0 of ODK Tools.
+
 ## The toolbox
 
 ### JSON PyXForm to MySQL (JXFormToMySQL)
