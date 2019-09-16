@@ -1908,6 +1908,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                         createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                         createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                        createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                         if (tables[pos].fields[clm].sensitive == true)
                         {
                             createFieldNode.setAttribute("sensitive","true");
@@ -1945,6 +1946,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("name",tables[pos].fields[clm].name.toLower());
                         createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                         createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                        createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                         if (tables[pos].fields[clm].sensitive == true)
                         {
                             createFieldNode.setAttribute("sensitive","true");
@@ -1975,6 +1977,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                     createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                     createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                     createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                    createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                     if (tables[pos].fields[clm].sensitive == true)
                     {
                         createFieldNode.setAttribute("sensitive","true");
@@ -2005,6 +2008,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                 createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                 createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                 if (tables[pos].fields[clm].sensitive == true)
                 {
                     createFieldNode.setAttribute("sensitive","true");
@@ -5685,8 +5689,25 @@ int main(int argc, char *argv[])
         }
         appendUUIDs();
         protect_sensitive();
-        if (!justCheck)
-            generateOutputFiles(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
+        generateOutputFiles(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
+        if (justCheck)
+        {
+            // Remove all files besided the manifest, create and insert
+            if (QFile::exists(ddl))
+                QFile::remove(ddl);
+
+            if (QFile::exists(insert))
+                QFile::remove(insert);
+
+            if (QFile::exists(metadata))
+                QFile::remove(metadata);
+
+            if (QFile::exists(transFile))
+                QFile::remove(transFile);
+
+            if (QFile::exists(drop))
+                QFile::remove(drop);
+        }
     }
     else
         return returnValue;
