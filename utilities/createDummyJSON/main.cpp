@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
     title = title + " * This tool creates a dummy data file in JSON format based on the   * \n";
     title = title + " * create and insert XML files.                                      * \n";
     title = title + " *                                                                   * \n";
-    title = title + " * This tool is usefull when flatting JSONs into a CSV format while  * \n";
+    title = title + " * This tool is useful when flatting JSONs into a CSV format while   * \n";
     title = title + " * conserving a proper order of the variables.                       * \n";
     title = title + " ********************************************************************* \n";
 
@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> intertArg("i","insert","Input create XML file",false,"","string");
     TCLAP::ValueArg<std::string> outputArg("o","output","Output JSON file",false,"./output.json","string");
     TCLAP::ValueArg<std::string> arraysArg("a","arrays","Array sizes as defined as name:size,name:size",false,"","string");
-    TCLAP::SwitchArg repoSwitch("r","repository","Generate keys for repository", cmd, false);
+    TCLAP::SwitchArg repoSwitch("r","repository","Generate keys for repository", cmd, true);
     TCLAP::SwitchArg separateSwitch("s","separate","Separate multiselects in different columns", cmd, false);
 
     cmd.add(createArg);

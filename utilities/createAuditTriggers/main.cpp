@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> passArg("p","password","MySQL Password",true,"","string");
     TCLAP::ValueArg<std::string> schemaArg("s","schema","MySQL Schema",true,"","string");
     TCLAP::ValueArg<std::string> outputArg("o","output","Output directory",false,".","string");
-    TCLAP::ValueArg<std::string> tablesArg("t","tables","Coma separated list of tables to generare audit. Empty (default) means all",false,"","string");
+    TCLAP::ValueArg<std::string> tablesArg("t","tables","Coma separated list of tables to generate audit. Empty (default) means all",false,"","string");
 
     //These two parameters should be removed once the external script code works
 

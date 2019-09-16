@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     title = title + " * MySQLToXLSX                                                         * \n";
     title = title + " * This tool extracts data from a MySQL Database into XLSX files.      * \n";
     title = title + " * Each table will create a new sheet in the excel file.               * \n";
-    title = title + " * The tool requires the create.xml file created by ODKToMySQL to      * \n";
+    title = title + " * The tool requires the create.xml file created by JXFormToMySQL to   * \n";
     title = title + " * determine the type of data and whether a field or a table should be * \n";
     title = title + " * exported due to the sensitivity of its information.                 * \n";
     title = title + " *********************************************************************** \n";
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     TCLAP::SwitchArg remoteSwitch("i","includesensitive","Include sensitive information. False by default", cmd, false);
     TCLAP::SwitchArg lookupSwitch("l","includelookups","Include lookup tables. False by default", cmd, false);
     TCLAP::SwitchArg mselSwitch("m","includemultiselects","Include multi-select tables as sheets. False by default", cmd, false);
-    TCLAP::SwitchArg separateSwitch("S","separatemultiselects","Separate multi-select fields in different columns. False by default", cmd, false);
+    TCLAP::SwitchArg separateSwitch("S","separatemultiselects","Separate multi-select fields in different columns. False by default", cmd, true);
 
 
 
