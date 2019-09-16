@@ -1,7 +1,7 @@
 # ODK Tools
-ODK Tools is a toolbox for processing [ODK](https://opendatakit.org/) survey data into MySQL databases. The toolbox can either be combined with [FormShare](https://github.com/qlands/FormShare) as it conveniently stores submissions in JSON format but also can process ODK raw submissions in XML format. 
+ODK Tools is a toolbox for processing [ODK](https://opendatakit.org/) survey data into MySQL databases. The toolbox can be combined with [FormShare](https://github.com/qlands/FormShare) as it conveniently stores submissions in JSON format but also can process ODK raw submissions in XML format. 
 
-ODK Tools comprises of three command line tools performing different tasks and six utility programs. The toolbox is cross-platform and can be built in Windows, Linux, and Mac.
+ODK Tools comprises of four command line tools performing different tasks and eight utility programs. The toolbox is cross-platform and can be built in Windows, Linux, and Mac.
 
 ## The toolbox
 
