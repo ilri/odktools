@@ -3987,6 +3987,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             aField.type = "varchar";
             aField.size = getMaxMSelValueLength(values);
             aField.decSize = 0;
+            aField.odktype = variableType;
             aField.key = false;
             aField.sensitive = false;
             aField.isMultiSelect = true;
