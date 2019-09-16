@@ -1,5 +1,7 @@
 #ODK Tools - Installation script tested in Ubuntu server 16.04 and 18.04
 
+sudo add-apt-repository universe
+sudo add-apt-repository multiverse
 sudo apt-get update
 sudo apt-get install build-essential qt5-default qtbase5-private-dev qtdeclarative5-dev libqt5sql5-mysql cmake mongodb jq libboost-all-dev unzip zlib1g-dev automake npm
 
@@ -7,9 +9,8 @@ cd /opt
 sudo git clone https://github.com/qlands/odktools.git
 sudo mkdir odktools-deps
 cd odktools-deps
-sudo wget --user=[GitHub-user] --ask-password https://github.com/mongodb/mongo-c-driver/releases/download/1.6.1/mongo-c-driver-1.6.1.tar.gz
-sudo wget --user=[GitHub-user] --ask-password https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz
-sudo wget --user=[GitHub-user] --ask-password https://github.com/jmcnamara/libxlsxwriter/archive/RELEASE_0.7.6.tar.gz
+sudo wget --user=user https://github.com/mongodb/mongo-c-driver/releases/download/1.6.1/mongo-c-driver-1.6.1.tar.gz
+sudo wget --user=user https://github.com/jmcnamara/libxlsxwriter/archive/RELEASE_0.7.6.tar.gz
 sudo wget https://downloads.sourceforge.net/project/quazip/quazip/0.7.3/quazip-0.7.3.tar.gz
 sudo git clone https://github.com/rgamble/libcsv.git
 
@@ -19,15 +20,6 @@ sudo ./configure
 sudo make
 sudo make install
 cd ..
-
-sudo tar xvfz 1.8.4.tar.gz
-cd jsoncpp-1.8.4
-sudo mkdir build
-cd build
-sudo cmake ..
-sudo make
-sudo make install
-cd ../..
 
 sudo tar xvfz quazip-0.7.3.tar.gz
 cd quazip-0.7.3
@@ -61,13 +53,7 @@ cd build
 sudo cmake -DCMAKE_C_FLAGS:STRING="-O2 -fPIC" -DCMAKE_CXX_FLAGS:STRING="-O2 -fPIC" -DBSONCXX_POLY_USE_BOOST=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
 sudo make
 sudo make install
-cd ../..
-
-json2csv-cpp
-sudo qmake
-sudo make
-sudo cp json2csv /usr/bin
-cd ../../
+cd ../../..
 
 sudo qmake
 sudo make

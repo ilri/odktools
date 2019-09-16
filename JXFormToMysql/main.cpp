@@ -237,6 +237,21 @@ void isFieldValid(QString field)
             return;
         }
     }
+    if (field.indexOf("_msel_") >= 0)
+    {
+        bool found = false;
+        for (int pos2 = 0; pos2 < invalidFields.count(); pos2++)
+        {
+            if (invalidFields[pos2] == field)
+            {
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            invalidFields.append(field);
+        return;
+    }
 }
 
 void loadInvalidFieldNames()
@@ -1893,6 +1908,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                         createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                         createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                        createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                         if (tables[pos].fields[clm].sensitive == true)
                         {
                             createFieldNode.setAttribute("sensitive","true");
@@ -1930,6 +1946,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("name",tables[pos].fields[clm].name.toLower());
                         createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                         createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                        createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                         if (tables[pos].fields[clm].sensitive == true)
                         {
                             createFieldNode.setAttribute("sensitive","true");
@@ -1960,6 +1977,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                     createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                     createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                     createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                    createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                     if (tables[pos].fields[clm].sensitive == true)
                     {
                         createFieldNode.setAttribute("sensitive","true");
@@ -1990,6 +2008,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                 createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                 createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                 if (tables[pos].fields[clm].sensitive == true)
                 {
                     createFieldNode.setAttribute("sensitive","true");
@@ -3581,7 +3600,10 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
     variableType = fieldObject.value("type").toString("text");
     QString variableName;
     variableName = fieldObject.value("name").toString();    
-    //log("\tProcessing field:" + variableName);
+//    if (variableName == "d233_whotranslvstck")
+//        log("d233_whotranslvstck");
+
+
     QString tableType = "NotLoop";
     if (tables[tblIndex].isLoop)
         tableType = "loop";
@@ -3969,6 +3991,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             aField.type = "varchar";
             aField.size = getMaxMSelValueLength(values);
             aField.decSize = 0;
+            aField.odktype = variableType;
             aField.key = false;
             aField.sensitive = false;
             aField.isMultiSelect = true;
@@ -4150,6 +4173,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     mselKeyField.rTable = lkpTable.name;
                     mselKeyField.rField = getKeyField(lkpTable.name);
                     mselKeyField.rName = getUUIDCode();
+                    mselTable.fields.append(mselKeyField);
+                    tables.append(mselTable);
                 }
             }
             else
@@ -5664,8 +5689,25 @@ int main(int argc, char *argv[])
         }
         appendUUIDs();
         protect_sensitive();
-        if (!justCheck)
-            generateOutputFiles(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
+        generateOutputFiles(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
+        if (justCheck)
+        {
+            // Remove all files besided the manifest, create and insert
+            if (QFile::exists(ddl))
+                QFile::remove(ddl);
+
+            if (QFile::exists(insert))
+                QFile::remove(insert);
+
+            if (QFile::exists(metadata))
+                QFile::remove(metadata);
+
+            if (QFile::exists(transFile))
+                QFile::remove(transFile);
+
+            if (QFile::exists(drop))
+                QFile::remove(drop);
+        }
     }
     else
         return returnValue;
