@@ -122,7 +122,7 @@ QStringList separateMultiSelect(QString multiSelectTable, QString variableName)
     return result;
 }
 
-void parseManifest(QDomNode node, pt::ptree &json)
+void parseCreateFile(QDomNode node, pt::ptree &json)
 {
     while (!node.isNull())
     {
@@ -164,7 +164,7 @@ void parseManifest(QDomNode node, pt::ptree &json)
         else
         {
             pt::ptree childObject;
-            parseManifest(node.firstChild(), childObject);
+            parseCreateFile(node.firstChild(), childObject);
             pt::ptree repeatArray;
             int arraySize;
             arraySize = getArraySize(xmlCode);            
@@ -181,8 +181,8 @@ int main(int argc, char *argv[])
     QString title;
     title = title + "********************************************************************* \n";
     title = title + " * Create Dummy JSON                                                 * \n";
-    title = title + " * This tool creates a dummy data file in JSON format based on a     * \n";
-    title = title + " * manifest file.                                                    * \n";
+    title = title + " * This tool creates a dummy data file in JSON format based on the   * \n";
+    title = title + " * create and insert XML files.                                      * \n";
     title = title + " *                                                                   * \n";
     title = title + " * This tool is usefull when flatting JSONs into a CSV format while  * \n";
     title = title + " * conserving a proper order of the variables.                       * \n";
@@ -190,7 +190,6 @@ int main(int argc, char *argv[])
 
     TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "2.0");
 
-    TCLAP::ValueArg<std::string> inputArg("f","manifest","Input manifest XML file",true,"","string");
     TCLAP::ValueArg<std::string> createArg("c","create","Input create XML file",false,"","string");
     TCLAP::ValueArg<std::string> intertArg("i","insert","Input create XML file",false,"","string");
     TCLAP::ValueArg<std::string> outputArg("o","output","Output JSON file",false,"./output.json","string");
@@ -198,7 +197,6 @@ int main(int argc, char *argv[])
     TCLAP::SwitchArg repoSwitch("r","repository","Generate keys for repository", cmd, false);
     TCLAP::SwitchArg separateSwitch("s","separate","Separate multiselects in different columns", cmd, false);
 
-    cmd.add(inputArg);
     cmd.add(createArg);
     cmd.add(intertArg);
     cmd.add(outputArg);
@@ -207,8 +205,7 @@ int main(int argc, char *argv[])
     //Parsing the command lines
     cmd.parse( argc, argv );
 
-    //Getting the variables from the command
-    QString input = QString::fromUtf8(inputArg.getValue().c_str());
+    //Getting the variables from the command    
 
     QString xmlCreate = QString::fromUtf8(createArg.getValue().c_str());
     QString xmlInsert = QString::fromUtf8(intertArg.getValue().c_str());
@@ -234,48 +231,33 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (input != output)
+    if (xmlCreate != output)
     {
-        if (QFile::exists(input))
-        {
-            //Openning and parsing the Manifest file
-            QDomDocument docA("input");
-            QFile fileA(input);
-            if (!fileA.open(QIODevice::ReadOnly))
+        if (QFile::exists(xmlCreate))
+        {            
+            //Openning and parsing the Create XML file
+            QFile fileCreate(xmlCreate);
+            if (!fileCreate.open(QIODevice::ReadOnly))
             {
-                log("Cannot open manifest file");
+                log("Cannot open create xml file");
                 return 1;
             }
-            if (!docA.setContent(&fileA))
+            if (!xmlCreateDocument.setContent(&fileCreate))
             {
-                log("Cannot parse manifest file");
-                fileA.close();
+                log("Cannot parse create xml file");
+                fileCreate.close();
                 return 1;
             }
-            fileA.close();
+            fileCreate.close();
 
 
             if (separate)
             {
-                if ((xmlCreate == "") || (xmlInsert == ""))
+                if (xmlInsert == "")
                 {
                     log("With separation you need to specify both create and insert xml files");
                     return 1;
                 }
-                //Openning and parsing the Create XML file
-                QFile fileCreate(xmlCreate);
-                if (!fileCreate.open(QIODevice::ReadOnly))
-                {
-                    log("Cannot open create xml file");
-                    return 1;
-                }
-                if (!xmlCreateDocument.setContent(&fileCreate))
-                {
-                    log("Cannot parse create xml file");
-                    fileCreate.close();
-                    return 1;
-                }
-                fileCreate.close();
 
                 //Openning and parsing the Insert XML file
                 QFile fileInsert(xmlInsert);
@@ -294,11 +276,11 @@ int main(int argc, char *argv[])
             }
 
 
-            QDomElement rootA = docA.documentElement();
+            QDomElement rootA = xmlCreateDocument.documentElement();
 
-            if (rootA.tagName() == "ODKImportXML")
+            if (rootA.tagName() == "XMLSchemaStructure")
             {
-                QDomNode start = rootA.firstChild().firstChild();
+                QDomNode start = rootA.firstChild().nextSibling().firstChild();
                 pt::ptree JSONRoot;
                 if (!keysForRepo)
                 {
@@ -306,7 +288,7 @@ int main(int argc, char *argv[])
                     JSONRoot.put("_submissionid","dummy");
                     JSONRoot.put("meta/instanceID","dummy");
                 }
-                parseManifest(start, JSONRoot);
+                parseCreateFile(start, JSONRoot);
                 pt::write_json(output.toStdString(),JSONRoot);
             }
             else
