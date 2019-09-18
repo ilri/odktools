@@ -133,7 +133,13 @@ void parseCreateFile(QDomNode node, pt::ptree &json)
             xmlCode = node.toElement().attribute("name","NONE");
         if (node.toElement().tagName() == "field")
         {            
-            if ((xmlCode.toUpper() != "NONE") && (xmlCode != "_dummy") && (xmlCode != "rowuuid") && (node.toElement().attribute("key","false") == "false"))
+            bool addkey = true;
+            if (!keysForRepo)
+            {
+                if (node.toElement().attribute("key","false") == "true")
+                    addkey = false;
+            }
+            if ((xmlCode.toUpper() != "NONE") && (xmlCode != "_dummy") && (xmlCode != "rowuuid") && (addkey))
             {
                 if ((node.toElement().attribute("isMultiSelect","false") == "true") && (node.toElement().attribute("multiSelectTable") != ""))
                 {
