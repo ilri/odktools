@@ -84,7 +84,7 @@ private:
     QList<TfieldDef> getDataByRowUUID4(QList<TUUIDDef> dataList, QString tableToSearch, QString UUIDToSearch, QDomNode current_node);
     void getAllUUIDs(QDomNode node, QStringList &UUIDs);
     void remove_msels(QDomNode node);
-    bool isFieldMultiSelect(QString table, QString field, QString &msel_table, QString &lookup_field);
+    bool isFieldMultiSelect(QString table, QString field, QString &msel_table, QString &lookup_field, bool &isSensitive);
     QString getMultiSelectValuesAsString(QList<TUUIDDef> dataList, QString msel_table, QString lookup_field, QDomNode current_node);
     QStringList getMultiSelectValuesAsArray(QList<TUUIDDef> dataList, QString msel_table, QString lookup_field, QDomNode current_node, QString field_name);
 

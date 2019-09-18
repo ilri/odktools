@@ -151,10 +151,11 @@ void mainClass::processChilds(QDomDocument doc, QDomElement &parent, QString tab
 //}
 
 // Check wether a field is multiselect. Returns true or false. If true it also returns teh multiselect table and the field holding the values
-bool mainClass::isFieldMultiSelect(QString table, QString field, QString &msel_table, QString &lookup_field)
+bool mainClass::isFieldMultiSelect(QString table, QString field, QString &msel_table, QString &lookup_field, bool &isSensitive)
 {
     msel_table = "";
     bool result = false;
+    isSensitive = false;
     for (int pos = 0; pos < tables_in_create.count(); pos++)
     {
         if (tables_in_create.item(pos).toElement().attribute("name") == table)
@@ -164,9 +165,11 @@ bool mainClass::isFieldMultiSelect(QString table, QString field, QString &msel_t
             {
                 if (field_node.toElement().attribute("name") == field)
                 {
-                    if (field_node.toElement().attribute("isMultiSelect","false") == "true")
+                    if ((field_node.toElement().attribute("isMultiSelect","false") == "true"))
                     {
                         msel_table = field_node.toElement().attribute("multiSelectTable");
+                        if (field_node.toElement().attribute("sensitive","false") == "true")
+                            isSensitive = true;
                         result = true;
                     }
                 }
@@ -279,7 +282,8 @@ QList<TfieldDef> mainClass::getDataByRowUUID4(QList<TUUIDDef> dataList, QString 
                     QString field_name = records_found[rec].name;
                     QString msel_table;
                     QString msel_field;
-                    if (isFieldMultiSelect(tableToSearch,field_name,msel_table,msel_field))
+                    bool isSensitive;
+                    if (isFieldMultiSelect(tableToSearch,field_name,msel_table,msel_field, isSensitive))
                     {
                         //log("Field: " + field_name + " in table: " + tableToSearch + " is multiselect with UUID: " + UUIDToSearch + " with field: " + msel_field);
                         if (!separateSelects)
@@ -294,7 +298,10 @@ QList<TfieldDef> mainClass::getDataByRowUUID4(QList<TUUIDDef> dataList, QString 
                             {
                                 TfieldDef a_record;
                                 a_record.name = items[item];
-                                a_record.value = "true";
+                                if (!isSensitive)
+                                    a_record.value = "true";
+                                else
+                                    a_record.value = "not available";
                                 records_found.append(a_record);
                             }
                             rec = 0;
