@@ -12,6 +12,7 @@
 #include <boost/foreach.hpp>
 #include <xlsxwriter.h>
 #include <QDebug>
+#include <QUuid>
 
 namespace pt = boost::property_tree;
 
@@ -28,7 +29,7 @@ void mainClass::log(QString message)
     printf("%s", temp.toUtf8().data());
 }
 
-void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool includeProtected, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString insertXML, bool separate)
+void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString insertXML, bool separate)
 {
     this->host = host;
     this->port = port;
@@ -36,7 +37,7 @@ void mainClass::setParameters(QString host, QString port, QString user, QString 
     this->pass = pass;
     this->schema = schema;
     this->outputFile = outputFile;
-    this->includeSensitive = includeProtected;
+    this->protectSensitive = protectSensitive;
     this->tempDir = tempDir;
     this->createXML = createXML;
     this->incLookups = incLookups;
@@ -44,6 +45,75 @@ void mainClass::setParameters(QString host, QString port, QString user, QString 
     this->firstSheetName = firstSheetName;
     this->insertXML = insertXML;
     this->separateSelects = separate;
+}
+
+QString mainClass::protect_field(QString table_name, QString field_name, QString field_value, bool &gotProtected)
+{
+    bool protect_field;
+    protect_field = false;
+    for (int pos = 0; pos < tables.count(); pos++)
+    {
+        if (tables[pos].name == table_name)
+        {
+            for (int pos2 = 0; pos2 < tables[pos].fields.count(); pos2++)
+            {
+                if (tables[pos].fields[pos2].name == field_name)
+                {
+                    if (tables[pos].fields[pos2].sensitive == true)
+                    {
+                        protect_field = true;
+                    }
+                }
+            }
+        }
+    }
+
+    if (protect_field)
+    {
+        for (int pos = 0; pos < keys.count(); pos++)
+        {
+            if (keys[pos].name == field_name)
+            {
+                for (int pos2 = 0; pos2 < replace_values.count(); pos2++)
+                {
+                    if ((replace_values[pos2].name == field_name) && (replace_values[pos2].value == field_value))
+                    {
+                        gotProtected = true;
+                        return replace_values[pos2].replace_value;
+                    }
+                }
+                QUuid replaceUUID=QUuid::createUuid();
+                QString strReplaceUUID=replaceUUID.toString().replace("{","").replace("}","");
+                TfieldDef a_replace_value;
+                a_replace_value.name = field_name;
+                a_replace_value.value = field_value;
+                a_replace_value.replace_value = strReplaceUUID;
+                replace_values.append(a_replace_value);
+                gotProtected = true;
+                return strReplaceUUID;
+            }
+
+        }
+        for (int pos = 0; pos < tables.count(); pos++)
+        {
+            if (tables[pos].name == table_name)
+            {
+                for (int pos2 = 0; pos2 < tables[pos].fields.count(); pos2++)
+                {
+                    if (tables[pos].fields[pos2].name == field_name)
+                    {
+                        if (tables[pos].fields[pos2].sensitive == true)
+                        {
+                            gotProtected = true;
+                            return "~~exclude~~";
+                        }
+                    }
+                }
+            }
+        }
+    }
+    gotProtected = false;
+    return field_value;
 }
 
 void mainClass::getFieldData(QString table, QString field, QString &desc, QString &valueType, int &size, int &decsize, bool &isMultiSelect, QString &multiSelectTable, QString &multiSelectField, QStringList &options, bool &isKey, QStringList &multiSelectKeys)
@@ -205,7 +275,7 @@ int mainClass::parseDataToXLSX()
 
                                 //Here we need to append a row
                                 int colNo = 0;
-                                QStringList keys;
+                                QStringList keys2;
                                 BOOST_FOREACH(boost::property_tree::ptree::value_type const&field, aRow.get_child("") )
                                 {
                                     const std::string & fkey = field.first.data();
@@ -232,75 +302,106 @@ int mainClass::parseDataToXLSX()
                                             bool increase_colno = true;
                                             if (isKey)
                                             {
-                                                keys.append(fieldName + "~@~" + fieldValue);
+                                                keys2.append(fieldName + "~@~" + fieldValue);
                                             }
-                                            inserted = true;
+                                            bool gotProtected = false;
+                                            if (protectSensitive)
+                                                fieldValue = protect_field(tables[pos].name, fieldName, fieldValue, gotProtected);
+                                            inserted = true;                                            
+
                                             if (rowNo == 1)
                                             {
-                                                if ((isMultiSelect) && (separateSelects) && (multiSelectTable != ""))
+                                                if (fieldValue != "~~exclude~~")
                                                 {
-                                                    int mselColno = colNo;
-                                                    for (int opt = 0; opt < options.count(); opt++)
+                                                    if ((isMultiSelect) && (separateSelects) && (multiSelectTable != ""))
                                                     {
-                                                        QString fieldWithOption = fieldName + "/" + options[opt];
-                                                        worksheet_write_string(worksheet,0, mselColno, fieldWithOption.toUtf8().constData(), NULL);
-                                                        mselColno++;
+                                                        if (!gotProtected)
+                                                        {
+                                                            int mselColno = colNo;
+                                                            for (int opt = 0; opt < options.count(); opt++)
+                                                            {
+                                                                QString fieldWithOption = fieldName + "/" + options[opt];
+                                                                worksheet_write_string(worksheet,0, mselColno, fieldWithOption.toUtf8().constData(), NULL);
+                                                                mselColno++;
+                                                            }
+                                                        }
+                                                        else
+                                                            worksheet_write_string(worksheet,0, colNo, fieldName.toUtf8().constData(), NULL);
                                                     }
+                                                    else
+                                                        worksheet_write_string(worksheet,0, colNo, fieldName.toUtf8().constData(), NULL);
                                                 }
                                                 else
                                                     worksheet_write_string(worksheet,0, colNo, fieldName.toUtf8().constData(), NULL);
-                                            }
-                                            if ((isMultiSelect) && (separateSelects) && (multiSelectTable != ""))
+
+                                            }                                           
+                                            if (fieldValue != "~~exclude~~")
                                             {
-                                                QList <ToptionDef> lst_options;
-                                                for (int opt = 0; opt < options.count(); opt++)
+                                                if ((isMultiSelect) && (separateSelects) && (multiSelectTable != ""))
                                                 {
-                                                    ToptionDef an_option;
-                                                    an_option.code = options[opt];
-                                                    an_option.value = "0";
-                                                    lst_options.append(an_option);
-                                                }
-                                                QStringList mselValues = getMultiSelectValues(multiSelectTable,multiSelectField,keys,multiSelectKeys);
-                                                for (int mval=0; mval < mselValues.count(); mval++)
-                                                {
-                                                    for (int opt = 0; opt < lst_options.count(); opt++)
+                                                    if (!gotProtected)
                                                     {
-                                                        if (lst_options[opt].code == mselValues[mval])
+                                                        QList <ToptionDef> lst_options;
+                                                        for (int opt = 0; opt < options.count(); opt++)
                                                         {
-                                                            lst_options[opt].value = "1";
+                                                            ToptionDef an_option;
+                                                            an_option.code = options[opt];
+                                                            an_option.value = "0";
+                                                            lst_options.append(an_option);
+                                                        }
+                                                        QStringList mselValues = getMultiSelectValues(multiSelectTable,multiSelectField,keys2,multiSelectKeys);
+                                                        for (int mval=0; mval < mselValues.count(); mval++)
+                                                        {
+                                                            for (int opt = 0; opt < lst_options.count(); opt++)
+                                                            {
+                                                                if (lst_options[opt].code == mselValues[mval])
+                                                                {
+                                                                    lst_options[opt].value = "1";
+                                                                }
+                                                            }
+                                                        }
+                                                        for (int opt = 0; opt < lst_options.count(); opt++)
+                                                        {
+                                                            worksheet_write_string(worksheet,rowNo, colNo, lst_options[opt].value.toUtf8().constData(), NULL);
+                                                            colNo++;
+                                                            increase_colno = false;
                                                         }
                                                     }
+                                                    else
+                                                        worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
                                                 }
-                                                for (int opt = 0; opt < lst_options.count(); opt++)
+                                                else
                                                 {
-                                                    worksheet_write_string(worksheet,rowNo, colNo, lst_options[opt].value.toUtf8().constData(), NULL);
-                                                    colNo++;
-                                                    increase_colno = false;
+                                                    if (!isMultiSelect)
+                                                    {
+                                                        worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
+                                                    }
+                                                    else
+                                                    {
+                                                        //                                                   if (tables[pos].name == "maintable")
+                                                        //                                                   {
+                                                        //                                                       for (int tmp = 0; tmp < keys.count(); tmp++)
+                                                        //                                                           log(keys[pos]);
+                                                        //                                                   }
+                                                        if (multiSelectTable != "")
+                                                        {
+                                                            if (!gotProtected)
+                                                            {
+                                                                QStringList mselValues = getMultiSelectValues(multiSelectTable,multiSelectField,keys2,multiSelectKeys);
+                                                                fieldValue = mselValues.join(" ");
+                                                                fieldValue = fieldValue.right(fieldValue.length()-1);
+                                                                worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
+                                                            }
+                                                            else
+                                                                worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
+                                                        }
+                                                        else
+                                                            worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
+                                                    }
                                                 }
                                             }
                                             else
-                                            {
-                                               if (!isMultiSelect)
-                                               {
-                                                   worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
-                                               }
-                                               else
-                                               {
-//                                                   if (tables[pos].name == "maintable")
-//                                                   {
-//                                                       for (int tmp = 0; tmp < keys.count(); tmp++)
-//                                                           log(keys[pos]);
-//                                                   }
-                                                   if (multiSelectTable != "")
-                                                   {
-                                                        QStringList mselValues = getMultiSelectValues(multiSelectTable,multiSelectField,keys,multiSelectKeys);
-                                                        fieldValue = mselValues.join(" ");
-                                                        worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
-                                                   }
-                                                   else
-                                                       worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
-                                               }
-                                            }
+                                                worksheet_write_string(worksheet,rowNo, colNo, "", NULL);
                                             if (increase_colno)
                                                 colNo++;
                                         }
@@ -444,55 +545,63 @@ void mainClass::loadTable(QDomNode table, QDomNode insertRoot)
 {
     QDomElement eTable;
     eTable = table.toElement();
-    if ((eTable.attribute("sensitive","false") == "false") || (includeSensitive))
-    {
-        TtableDef aTable;
-        aTable.islookup = false;
-        aTable.name = eTable.attribute("name","");
-        aTable.desc = eTable.attribute("name","");
 
-        QDomNode field = table.firstChild();
-        while (!field.isNull())
+    TtableDef aTable;
+    aTable.islookup = false;
+    aTable.name = eTable.attribute("name","");
+    aTable.desc = eTable.attribute("name","");
+
+    QDomNode field = table.firstChild();
+    while (!field.isNull())
+    {
+        QDomElement eField;
+        eField = field.toElement();
+        if (eField.tagName() == "field")
         {
-            QDomElement eField;
-            eField = field.toElement();
-            if (eField.tagName() == "field")
+            TfieldDef aField;
+            aField.name = eField.attribute("name","");
+            aField.desc = eField.attribute("name","");
+            aField.type = eField.attribute("type","");
+            aField.size = eField.attribute("size","").toInt();
+            aField.decSize = eField.attribute("decsize","").toInt();
+            if (eField.attribute("sensitive","false") == "true")
+                aField.sensitive = true;
+            else
+                aField.sensitive = false;
+            if (eField.attribute("key","false") == "true")
             {
-                if ((eField.attribute("sensitive","false") == "false") || (includeSensitive))
-                {
-                    TfieldDef aField;
-                    aField.name = eField.attribute("name","");
-                    aField.desc = eField.attribute("name","");
-                    aField.type = eField.attribute("type","");
-                    aField.size = eField.attribute("size","").toInt();
-                    aField.decSize = eField.attribute("decsize","").toInt();
-                    if (eField.attribute("key","false") == "true")
-                        aField.isKey = true;
-                    // NOTE ON Rank. Rank is basically a multiselect with order and handled as a multiselect by ODK Tools. However
-                    // we cannot pull the data from the database because the records may not be stored in the same order the user placed them in Collect
-                    if ((eField.attribute("isMultiSelect","false") == "true") && (eField.attribute("odktype","") != "rank"))
-                    {
-                        aField.isMultiSelect = true;
-                        aField.multiSelectTable = eField.attribute("multiSelectTable");
-                        QString multiSelect_field;
-                        QStringList options;
-                        QStringList keys;
-                        getMultiSelectInfo(table, aField.multiSelectTable, insertRoot, multiSelect_field, options, keys);
-                        aField.multiSelectField = multiSelect_field;
-                        aField.multiSelectOptions.append(options);
-                        aField.multiSelectKeys.append(keys);
-                    }
-                    aTable.fields.append(aField);
-                }
+                TfieldDef keyField;
+                keyField.name = aField.name;
+                keyField.replace_value = "";
+                keys.append(keyField);
+                aField.isKey = true;
             }
             else
+                aField.isKey = false;
+            // NOTE ON Rank. Rank is basically a multiselect with order and handled as a multiselect by ODK Tools. However
+            // we cannot pull the data from the database because the records may not be stored in the same order the user placed them in Collect
+            if ((eField.attribute("isMultiSelect","false") == "true") && (eField.attribute("odktype","") != "rank"))
             {
-                loadTable(field,insertRoot);
+                aField.isMultiSelect = true;
+                aField.multiSelectTable = eField.attribute("multiSelectTable");
+                QString multiSelect_field;
+                QStringList options;
+                QStringList keys;
+                getMultiSelectInfo(table, aField.multiSelectTable, insertRoot, multiSelect_field, options, keys);
+                aField.multiSelectField = multiSelect_field;
+                aField.multiSelectOptions.append(options);
+                aField.multiSelectKeys.append(keys);
             }
-            field = field.nextSibling();
+            aTable.fields.append(aField);
         }
-        mainTables.append(aTable);
+        else
+        {
+            loadTable(field,insertRoot);
+        }
+        field = field.nextSibling();
     }
+    mainTables.append(aTable);
+
 }
 
 int mainClass::generateXLSX()
@@ -544,32 +653,30 @@ int mainClass::generateXLSX()
             {
                 QDomElement eTable;
                 eTable = lkpTable.toElement();
-                if ((eTable.attribute("sensitive","false") == "false") || (includeSensitive))
-                {
-                    TtableDef aTable;
-                    aTable.islookup = true;
-                    aTable.name = eTable.attribute("name","");
-                    aTable.desc = eTable.attribute("desc","");
 
-                    QDomNode field = lkpTable.firstChild();
-                    while (!field.isNull())
-                    {
-                        QDomElement eField;
-                        eField = field.toElement();
-                        if ((eField.attribute("sensitive","false") == "false") || (includeSensitive))
-                        {
-                            TfieldDef aField;
-                            aField.name = eField.attribute("name","");
-                            aField.desc = eField.attribute("desc","");
-                            aField.type = eField.attribute("type","");
-                            aField.size = eField.attribute("size","").toInt();
-                            aField.decSize = eField.attribute("decsize","").toInt();
-                            aTable.fields.append(aField);
-                        }
-                        field = field.nextSibling();
-                    }
-                    tables.append(aTable);
+                TtableDef aTable;
+                aTable.islookup = true;
+                aTable.name = eTable.attribute("name","");
+                aTable.desc = eTable.attribute("desc","");
+
+                QDomNode field = lkpTable.firstChild();
+                while (!field.isNull())
+                {
+                    QDomElement eField;
+                    eField = field.toElement();
+
+                    TfieldDef aField;
+                    aField.name = eField.attribute("name","");
+                    aField.desc = eField.attribute("desc","");
+                    aField.type = eField.attribute("type","");
+                    aField.size = eField.attribute("size","").toInt();
+                    aField.decSize = eField.attribute("decsize","").toInt();
+                    aTable.fields.append(aField);
+
+                    field = field.nextSibling();
                 }
+                tables.append(aTable);
+
                 lkpTable = lkpTable.nextSibling();
             }
         }
