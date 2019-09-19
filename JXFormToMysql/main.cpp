@@ -2191,12 +2191,11 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
         QString strTriggerUUID=triggerUUID.toString().replace("{","").replace("}","").replace("-","_");
 
         // Append UUIDs triggers to the file but only if the UUID is null or if it is not an uuid
-        if (tables[pos].islookup == true)
-        {
-            sql = sql + "delimiter $$\n\n";
-            sql = sql + "CREATE TRIGGER T" + strTriggerUUID + " BEFORE INSERT ON " + tables[pos].name + " FOR EACH ROW BEGIN IF (new.rowuuid IS NULL) THEN SET new.rowuuid = uuid(); ELSE IF (new.rowuuid NOT REGEXP '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{}') THEN SET new.rowuuid = uuid(); END IF; END IF; END;$$\n";
-            sql = sql + "delimiter ;\n\n";
-        }
+
+        sql = sql + "delimiter $$\n\n";
+        sql = sql + "CREATE TRIGGER T" + strTriggerUUID + " BEFORE INSERT ON " + tables[pos].name + " FOR EACH ROW BEGIN IF (new.rowuuid IS NULL) THEN SET new.rowuuid = uuid(); ELSE IF (new.rowuuid NOT REGEXP '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}') THEN SET new.rowuuid = uuid(); END IF; END IF; END;$$\n";
+        sql = sql + "delimiter ;\n\n";
+
         sqlCreateStrm << sql; //Add the triggers to the SQL DDL file
 
         //Create the inserts of the lookup tables values into the insert SQL
