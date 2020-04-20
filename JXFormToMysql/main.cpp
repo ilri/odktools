@@ -5485,7 +5485,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         f_precision.rField = "";
         f_precision.rTable = "";
         f_precision.key = false;
-        f_precision.sensitive = true;
+        f_precision.sensitive = false;
         f_precision.isMultiSelect = false;
         f_precision.xmlCode = "_precision";
         f_precision.odktype = "decimal";
