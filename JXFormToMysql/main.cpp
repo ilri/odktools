@@ -5391,6 +5391,110 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         f_geopoint.sensitive = true;
         maintable.fields.append(f_geopoint);
 
+        //Append the generic GPS Longitude field to the main table
+        TfieldDef f_longitude;
+        f_longitude.name = "_longitude";
+        for (lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "GPS Point Longitude";
+            f_longitude.desc.append(langDesc);
+        }
+        f_longitude.type = "double";
+        f_longitude.size = 0;
+        f_longitude.decSize = 0;
+        f_longitude.rField = "";
+        f_longitude.rTable = "";
+        f_longitude.key = false;
+        f_longitude.sensitive = true;
+        f_longitude.isMultiSelect = false;
+        f_longitude.xmlCode = "_longitude";
+        f_longitude.odktype = "decimal";
+        f_longitude.calculateWithSelect = false;
+        f_longitude.formula = "";
+        f_longitude.selectSource = "NONE";
+        f_longitude.selectListName = "NONE";
+        maintable.fields.append(f_longitude);
+
+        //Append the generic GPS Latitude field to the main table
+        TfieldDef f_latitude;
+        f_latitude.name = "_latitude";
+        for (lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "GPS Point Latitude";
+            f_latitude.desc.append(langDesc);
+        }
+        f_latitude.type = "double";
+        f_latitude.size = 0;
+        f_latitude.decSize = 0;
+        f_latitude.rField = "";
+        f_latitude.rTable = "";
+        f_latitude.key = false;
+        f_latitude.sensitive = true;
+        f_latitude.isMultiSelect = false;
+        f_latitude.xmlCode = "_latitude";
+        f_latitude.odktype = "decimal";
+        f_latitude.calculateWithSelect = false;
+        f_latitude.formula = "";
+        f_latitude.selectSource = "NONE";
+        f_latitude.selectListName = "NONE";
+        maintable.fields.append(f_latitude);
+
+        //Append the generic GPS Elevation field to the main table
+        TfieldDef f_elevation;
+        f_elevation.name = "_elevation";
+        for (lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "GPS Point Elevation";
+            f_elevation.desc.append(langDesc);
+        }
+        f_elevation.type = "decimal";
+        f_elevation.size = 9;
+        f_elevation.decSize = 3;
+        f_elevation.rField = "";
+        f_elevation.rTable = "";
+        f_elevation.key = false;
+        f_elevation.sensitive = false;
+        f_elevation.isMultiSelect = false;
+        f_elevation.xmlCode = "_elevation";
+        f_elevation.odktype = "decimal";
+        f_elevation.calculateWithSelect = false;
+        f_elevation.formula = "";
+        f_elevation.selectSource = "NONE";
+        f_elevation.selectListName = "NONE";
+        maintable.fields.append(f_elevation);
+
+        //Append the generic GPS Precision field to the main table
+        TfieldDef f_precision;
+        f_precision.name = "_precision";
+        for (lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "GPS Point Precision";
+            f_precision.desc.append(langDesc);
+        }
+        f_precision.type = "decimal";
+        f_precision.size = 9;
+        f_precision.decSize = 3;
+        f_precision.rField = "";
+        f_precision.rTable = "";
+        f_precision.key = false;
+        f_precision.sensitive = true;
+        f_precision.isMultiSelect = false;
+        f_precision.xmlCode = "_precision";
+        f_precision.odktype = "decimal";
+        f_precision.calculateWithSelect = false;
+        f_precision.formula = "";
+        f_precision.selectSource = "NONE";
+        f_precision.selectListName = "NONE";
+        maintable.fields.append(f_precision);
+
         tables.append(maintable);
         addToRepeat(mainTable);
         if (!justCheck)
