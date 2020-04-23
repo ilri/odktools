@@ -89,6 +89,27 @@ int mainClass::createAudit(QSqlDatabase mydb, QString auditDir, QStringList igno
             QString strTriggerUUID=triggerUUID.toString().replace("{","").replace("}","").replace("-","_");
             if (ignoreTables.indexOf(query.value(0).toString().toLower()) < 0)
             {
+                //Before update trigger for MySQL for columns rowuuid, surveyid, originid and _xform_id_string
+                dropMyTriggers << "DROP TRIGGER audit_" + strTriggerUUID +"_before_update;";
+                TriggerData << "delimiter $$";
+                TriggerData << "CREATE TRIGGER audit_" + strTriggerUUID +"_before_update";
+                TriggerData << "BEFORE UPDATE ON " + query.value(0).toString();
+                TriggerData << "FOR EACH ROW BEGIN";
+                TriggerData << "";
+                sql = "SELECT COLUMN_NAME,ORDINAL_POSITION,COLUMN_KEY FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '" + schema + "' AND TABLE_NAME = '" + query.value(0).toString() + "' AND COLUMN_NAME IN ('rowuuid','surveyid','originid','_xform_id_string') ORDER BY ORDINAL_POSITION";
+                if (query2.exec(sql))
+                {
+                    while (query2.next())
+                    {
+                        TriggerData << "IF IFnull(OLD." + query2.value(0).toString() + ",'NULL') <> IFNULL(NEW." + query2.value(0).toString() + ",'NULL') THEN SET NEW." + query2.value(0).toString() + " = OLD." + query2.value(0).toString() + ";";
+                        TriggerData << "END IF;";
+                    }
+                }
+                TriggerData << "";
+                TriggerData << "END$$";
+                TriggerData << "DELIMITER ;";
+                TriggerData << "";
+
                 //Update trigger for MySQL-------------------------------------------------------------------
                 dropMyTriggers << "DROP TRIGGER audit_" + strTriggerUUID +"_update;";
                 TriggerData << "delimiter $$";
