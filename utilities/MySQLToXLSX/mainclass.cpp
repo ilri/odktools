@@ -738,8 +738,6 @@ int mainClass::generateXLSX()
             arguments << "--single-transaction";
             if (maria_bd == false && version_number >= 8)
                 arguments << "--skip-column-statistics";
-            if (maria_bd == true && version_number >= 10)
-                arguments << "--skip-column-statistics";
             arguments << "-h" << host;
             arguments << "-u" << user;
             arguments << "--password=" + pass;
