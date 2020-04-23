@@ -334,9 +334,44 @@ int procData(QString tempDir, QString host, QString user, QString pass, QString 
     ignoreTables << "dict_iso639";
     ignoreTables << "alembic_version";
 
+    QString version_program = "mysql_config";
+    QStringList version_arguments;
+    version_arguments.clear();
+    version_arguments << "--version";
+    QString version_info;
+    QProcess *version_process = new QProcess();
+    version_process->start(version_program, version_arguments);
+    version_process->waitForFinished(-1);
+    bool maria_bd = false;
+    if (version_process->exitCode() == 0)
+    {
+        version_info = version_process->readAllStandardOutput().replace("\n","");
+    }
+    else
+    {
+        version_process->start("mariadb_config", version_arguments);
+        version_process->waitForFinished(-1);
+        if (version_process->exitCode() == 0)
+        {
+            version_info = version_process->readAllStandardOutput().replace("\n","");
+            maria_bd = true;
+        }
+    }
+    if (version_info == "")
+    {
+        log("Unable to detect the version of MySQL");
+        exit(1);
+    }
+    QStringList version_parts = version_info.split(".");
+    int version_number = version_parts[0].toInt();
+
     QString program = "mysqldump";
     QStringList arguments;
     arguments << "--single-transaction";
+    if (maria_bd == false && version_number >= 8)
+        arguments << "--skip-column-statistics";
+    if (maria_bd == true && version_number >= 10)
+        arguments << "--skip-column-statistics";
     arguments << "-h" << host;
     arguments << "-u" << user;
     arguments << "--password=" + pass;
