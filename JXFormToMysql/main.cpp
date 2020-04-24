@@ -144,6 +144,7 @@ struct langDef
   QString code;
   QString desc;
   bool deflang; //Wether the language is default
+  bool coded;
 };
 typedef langDef TlangDef;
 
@@ -1338,7 +1339,7 @@ QString getLanguageCode(QString languageName)
 {
     for (int pos = 0; pos <= languages.count()-1; pos++)
     {
-        if (languages[pos].desc == languageName)
+        if (languages[pos].desc.toLower() == languageName.toLower())
             return languages[pos].code;
     }
     return "";
@@ -1439,7 +1440,7 @@ TtableDef checkDuplicatedLkpTable(QString table, QList<TlkpValue> thisValues)
                 {
                     found = true;
                     for (int pos2 = 0; pos2 < currentValues.count(); pos2++)
-                    {
+                    {                        
                         //Compares if an item in the list dont have same code or same description
                         thisDesc = getDescForLanguage(thisValues[pos2].desc,defLangCode);
                         currenDesc = getDescForLanguage(currentValues[pos2].desc,defLangCode);
@@ -1799,6 +1800,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 //For the create XML
                 tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
                 tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
+                tables[pos].tableCreteElement.setAttribute("xmlcode",tables[pos].xmlCode);
                 tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));                
             }
             else
@@ -1806,6 +1808,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 //For the create XML
                 tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
                 tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
+                tables[pos].tableCreteElement.setAttribute("xmlcode",tables[pos].xmlCode);
                 tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));                
             }
         }
@@ -1813,6 +1816,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
         {
             tables[pos].tableCreteElement = XMLSchemaStructure.createElement("table");
             tables[pos].tableCreteElement.setAttribute("name",prefix + tables[pos].name.toLower());
+            tables[pos].tableCreteElement.setAttribute("xmlcode",tables[pos].xmlCode);
             tables[pos].tableCreteElement.setAttribute("desc",fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))));            
 
             //Append the values to the XML insert
@@ -2188,9 +2192,11 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
         QString strTriggerUUID=triggerUUID.toString().replace("{","").replace("}","").replace("-","_");
 
         // Append UUIDs triggers to the file but only if the UUID is null or if it is not an uuid
+
         sql = sql + "delimiter $$\n\n";
-        sql = sql + "CREATE TRIGGER T" + strTriggerUUID + " BEFORE INSERT ON " + tables[pos].name + " FOR EACH ROW BEGIN IF (new.rowuuid IS NULL) THEN SET new.rowuuid = uuid(); ELSE IF (new.rowuuid NOT REGEXP '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{}') THEN SET new.rowuuid = uuid(); END IF; END IF; END;$$\n";
+        sql = sql + "CREATE TRIGGER T" + strTriggerUUID + " BEFORE INSERT ON " + tables[pos].name + " FOR EACH ROW BEGIN IF (new.rowuuid IS NULL) THEN SET new.rowuuid = uuid(); ELSE IF (new.rowuuid NOT REGEXP '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}') THEN SET new.rowuuid = uuid(); END IF; END IF; END;$$\n";
         sql = sql + "delimiter ;\n\n";
+
         sqlCreateStrm << sql; //Add the triggers to the SQL DDL file
 
         //Create the inserts of the lookup tables values into the insert SQL
@@ -2710,6 +2716,22 @@ bool isDefaultLanguage(QString language)
     return false;
 }
 
+//Get an language index by its name that is properly coded
+int getCodedLangIndexByName(QString language)
+{
+    for (int pos=0; pos < languages.count();pos++)
+    {
+        if (languages[pos].desc.toLower().trimmed() == language.toLower().trimmed())
+        {
+            if (languages[pos].coded == true)
+            {
+                return pos;
+            }
+        }
+    }
+    return -1;
+}
+
 //Get an language index by its name
 int genLangIndexByName(QString language)
 {    
@@ -2852,7 +2874,7 @@ QList <TlngLkpDesc > getLabels(QJsonValue labelValue)
         for (int lbl = 0; lbl < labelObject.keys().count(); lbl++)
         {
             TlngLkpDesc fieldDesc;
-            fieldDesc.langCode = getLanguageCode(labelObject.keys()[lbl].toLower().trimmed());
+            fieldDesc.langCode = getLanguageCode(labelObject.keys()[lbl]);
             fieldDesc.desc = labelObject.value(labelObject.keys()[lbl]).toString();
             labels.append(fieldDesc);
         }
@@ -4742,15 +4764,15 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList)
                 QJsonObject labelObject = value.toObject();
                 for (int nitem = 0; nitem < labelObject.keys().count(); nitem++)
                 {
-                    QString language;
-                    language = labelObject.keys()[nitem].toLower();
-                    if (language == "default")
-                    {
-                        if (default_language == "default")
-                            language = "english";
-                        else
-                            language = default_language;
-                    }                                        
+                    QString language;                    
+                    language = labelObject.keys()[nitem];
+//                    if (language == "default")
+//                    {
+//                        if (default_language == "default")
+//                            language = "english";
+//                        else
+//                            language = default_language;
+//                    }
                     if (languageList.indexOf(language) < 0)
                         languageList.append(language);
                 }
@@ -4877,6 +4899,66 @@ QList<TlkpValue> getValuesFromInsertFile(QString tableName, QDomNode startNode, 
     return res;
 }
 
+//Returns the index of a language by its code
+int genLangIndex(QString langCode)
+{
+    for (int pos=0; pos < languages.count();pos++)
+    {
+        if (languages[pos].code == langCode)
+            return pos;
+    }
+    return -1;
+}
+
+//Adds a language to the list and check if the each language structure is ok
+int addLanguage(QString langCode, bool defLang, bool coded)
+{
+    QRegExp reEngLetterOnly("\\(([a-zA-Z]{2})\\)(.*)");
+    if (reEngLetterOnly.indexIn(langCode) == -1)
+    {
+        log("Malformed language code " + langCode + ". Indicate a language like (iso639 Code)Language_Name. For example (en)English");
+        return 1;
+    }
+    QString code = reEngLetterOnly.cap(1);
+    QString name = reEngLetterOnly.cap(2);
+    int lang_index = genLangIndex(code);
+    if (lang_index == -1)
+    {        
+        TlangDef language;
+        language.code = code.toLower();
+        language.desc = name;
+        language.deflang = defLang;
+        language.coded = coded;
+        languages.append(language);
+    }
+    else
+    {
+        languages[lang_index].desc = name;
+        languages[lang_index].coded = coded;
+    }
+    return 0;
+}
+
+int addLanguage2(QString code, QString name, bool defLang)
+{
+    int langIndex = genLangIndex(code);
+    if (langIndex == -1)
+    {
+        TlangDef language;
+        language.code = code;
+        language.desc = name;
+        language.deflang = defLang;
+        language.coded = true;
+        languages.append(language);
+    }
+    else
+    {        
+        languages[langIndex].desc = name;
+        languages[langIndex].coded = true;
+    }
+    return 0;
+}
+
 //Reads the input JSON file and converts it to a MySQL database
 int processJSON(QString inputFile, QString mainTable, QString mainField, QDir dir, QSqlDatabase database)
 {
@@ -4967,36 +5049,128 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
 
         QStringList ODKLanguages;
         getLanguages(firstObject, ODKLanguages);
-        //qDebug() << ODKLanguages;
+        QStringList uncoded_languages;
+        //Process the internal languages to see if they are coded like English (en)
+        if (ODKLanguages.length() > 0)
+        {
+            QRegExp reEngLetterOnly("(.*)\\(([a-zA-Z]{2})+\\)");
+            QString language_in_odk;
+            QStringList odk_langs;
+            language_in_odk.replace("","");
+            bool found_en;
+            found_en = false;
+            bool found_default;
+            found_default = false;                        
+            for (int l=0; l < ODKLanguages.count(); l++)
+            {
+                language_in_odk = ODKLanguages[l];
+                QString temp = ODKLanguages[l];
+                temp = temp.replace(" ","");
+                if (reEngLetterOnly.indexIn(temp) == -1)
+                {
+                    if (genLangIndexByName(language_in_odk) == -1)
+                        uncoded_languages.append(language_in_odk);
+                    if (language_in_odk.toLower() == "english")
+                        found_en = true;
+                    if (language_in_odk.toLower() == "default")
+                        found_default = true;
+                }
+                else
+                {
+                    //qDebug() << language_in_odk;
+                    if (reEngLetterOnly.cap(2).toLower() == "en")
+                        found_en = true;
+                    odk_langs.append(reEngLetterOnly.cap(2) + "|" + language_in_odk);
+                    //qDebug() << found_en;
+                }
+            }
+            if (odk_langs.count() > 0)
+            {                
+                if (found_en)
+                {
+                    for (int l=0; l < odk_langs.count(); l++)
+                    {                        
+                        QStringList parts = odk_langs[l].split("|",QString::SkipEmptyParts);
+                        if (parts[0].toLower() == "en")
+                            addLanguage2(parts[0],parts[1],true);
+                        else
+                            addLanguage2(parts[0],parts[1],false);
+                    }
+                }
+                else
+                {
+                    for (int l=0; l < odk_langs.count(); l++)
+                    {
+                        QStringList parts = odk_langs[l].split("|",QString::SkipEmptyParts);
+                        if (l == 0)
+                            addLanguage2(parts[0],parts[1],true);
+                        else
+                            addLanguage2(parts[0],parts[1],false);
+                    }
+                }
+            }
+            if (uncoded_languages.length() > 0)
+            {
+                if (found_en == false)
+                {                    
+                    if (found_default == false)
+                    {
+                        for (int l=0; l < uncoded_languages.count(); l++)
+                        {
+                            if (l == 0)
+                                addLanguage("(en)" + uncoded_languages[l],true,false);
+                            else
+                                addLanguage("(" + uncoded_languages[l].left(2) + ")" + uncoded_languages[l],false,false);
+                        }
+                    }
+                    else
+                    {
+                        for (int l=0; l < uncoded_languages.count(); l++)
+                        {
+                            if (ODKLanguages[l] == "default")
+                                addLanguage("(en)" + uncoded_languages[l],true,false);
+                            else
+                                addLanguage("(" + uncoded_languages[l].left(2) + ")" + uncoded_languages[l],false,false);
+                        }
+                    }
+                }
+            }
+        }
+
         //Check if we have indicated the proper amount of languages
         if ((ODKLanguages.count() > 1) && (languages.count() == 1))
         {
             if (!justCheck)
             {
-                if (outputType == "h")
-                    log("This ODK has multiple languages but not other languages where specified with the -l parameter.");
-                else
+                if (uncoded_languages.length() > 0)
                 {
-                    QDomDocument XMLResult;
-                    XMLResult = QDomDocument("XMLResult");
-                    QDomElement XMLRoot;
-                    XMLRoot = XMLResult.createElement("XMLResult");
-                    XMLResult.appendChild(XMLRoot);
-                    QDomElement eLanguages;
-                    eLanguages = XMLResult.createElement("languages");
-                    for (int pos = 0; pos <= ODKLanguages.count()-1;pos++)
+                    if (outputType == "h")
+                        log("This ODK has multiple languages but not other languages where specified with the -l parameter.");
+                    else
                     {
-                        QDomElement eLanguage;
-                        eLanguage = XMLResult.createElement("language");
-                        eLanguage.setAttribute("name",ODKLanguages[pos]);
-                        eLanguages.appendChild(eLanguage);
+                        QDomDocument XMLResult;
+                        XMLResult = QDomDocument("XMLResult");
+                        QDomElement XMLRoot;
+                        XMLRoot = XMLResult.createElement("XMLResult");
+                        XMLResult.appendChild(XMLRoot);
+                        QDomElement eLanguages;
+                        eLanguages = XMLResult.createElement("languages");
+                        for (int pos = 0; pos <= ODKLanguages.count()-1;pos++)
+                        {
+                            QDomElement eLanguage;
+                            eLanguage = XMLResult.createElement("language");
+                            eLanguage.setAttribute("name",ODKLanguages[pos]);
+                            eLanguages.appendChild(eLanguage);
+                        }
+                        XMLRoot.appendChild(eLanguages);
+                        log(XMLResult.toString());
+
+                        exit(3);
                     }
-                    XMLRoot.appendChild(eLanguages);
-                    log(XMLResult.toString());
                 }
-                exit(3);
             }
         }
+
         //Check that each language is properly coded
         bool languageNotFound;
         languageNotFound = false;
@@ -5008,7 +5182,8 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         QDomElement eLanguages;
         eLanguages = XMLResult.createElement("languages");
         for (int lng = 0; lng < ODKLanguages.count();lng++)
-            if (genLangIndexByName(ODKLanguages[lng]) == -1)
+        {
+            if (getCodedLangIndexByName(ODKLanguages[lng]) == -1)
             {
                 if (outputType == "h")
                 {
@@ -5025,6 +5200,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                     eLanguages.appendChild(eLanguage);
                 }
             }
+        }
         XMLRoot.appendChild(eLanguages);
         if (languageNotFound)
         {
@@ -5215,6 +5391,110 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         f_geopoint.sensitive = true;
         maintable.fields.append(f_geopoint);
 
+        //Append the generic GPS Longitude field to the main table
+        TfieldDef f_longitude;
+        f_longitude.name = "_longitude";
+        for (lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "GPS Point Longitude";
+            f_longitude.desc.append(langDesc);
+        }
+        f_longitude.type = "double";
+        f_longitude.size = 0;
+        f_longitude.decSize = 0;
+        f_longitude.rField = "";
+        f_longitude.rTable = "";
+        f_longitude.key = false;
+        f_longitude.sensitive = true;
+        f_longitude.isMultiSelect = false;
+        f_longitude.xmlCode = "_longitude";
+        f_longitude.odktype = "decimal";
+        f_longitude.calculateWithSelect = false;
+        f_longitude.formula = "";
+        f_longitude.selectSource = "NONE";
+        f_longitude.selectListName = "NONE";
+        maintable.fields.append(f_longitude);
+
+        //Append the generic GPS Latitude field to the main table
+        TfieldDef f_latitude;
+        f_latitude.name = "_latitude";
+        for (lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "GPS Point Latitude";
+            f_latitude.desc.append(langDesc);
+        }
+        f_latitude.type = "double";
+        f_latitude.size = 0;
+        f_latitude.decSize = 0;
+        f_latitude.rField = "";
+        f_latitude.rTable = "";
+        f_latitude.key = false;
+        f_latitude.sensitive = true;
+        f_latitude.isMultiSelect = false;
+        f_latitude.xmlCode = "_latitude";
+        f_latitude.odktype = "decimal";
+        f_latitude.calculateWithSelect = false;
+        f_latitude.formula = "";
+        f_latitude.selectSource = "NONE";
+        f_latitude.selectListName = "NONE";
+        maintable.fields.append(f_latitude);
+
+        //Append the generic GPS Elevation field to the main table
+        TfieldDef f_elevation;
+        f_elevation.name = "_elevation";
+        for (lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "GPS Point Elevation";
+            f_elevation.desc.append(langDesc);
+        }
+        f_elevation.type = "decimal";
+        f_elevation.size = 9;
+        f_elevation.decSize = 3;
+        f_elevation.rField = "";
+        f_elevation.rTable = "";
+        f_elevation.key = false;
+        f_elevation.sensitive = false;
+        f_elevation.isMultiSelect = false;
+        f_elevation.xmlCode = "_elevation";
+        f_elevation.odktype = "decimal";
+        f_elevation.calculateWithSelect = false;
+        f_elevation.formula = "";
+        f_elevation.selectSource = "NONE";
+        f_elevation.selectListName = "NONE";
+        maintable.fields.append(f_elevation);
+
+        //Append the generic GPS Precision field to the main table
+        TfieldDef f_precision;
+        f_precision.name = "_precision";
+        for (lang = 0; lang <= languages.count()-1;lang++)
+        {
+            TlngLkpDesc langDesc;
+            langDesc.langCode = languages[lang].code;
+            langDesc.desc = "GPS Point Precision";
+            f_precision.desc.append(langDesc);
+        }
+        f_precision.type = "decimal";
+        f_precision.size = 9;
+        f_precision.decSize = 3;
+        f_precision.rField = "";
+        f_precision.rTable = "";
+        f_precision.key = false;
+        f_precision.sensitive = false;
+        f_precision.isMultiSelect = false;
+        f_precision.xmlCode = "_precision";
+        f_precision.odktype = "decimal";
+        f_precision.calculateWithSelect = false;
+        f_precision.formula = "";
+        f_precision.selectSource = "NONE";
+        f_precision.selectListName = "NONE";
+        maintable.fields.append(f_precision);
+
         tables.append(maintable);
         addToRepeat(mainTable);
         if (!justCheck)
@@ -5359,39 +5639,6 @@ bool checkTables2()
     return false;
 }
 
-//Returns the index of a language by its code
-int genLangIndex(QString langCode)
-{    
-    for (int pos=0; pos < languages.count();pos++)
-    {
-        if (languages[pos].code == langCode)
-            return pos;
-    }
-    return -1;
-}
-
-//Adds a language to the list and check if the each language structure is ok
-int addLanguage(QString langCode, bool defLang)
-{
-    QRegExp reEngLetterOnly("\\(([a-zA-Z]{2})\\)(.*)");
-    if (reEngLetterOnly.indexIn(langCode) == -1)
-    {
-        log("Malformed language code " + langCode + ". Indicate a language like (iso639 Code)Language_Name. For example (en)English");
-        return 1;
-    }
-    QString code = reEngLetterOnly.cap(1);
-    if (genLangIndex(code) == -1)
-    {
-        QString name = reEngLetterOnly.cap(2);        
-        TlangDef language;
-        language.code = code.toLower();
-        language.desc = name.toLower();
-        language.deflang = defLang;        
-        languages.append(language);
-    }
-    return 0;
-}
-
 void protect_sensitive()
 {
     QStringList protectedFields;
@@ -5477,8 +5724,8 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> metadataArg("m","outputmetadata","Output metadata file. Default ./metadata.sql",false,"./metadata.sql","string");
     TCLAP::ValueArg<std::string> impxmlArg("f","outputxml","Output xml manifest file. Default ./manifest.xml",false,"./manifest.xml","string");
     TCLAP::ValueArg<std::string> prefixArg("p","prefix","Prefix for each table. _ is added to the prefix. Default no prefix",false,"","string");    
-    TCLAP::ValueArg<std::string> langArg("l","otherlanguages","Other languages. For example: (en)English,(es)Español. Required if ODK form has multiple languages",false,"","string");
-    TCLAP::ValueArg<std::string> defLangArg("d","deflanguage","Default language. For example: (en)English. If not indicated then English will be asumed",false,"(en)English","string");
+    TCLAP::ValueArg<std::string> langArg("l","otherlanguages","Other languages. For example: (en)english,(es)español. Required if ODK form has multiple languages",false,"","string");
+    TCLAP::ValueArg<std::string> defLangArg("d","deflanguage","Default language. For example: (en)english. If not indicated then English will be asumed",false,"(en)english","string");
     TCLAP::ValueArg<std::string> transFileArg("T","translationfile","Output translation file",false,"./iso639.sql","string");    
     TCLAP::ValueArg<std::string> tempDirArg("e","tempdirectory","Temporary directory. ./tmp by default",false,"./tmp","string");
     TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");    
@@ -5670,13 +5917,13 @@ int main(int argc, char *argv[])
 
     tableIndex = 0;
 
-    if (addLanguage(defLang.replace("'",""),true) != 0)
+    if (addLanguage(defLang.replace("'",""),true,true) != 0)
         exit(5);
     
     QStringList othLanguages;
     othLanguages = lang.split(",",QString::SkipEmptyParts);
     for (int lng = 0; lng < othLanguages.count(); lng++)
-        if (addLanguage(othLanguages[lng].replace("'",""),false) != 0)
+        if (addLanguage(othLanguages[lng].replace("'",""),false,true) != 0)
             exit(6);
     
     int returnValue;
@@ -5692,7 +5939,10 @@ int main(int argc, char *argv[])
         generateOutputFiles(ddl,insert,metadata,xmlFile,transFile,xmlCreateFile,insertXML,drop);
         if (justCheck)
         {
-            // Remove all files besided the manifest, create and insert
+            // Remove all files besided the create and insert
+            if (QFile::exists(xmlFile))
+                QFile::remove(xmlFile);
+
             if (QFile::exists(ddl))
                 QFile::remove(ddl);
 

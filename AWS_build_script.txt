@@ -3,7 +3,7 @@
 sudo add-apt-repository universe
 sudo add-apt-repository multiverse
 sudo apt-get update
-sudo apt-get install build-essential qt5-default qtbase5-private-dev qtdeclarative5-dev libqt5sql5-mysql cmake mongodb jq libboost-all-dev unzip zlib1g-dev automake npm
+sudo apt-get install build-essential qt5-default qtbase5-private-dev qtdeclarative5-dev libqt5sql5-mysql libqt5sql5-sqlite cmake mongodb jq libboost-all-dev unzip zlib1g-dev automake npm
 
 cd /opt
 sudo git clone https://github.com/qlands/odktools.git

@@ -130,15 +130,21 @@ void parseCreateFile(QDomNode node, pt::ptree &json)
         if (!keysForRepo)
             xmlCode = node.toElement().attribute("xmlcode","NONE");
         else
-            xmlCode = node.toElement().attribute("mysqlcode","NONE");
+            xmlCode = node.toElement().attribute("name","NONE");
         if (node.toElement().tagName() == "field")
-        {
-            if ((xmlCode != "NONE") && (xmlCode != "dummy") && (xmlCode != "rowuuid"))
+        {            
+            bool addkey = true;
+            if (!keysForRepo)
+            {
+                if (node.toElement().attribute("key","false") == "true")
+                    addkey = false;
+            }
+            if ((xmlCode.toUpper() != "NONE") && (xmlCode != "_dummy") && (xmlCode != "rowuuid") && (addkey))
             {
                 if ((node.toElement().attribute("isMultiSelect","false") == "true") && (node.toElement().attribute("multiSelectTable") != ""))
                 {
                     if (separate)
-                    {
+                    {                        
                         QString multiSelectTable = node.toElement().attribute("multiSelectTable");
                         QStringList separation = separateMultiSelect(multiSelectTable,xmlCode);
                         if (separation.length() > 0)
@@ -163,14 +169,21 @@ void parseCreateFile(QDomNode node, pt::ptree &json)
         }
         else
         {
-            pt::ptree childObject;
-            parseCreateFile(node.firstChild(), childObject);
-            pt::ptree repeatArray;
-            int arraySize;
-            arraySize = getArraySize(xmlCode);            
-            for (int pos = 1 ; pos <= arraySize; pos++)
-                repeatArray.push_front(std::make_pair("", childObject));
-            json.put_child(xmlCode.toStdString(),repeatArray);
+            if (node.toElement().attribute("name").indexOf("_msel_") < 0)
+            {
+                if (!keysForRepo)
+                {
+                    json.put(xmlCode.toStdString() + "_count","dummy");
+                }
+                pt::ptree childObject;
+                parseCreateFile(node.firstChild(), childObject);
+                pt::ptree repeatArray;
+                int arraySize;
+                arraySize = getArraySize(xmlCode);
+                for (int pos = 1 ; pos <= arraySize; pos++)
+                    repeatArray.push_front(std::make_pair("", childObject));
+                json.put_child(xmlCode.toStdString(),repeatArray);
+            }
         }
         node = node.nextSibling();
     }
@@ -194,7 +207,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> intertArg("i","insert","Input create XML file",false,"","string");
     TCLAP::ValueArg<std::string> outputArg("o","output","Output JSON file",false,"./output.json","string");
     TCLAP::ValueArg<std::string> arraysArg("a","arrays","Array sizes as defined as name:size,name:size",false,"","string");
-    TCLAP::SwitchArg repoSwitch("r","repository","Generate keys for repository", cmd, true);
+    TCLAP::SwitchArg repoSwitch("r","repository","Generate keys for repository", cmd, false);
     TCLAP::SwitchArg separateSwitch("s","separate","Separate multiselects in different columns", cmd, false);
 
     cmd.add(createArg);
@@ -280,13 +293,15 @@ int main(int argc, char *argv[])
 
             if (rootA.tagName() == "XMLSchemaStructure")
             {
-                QDomNode start = rootA.firstChild().nextSibling().firstChild();
+                QDomNode start = rootA.firstChild().nextSibling().firstChild().firstChild();
                 pt::ptree JSONRoot;
                 if (!keysForRepo)
                 {
                     JSONRoot.put("_xform_id_string","dummy");
-                    JSONRoot.put("_submissionid","dummy");
+                    JSONRoot.put("_submission_id","dummy");
                     JSONRoot.put("meta/instanceID","dummy");
+                    JSONRoot.put("_project_code","dummy");
+                    JSONRoot.put("_user_id","dummy");
                 }
                 parseCreateFile(start, JSONRoot);
                 pt::write_json(output.toStdString(),JSONRoot);
