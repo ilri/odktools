@@ -957,27 +957,27 @@ int mainClass::generateJSONs(QSqlDatabase db)
             //Call MySQLDump to export each table as XML
             //We use MySQLDump because it very very fast
 
-            QString version_program = "mysql_config";
+            bool maria_bd = false;
             QStringList version_arguments;
             version_arguments.clear();
             version_arguments << "--version";
             QString version_info;
             QProcess *version_process = new QProcess();
-            version_process->start(version_program, version_arguments);
-            version_process->waitForFinished(-1);
-            bool maria_bd = false;
+            version_process->start("mariadb_config", version_arguments);
+            version_process->waitForFinished(-1);            
             if (version_process->exitCode() == 0)
             {
+                maria_bd = true;
                 version_info = version_process->readAllStandardOutput().replace("\n","");
             }
             else
             {
-                version_process->start("mariadb_config", version_arguments);
+                version_process->start("mysql_config", version_arguments);
                 version_process->waitForFinished(-1);
                 if (version_process->exitCode() == 0)
                 {
                     version_info = version_process->readAllStandardOutput().replace("\n","");
-                    maria_bd = true;
+
                 }
             }
             if (version_info == "")
