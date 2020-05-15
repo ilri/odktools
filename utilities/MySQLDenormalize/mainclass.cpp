@@ -737,7 +737,13 @@ void mainClass::processMapFile(mongocxx::collection collection, QString fileName
                     if (key == "_tablename")
                         aTable.table = value;
                     else
+                    {
+                        TfieldDef rowUUIDField;
+                        rowUUIDField.name = key;
+                        rowUUIDField.value = value;
+                        aTable.fields.append(rowUUIDField);
                         aTable.UUID = value;
+                    }
                 }
             }
         }

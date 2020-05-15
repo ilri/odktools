@@ -139,7 +139,7 @@ void parseCreateFile(QDomNode node, pt::ptree &json)
                 if (node.toElement().attribute("key","false") == "true")
                     addkey = false;
             }
-            if ((xmlCode.toUpper() != "NONE") && (xmlCode != "_dummy") && (xmlCode != "rowuuid") && (addkey))
+            if ((xmlCode.toUpper() != "NONE") && (xmlCode != "_dummy") && (addkey))
             {
                 if ((node.toElement().attribute("isMultiSelect","false") == "true") && (node.toElement().attribute("multiSelectTable") != ""))
                 {
