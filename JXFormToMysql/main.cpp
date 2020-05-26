@@ -3319,7 +3319,14 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
                 else
                 {
                     if (!justCheck)
-                        log("Unable to retreive data for search \"" + file + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
+                    {
+                        if (outputType == "h")
+                            log("Unable to retreive data for search \"" + file + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
+                        else
+                        {
+                            report_file_error(file);
+                        }
+                    }
                     exit(15);
                 }
             }
