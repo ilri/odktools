@@ -647,6 +647,7 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
             key.multiSelectTable = fields[pos].multiSelectTable;
             key.value = jsonData[fields[pos].xmlCode].toString();
             key.value = key.value.simplified();
+            key.value = key.value.replace("'","`");
             if (fields[pos].type == "datetime")
             {
                 if (key.value.indexOf(".") >= 0)
