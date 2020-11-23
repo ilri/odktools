@@ -136,7 +136,7 @@ void parseCreateFile(QDomNode node, pt::ptree &json)
             bool addkey = true;
             if (!keysForRepo)
             {
-                if (node.toElement().attribute("key","false") == "true")
+                if ((node.toElement().attribute("key","false") == "true") && ((node.toElement().attribute("rtable","") != "") || (node.toElement().attribute("rlookup","false") == "true")))
                     addkey = false;
             }
             if ((xmlCode.toUpper() != "NONE") && (xmlCode != "_dummy") && (addkey))
