@@ -2316,7 +2316,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "add decimal prompt")
     {
         result.type = "decimal";
-        result.size = 10;
+        result.size = 17;
         result.decSize = 3;
     }
     if (ODKFieldType == "add integer prompt")
@@ -2357,7 +2357,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "decimal")
     {
         result.type = "decimal";
-        result.size = 10;
+        result.size = 17;
         result.decSize = 3;
     }
     if (ODKFieldType == "device id")
@@ -2504,7 +2504,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "q decimal")
     {
         result.type = "decimal";
-        result.size = 10;
+        result.size = 17;
         result.decSize = 3;
     }
     if (ODKFieldType == "q geopoint")
@@ -2544,7 +2544,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "range")
     {
         result.type = "decimal";
-        result.size = 10;
+        result.size = 17;
         result.decSize = 3;
     }
     if (ODKFieldType == "sim id")
