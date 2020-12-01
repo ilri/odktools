@@ -522,7 +522,7 @@ QString mainClass::fixString(QString source)
     QString res;
     res = source;
     res = res.replace("'","`");
-    res = res.replace(";","");
+    res = res.replace(";","|");
     return res;
 }
 
