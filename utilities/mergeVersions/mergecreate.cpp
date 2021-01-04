@@ -268,6 +268,16 @@ void mergeCreate::addAlterFieldToDiff(QString table, QDomElement eField, int new
         replace_lookup_relationships(table,fieldName);
     }
 
+    if (eField.attribute("type","") == "datetime")
+    {
+        sql = "ALTER TABLE " + table + " MODIFY " + fieldName + " datetime;\n";
+        diff.append(sql);
+    }
+    if (eField.attribute("type","") == "text")
+    {
+        sql = "ALTER TABLE " + table + " MODIFY " + fieldName + " text;\n";
+        diff.append(sql);
+    }
     if (eField.attribute("type","") == "varchar")
     {
         sql = "ALTER TABLE " + table + " MODIFY " + fieldName + " varchar(" + QString::number(newSize) + ");\n";
@@ -670,7 +680,25 @@ QString mergeCreate::compareFields(QDomElement a, QDomElement b, int &newSize, i
                 return "FNS";
         }
         else
-            return "FNS";
+        {
+            if (a.attribute("type") == "text")
+            {
+                newSize = 0;
+                newDec = 0;
+                return "FTC";
+            }
+            else
+            {
+                if ((b.attribute("type") == "time") && (a.attribute("type") == "datetime"))
+                {
+                    newSize = 0;
+                    newDec = 0;
+                    return "FTC";
+                }
+                else
+                    return "FNS";
+            }
+        }
     }
 
     if (a.attribute("size","") != b.attribute("size",""))
