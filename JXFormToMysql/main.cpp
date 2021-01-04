@@ -2331,8 +2331,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "audio")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "audit")
     {
@@ -2362,13 +2361,11 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "device id")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "deviceid")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "email")
     {
@@ -2384,8 +2381,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "file")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "geopoint")
     {
@@ -2394,8 +2390,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "get device id")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "get end time")
     {
@@ -2403,13 +2398,11 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "get phone number")
     {
-        result.type = "varchar";
-        result.size = 15;
+        result.type = "text";
     }
     if (ODKFieldType == "get sim id")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "get start time")
     {
@@ -2417,8 +2410,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "get subscriber id")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "get today")
     {
@@ -2466,18 +2458,15 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "phone number")
     {
-        result.type = "varchar";
-        result.size = 15;
+        result.type = "text";
     }
     if (ODKFieldType == "phonenumber")
     {
-        result.type = "varchar";
-        result.size = 15;
+        result.type = "text";
     }
     if (ODKFieldType == "photo")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "q acknowledge")
     {
@@ -2486,8 +2475,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "q audio")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "q date")
     {
@@ -2514,8 +2502,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "q image")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "q int")
     {
@@ -2529,8 +2516,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "q picture")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "q string")
     {
@@ -2538,8 +2524,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "q video")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "range")
     {
@@ -2549,13 +2534,11 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "sim id")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "simserial")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "start")
     {
@@ -2571,13 +2554,11 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "subscriber id")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "subscriberid")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "time")
     {
@@ -2594,8 +2575,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "uri:deviceid")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "uri:email")
     {
@@ -2603,18 +2583,15 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "uri:phonenumber")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "uri:simserial")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "uri:subscriberid")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "uri:username")
     {
@@ -2626,13 +2603,11 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "video")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "xml-external")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if ((ODKFieldType == "geoshape") || (ODKFieldType == "q geoshape"))
     {
