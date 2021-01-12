@@ -279,6 +279,7 @@ int main(int argc, char *argv[])
         db.setDatabaseName(schema);
         db.setUserName(user);
         db.setPassword(pass);
+        db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
         if (db.open())
         {
             if (!QFile::exists(outputFile))

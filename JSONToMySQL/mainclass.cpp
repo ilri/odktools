@@ -102,6 +102,7 @@ void mainClass::run()
         db.setDatabaseName(schema);
         db.setUserName(user);
         db.setPassword(password);
+        db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
         if (db.open())
         {            
             QFile UUIDFile(UUIDsFile);
