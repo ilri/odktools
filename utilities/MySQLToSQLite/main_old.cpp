@@ -143,6 +143,36 @@ int genSnapHost(QSqlDatabase db, QSqlDatabase dblite, QString auditFile, QString
         return 1;
     }
 
+    QStringList version_arguments;
+    version_arguments.clear();
+    version_arguments << "--version";
+    QString version_info;
+    QProcess *version_process = new QProcess();
+    version_process->start("mariadb_config", version_arguments);
+    version_process->waitForFinished(-1);
+    bool maria_bd = false;
+    if (version_process->exitCode() == 0)
+    {
+        maria_bd = true;
+        version_info = version_process->readAllStandardOutput().replace("\n","");
+    }
+    else
+    {
+        version_process->start("mysql_config", version_arguments);
+        version_process->waitForFinished(-1);
+        if (version_process->exitCode() == 0)
+        {
+            version_info = version_process->readAllStandardOutput().replace("\n","");
+        }
+    }
+    if (version_info == "")
+    {
+        log("Unable to detect the version of MySQL");
+        exit(1);
+    }
+    QStringList version_parts = version_info.split(".");
+    int version_number = version_parts[0].toInt();
+
     QString program = "mysqldump";
     QStringList arguments;
     arguments << "--single-transaction";
@@ -152,6 +182,11 @@ int genSnapHost(QSqlDatabase db, QSqlDatabase dblite, QString auditFile, QString
     arguments << "--skip-triggers";
     arguments << "--xml";
     arguments << "--no-create-info";
+    if (maria_bd == false && version_number >= 8)
+    {
+        arguments << "--skip-column-statistics";
+        arguments << "--ssl-mode=DISABLED";
+    }
     for (pos = 0; pos <= ignoreTables.count()-1; pos++)
         arguments << "--ignore-table=" + schema + "." + ignoreTables[pos];
     arguments << schema;
