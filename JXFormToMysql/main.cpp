@@ -4970,14 +4970,13 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                 break;
             }
         }
-        if (!justCheck)
+
+        if (mainFieldIndex == -1)
         {
-            if (mainFieldIndex == -1)
-            {
-                log("The primary key field does not exists or is inside a repeat");
-                exit(10);
-            }
+            log("The primary key field does not exists or is inside a repeat");
+            exit(10);
         }
+
         QStringList invalidKeyTypes;
         invalidKeyTypes << "acknowledge";
         invalidKeyTypes << "add acknowledge prompt";
