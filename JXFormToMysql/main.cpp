@@ -50,6 +50,7 @@ QStringList repeatStack; //This is a stack of repeats. So we know in which repea
 QString prefix; //Table prefix
 int tableIndex; //Global index of a table. Used later on to sort them
 QStringList supportFiles;
+QStringList submittedFiles;
 bool primaryKeyAdded;
 int CSVRowNumber;
 bool CSVColumError;
@@ -5747,7 +5748,11 @@ int main(int argc, char *argv[])
     {
         QString file = QString::fromStdString(v[i]);
         if (QFile::exists(file))
+        {
+            QFileInfo fileInfo(file);
+            submittedFiles.append(fileInfo.fileName());
             supportFiles.append(file);
+        }
         else
         {
             log("Support file \"" + file + "\" does not exist.");
@@ -6000,8 +6005,16 @@ int main(int argc, char *argv[])
 
 
     if (justCheck)
-    {
-        if (requiredFiles.count() > 0)
+    {        
+        QStringList missingFiles;
+        for (int f =0; f < requiredFiles.count(); f++)
+        {
+            if (submittedFiles.indexOf(requiredFiles[f]) == -1)
+            {
+                missingFiles.append(requiredFiles[f]);
+            }
+        }
+        if (missingFiles.count() > 0)
         {
             if (outputType == "h")
             {
@@ -6014,11 +6027,11 @@ int main(int argc, char *argv[])
                 QDomElement XMLRoot;
                 XMLRoot = XMLResult.createElement("XMLResult");
                 XMLResult.appendChild(XMLRoot);
-                for (int item = 0; item < requiredFiles.count(); item++)
+                for (int item = 0; item < missingFiles.count(); item++)
                 {
                     QDomElement eDuplicatedItem;
                     eDuplicatedItem = XMLResult.createElement("missingFile");
-                    eDuplicatedItem.setAttribute("fileName",requiredFiles[item]);
+                    eDuplicatedItem.setAttribute("fileName",missingFiles[item]);
                     XMLRoot.appendChild(eDuplicatedItem);
                 }
                 log(XMLResult.toString());
