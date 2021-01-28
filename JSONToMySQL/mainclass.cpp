@@ -102,6 +102,7 @@ void mainClass::run()
         db.setDatabaseName(schema);
         db.setUserName(user);
         db.setPassword(password);
+        db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
         if (db.open())
         {            
             QFile UUIDFile(UUIDsFile);
@@ -522,7 +523,7 @@ QString mainClass::fixString(QString source)
     QString res;
     res = source;
     res = res.replace("'","`");
-    res = res.replace(";","");
+    res = res.replace(";","|");
     return res;
 }
 
@@ -647,6 +648,7 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
             key.multiSelectTable = fields[pos].multiSelectTable;
             key.value = jsonData[fields[pos].xmlCode].toString();
             key.value = key.value.simplified();
+            key.value = key.value.replace("'","`");
             if (fields[pos].type == "datetime")
             {
                 if (key.value.indexOf(".") >= 0)

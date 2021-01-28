@@ -399,6 +399,7 @@ void mainClass::run()
         db.setDatabaseName(schema);
         db.setUserName(user);
         db.setPassword(pass);
+        db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
         if (db.open())
         {
             QDir outDir(outputDirectory);

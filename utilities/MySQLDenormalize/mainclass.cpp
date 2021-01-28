@@ -1006,7 +1006,10 @@ int mainClass::generateJSONs(QSqlDatabase db)
                 arguments.clear();
                 arguments << "--single-transaction";
                 if (maria_bd == false && version_number >= 8)
-                    arguments << "--skip-column-statistics";                
+                {
+                    arguments << "--skip-column-statistics";
+                    arguments << "--ssl-mode=DISABLED";
+                }
                 arguments << "-h" << host;
                 arguments << "-u" << user;
                 arguments << "--password=" + pass;
@@ -1110,6 +1113,7 @@ void mainClass::run()
                 db.setDatabaseName(schema);
                 db.setUserName(user);
                 db.setPassword(pass);
+                db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
                 if (db.open())
                 {
                     //Openning and parsing the Create XML file

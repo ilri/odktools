@@ -50,6 +50,7 @@ QStringList repeatStack; //This is a stack of repeats. So we know in which repea
 QString prefix; //Table prefix
 int tableIndex; //Global index of a table. Used later on to sort them
 QStringList supportFiles;
+QStringList submittedFiles;
 bool primaryKeyAdded;
 int CSVRowNumber;
 bool CSVColumError;
@@ -2194,7 +2195,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
         // Append UUIDs triggers to the file but only if the UUID is null or if it is not an uuid
 
         sql = sql + "delimiter $$\n\n";
-        sql = sql + "CREATE TRIGGER T" + strTriggerUUID + " BEFORE INSERT ON " + tables[pos].name + " FOR EACH ROW BEGIN IF (new.rowuuid IS NULL) THEN SET new.rowuuid = uuid(); ELSE IF (new.rowuuid NOT REGEXP '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}') THEN SET new.rowuuid = uuid(); END IF; END IF; END;$$\n";
+        sql = sql + "CREATE TRIGGER T" + strTriggerUUID + " BEFORE INSERT ON " + prefix + tables[pos].name + " FOR EACH ROW BEGIN IF (new.rowuuid IS NULL) THEN SET new.rowuuid = uuid(); ELSE IF (new.rowuuid NOT REGEXP '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}') THEN SET new.rowuuid = uuid(); END IF; END IF; END;$$\n";
         sql = sql + "delimiter ;\n\n";
 
         sqlCreateStrm << sql; //Add the triggers to the SQL DDL file
@@ -2316,7 +2317,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "add decimal prompt")
     {
         result.type = "decimal";
-        result.size = 10;
+        result.size = 17;
         result.decSize = 3;
     }
     if (ODKFieldType == "add integer prompt")
@@ -2331,8 +2332,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "audio")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "audit")
     {
@@ -2357,18 +2357,16 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "decimal")
     {
         result.type = "decimal";
-        result.size = 10;
+        result.size = 17;
         result.decSize = 3;
     }
     if (ODKFieldType == "device id")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "deviceid")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "email")
     {
@@ -2384,8 +2382,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "file")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "geopoint")
     {
@@ -2394,8 +2391,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "get device id")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "get end time")
     {
@@ -2403,13 +2399,11 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "get phone number")
     {
-        result.type = "varchar";
-        result.size = 15;
+        result.type = "text";
     }
     if (ODKFieldType == "get sim id")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "get start time")
     {
@@ -2417,8 +2411,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "get subscriber id")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "get today")
     {
@@ -2466,18 +2459,15 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "phone number")
     {
-        result.type = "varchar";
-        result.size = 15;
+        result.type = "text";
     }
     if (ODKFieldType == "phonenumber")
     {
-        result.type = "varchar";
-        result.size = 15;
+        result.type = "text";
     }
     if (ODKFieldType == "photo")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "q acknowledge")
     {
@@ -2486,8 +2476,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "q audio")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "q date")
     {
@@ -2504,7 +2493,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     if (ODKFieldType == "q decimal")
     {
         result.type = "decimal";
-        result.size = 10;
+        result.size = 17;
         result.decSize = 3;
     }
     if (ODKFieldType == "q geopoint")
@@ -2514,8 +2503,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "q image")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "q int")
     {
@@ -2529,8 +2517,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "q picture")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "q string")
     {
@@ -2538,24 +2525,21 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "q video")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "range")
     {
         result.type = "decimal";
-        result.size = 10;
+        result.size = 17;
         result.decSize = 3;
     }
     if (ODKFieldType == "sim id")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "simserial")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "start")
     {
@@ -2571,13 +2555,11 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "subscriber id")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "subscriberid")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "time")
     {
@@ -2594,8 +2576,7 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "uri:deviceid")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "uri:email")
     {
@@ -2603,18 +2584,15 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "uri:phonenumber")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "uri:simserial")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "uri:subscriberid")
     {
-        result.type = "varchar";
-        result.size = 30;
+        result.type = "text";
     }
     if (ODKFieldType == "uri:username")
     {
@@ -2626,13 +2604,11 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     }
     if (ODKFieldType == "video")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if (ODKFieldType == "xml-external")
     {
-        result.type = "varchar";
-        result.size = 20;
+        result.type = "text";
     }
     if ((ODKFieldType == "geoshape") || (ODKFieldType == "q geoshape"))
     {
@@ -4995,14 +4971,13 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                 break;
             }
         }
-        if (!justCheck)
+
+        if (mainFieldIndex == -1)
         {
-            if (mainFieldIndex == -1)
-            {
-                log("The primary key field does not exists or is inside a repeat");
-                exit(10);
-            }
+            log("The primary key field does not exists or is inside a repeat");
+            exit(10);
         }
+
         QStringList invalidKeyTypes;
         invalidKeyTypes << "acknowledge";
         invalidKeyTypes << "add acknowledge prompt";
@@ -5773,7 +5748,11 @@ int main(int argc, char *argv[])
     {
         QString file = QString::fromStdString(v[i]);
         if (QFile::exists(file))
+        {
+            QFileInfo fileInfo(file);
+            submittedFiles.append(fileInfo.fileName());
             supportFiles.append(file);
+        }
         else
         {
             log("Support file \"" + file + "\" does not exist.");
@@ -6026,8 +6005,16 @@ int main(int argc, char *argv[])
 
 
     if (justCheck)
-    {
-        if (requiredFiles.count() > 0)
+    {        
+        QStringList missingFiles;
+        for (int f =0; f < requiredFiles.count(); f++)
+        {
+            if (submittedFiles.indexOf(requiredFiles[f]) == -1)
+            {
+                missingFiles.append(requiredFiles[f]);
+            }
+        }
+        if (missingFiles.count() > 0)
         {
             if (outputType == "h")
             {
@@ -6040,11 +6027,11 @@ int main(int argc, char *argv[])
                 QDomElement XMLRoot;
                 XMLRoot = XMLResult.createElement("XMLResult");
                 XMLResult.appendChild(XMLRoot);
-                for (int item = 0; item < requiredFiles.count(); item++)
+                for (int item = 0; item < missingFiles.count(); item++)
                 {
                     QDomElement eDuplicatedItem;
                     eDuplicatedItem = XMLResult.createElement("missingFile");
-                    eDuplicatedItem.setAttribute("fileName",requiredFiles[item]);
+                    eDuplicatedItem.setAttribute("fileName",missingFiles[item]);
                     XMLRoot.appendChild(eDuplicatedItem);
                 }
                 log(XMLResult.toString());

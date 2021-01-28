@@ -368,7 +368,10 @@ int procData(QString tempDir, QString host, QString user, QString pass, QString 
     QStringList arguments;
     arguments << "--single-transaction";
     if (maria_bd == false && version_number >= 8)
+    {
         arguments << "--skip-column-statistics";
+        arguments << "--ssl-mode=DISABLED";
+    }
     arguments << "-h" << host;
     arguments << "-u" << user;
     arguments << "--password=" + pass;
@@ -478,6 +481,7 @@ int main(int argc, char *argv[])
         db.setDatabaseName(schema);
         db.setUserName(user);
         db.setPassword(pass);
+        db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
         if (db.open())
         {
             if (!QFile::exists(outputFile))

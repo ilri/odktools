@@ -112,16 +112,22 @@ pt::ptree processNodeBoost(QStringList repeatArray,bool group,QDomNode node,pt::
                 it = json.find(varName.toStdString());
                 if (it == json.not_found())//if (json[varName].isNull())
                 {
-                    pt::ptree repArray;//QJsonArray repArray;
-                    repArray.push_front(std::make_pair("", repContent));//repArray.append(repContent);
-                    json.put_child(varName.toStdString(),repArray);//json[varName] = repArray;
+                    if (!repContent.empty())
+                    {
+                        pt::ptree repArray;//QJsonArray repArray;
+                        repArray.push_front(std::make_pair("", repContent));//repArray.append(repContent);
+                        json.put_child(varName.toStdString(),repArray);//json[varName] = repArray;
+                    }
                 }
                 else
                 {
-                    pt::ptree repArray;//QJsonArray repArray;
-                    repArray = json.get_child(varName.toStdString());//repArray = json[varName].toArray();
-                    repArray.push_front(std::make_pair("", repContent));//repArray.append(repContent);
-                    json.put_child(varName.toStdString(),repArray); //json[varName] = repArray;
+                    if (!repContent.empty())
+                    {
+                        pt::ptree repArray;//QJsonArray repArray;
+                        repArray = json.get_child(varName.toStdString());//repArray = json[varName].toArray();
+                        repArray.push_front(std::make_pair("", repContent));//repArray.append(repContent);
+                        json.put_child(varName.toStdString(),repArray); //json[varName] = repArray;
+                    }
                 }
             }
             else
