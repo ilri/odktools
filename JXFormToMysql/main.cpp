@@ -5479,30 +5479,12 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
 
         tables.append(maintable);
         addToRepeat(mainTable);
-        if (!justCheck)
-        {
-            QString primaryKeyXMLCode = surveyVariables[mainFieldIndex].fullName;
-            QJsonObject primaryKeyObject = surveyVariables[mainFieldIndex].object;
-            parseField(primaryKeyObject,mainTable, mainField, dir, database,primaryKeyXMLCode);
-        }
-        else
-        {
-            QJsonObject testing_object;
-            testing_object.insert("type",QJsonValue("text"));
-            testing_object.insert("name",QJsonValue("_dummy"));
-            if (ODKLanguages.count() == 1)
-                testing_object.insert("label",QJsonValue("Dummy"));
-            else
-            {
-                QJsonObject language_object;
-                for (int lng = 0; lng < ODKLanguages.count(); lng++)
-                {
-                    language_object.insert(ODKLanguages[lng],QJsonValue("Dummy"));
-                }
-                testing_object.insert("label",language_object);
-            }
-            parseField(testing_object,mainTable, mainField, dir, database,"none");
-        }
+
+        QString primaryKeyXMLCode = surveyVariables[mainFieldIndex].fullName;
+        QJsonObject primaryKeyObject = surveyVariables[mainFieldIndex].object;
+        parseField(primaryKeyObject,mainTable, mainField, dir, database,primaryKeyXMLCode);
+
+
         primaryKeyAdded = true;        
         parseJSONObject(firstObject, mainTable, mainField, dir, database);       
         if (duplicatedTables.count() > 0)
