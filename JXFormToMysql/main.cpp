@@ -2469,6 +2469,10 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     {
         result.type = "text";
     }
+    if (ODKFieldType == "image")
+    {
+        result.type = "text";
+    }
     if (ODKFieldType == "q acknowledge")
     {
         result.type = "varchar";
