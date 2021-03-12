@@ -128,6 +128,8 @@ struct fieldDef
   QString selectSource; //The source of the select. Internal, External or Search
   QString selectListName; //The list name of the select
   bool sensitive;
+  int selectType=0;
+  QString externalFileName;
 };
 typedef fieldDef TfieldDef;
 
@@ -1898,6 +1900,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         fieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                         fieldNode.setAttribute("type",tables[pos].fields[clm].type);
                         fieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                        fieldNode.setAttribute("selecttype",tables[pos].fields[clm].selectType);
+                        fieldNode.setAttribute("externalfilename",tables[pos].fields[clm].externalFileName);
                         if (tables[pos].fields[clm].sensitive == true)
                         {
                             fieldNode.setAttribute("sensitive","true");
@@ -1932,6 +1936,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                         createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                         createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                        createFieldNode.setAttribute("selecttype",tables[pos].fields[clm].selectType);
+                        createFieldNode.setAttribute("externalfilename",tables[pos].fields[clm].externalFileName);
                         createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                         if (tables[pos].fields[clm].sensitive == true)
                         {
@@ -1970,6 +1976,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("name",tables[pos].fields[clm].name.toLower());
                         createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                         createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                        createFieldNode.setAttribute("selecttype",tables[pos].fields[clm].selectType);
+                        createFieldNode.setAttribute("externalfilename",tables[pos].fields[clm].externalFileName);
                         createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                         if (tables[pos].fields[clm].sensitive == true)
                         {
@@ -2001,6 +2009,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                     createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                     createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                     createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                    createFieldNode.setAttribute("selecttype",tables[pos].fields[clm].selectType);
+                    createFieldNode.setAttribute("externalfilename",tables[pos].fields[clm].externalFileName);
                     createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                     if (tables[pos].fields[clm].sensitive == true)
                     {
@@ -2032,6 +2042,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 createFieldNode.setAttribute("desc",fixString(getDescForLanguage(tables[pos].fields[clm].desc,defLangCode)));
                 createFieldNode.setAttribute("type",tables[pos].fields[clm].type);
                 createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
+                createFieldNode.setAttribute("selecttype",tables[pos].fields[clm].selectType);
+                createFieldNode.setAttribute("externalfilename",tables[pos].fields[clm].externalFileName);
                 createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                 if (tables[pos].fields[clm].sensitive == true)
                 {
@@ -3224,7 +3236,7 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
 // e.g.:
 //       type: select one canton
 //       appearance: search('cantones', 'matches', 'a_column', ${a_variable})
-QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choices,QString variableName, bool hasOrOther, int &result, QDir dir, QSqlDatabase database)
+QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choices,QString variableName, bool hasOrOther, int &result, QDir dir, QSqlDatabase database, QString &file)
 {    
     QList<TlkpValue> res;
     QString codeColumn;
@@ -3244,7 +3256,7 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
         int pos;
         //Extract the file from the expression
         pos = searchExpresion.indexOf("'");
-        QString file = searchExpresion.right(searchExpresion.length()-(pos+1));
+        file = searchExpresion.right(searchExpresion.length()-(pos+1));
         pos = file.indexOf("'");
         file = file.left(pos);
         QString sqliteFile;
@@ -3753,6 +3765,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
     {
         //Gather the lookup values
         QList<TlkpValue> values;
+        int select_type=0;
+        QString external_file;
         if ((isSelect(variableType) == 1) || (isSelect(variableType) == 3) || (isSelect(variableType) == 4))
         {
             bool fromSearchCSV;
@@ -3774,6 +3788,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     QString fileName;
                     fileName = fieldObject.value("itemset").toString("").toLower().trimmed();
                     int result;
+                    select_type = 3;
+                    external_file = fileName;
                     values.append(getSelectValuesFromCSV2(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir,database,""));
                     if (result != 0)
                     {                        
@@ -3786,6 +3802,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     QString fileName;
                     fileName = fieldObject.value("itemset").toString("").toLower().trimmed();
                     int result;
+                    select_type = 4;
+                    external_file = fileName;
                     values.append(getSelectValuesFromXML(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir));
                     if (result != 0)
                     {
@@ -3797,11 +3815,17 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             else
             {
                 if (!fromSearchCSV)
+                {
                     values.append(getSelectValues(fixField(variableName),fieldObject.value("choices").toArray(),selectHasOrOther(variableType)));
+                    select_type = 1;
+                }
                 else
                 {
                     int result;
-                    values.append(getSelectValuesFromCSV(variableApperance,fieldObject.value("choices").toArray(),fixField(variableName),selectHasOrOther(variableType),result,dir,database));
+                    QString fileName;
+                    values.append(getSelectValuesFromCSV(variableApperance,fieldObject.value("choices").toArray(),fixField(variableName),selectHasOrOther(variableType),result,dir,database,fileName));
+                    select_type = 2;
+                    external_file = fileName;
                     if (result != 0)
                     {
                         if (result == 16)
@@ -3820,6 +3844,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             {
                 int result;
                 values.append(getSelectValuesFromCSV2(fixField(variableName),"itemsets.csv",selectHasOrOther(variableType),result,dir,database,queryField));
+                select_type = 5;
+                external_file = "itemsets.csv";
                 if (result != 0)
                     exit(15);
             }
@@ -3831,6 +3857,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             TfieldDef aField;
             aField.selectSource = "NONE";
             aField.name = fixField(variableName.toLower());
+            aField.selectType = select_type;
+            aField.externalFileName = external_file;
 
             aField.odktype = variableType;
             aField.selectListName = "NONE";
@@ -4010,6 +4038,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             //Creating a multiSelect
             TfieldDef aField;
             aField.name = fixField(variableName.toLower());
+            aField.selectType = select_type;
+            aField.externalFileName = external_file;
             checkFieldName(tables[tblIndex],aField.name);
             aField.selectSource = "NONE";
             aField.selectListName = "NONE";
