@@ -82,7 +82,7 @@ QString getRelatedFields(TrelatedTable table)
     return res;
 }
 
-void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, QString tableDesc, QString Inserttrigger)
+void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, QString tableDesc, QString Inserttrigger, QDomElement tableElement)
 {    
     QStringList sfields;
     QStringList indexes;
@@ -215,6 +215,16 @@ void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, 
 
     sql = sql + "delimiter $$\n\n";
     sql = sql + "CREATE TRIGGER " + Inserttrigger + " BEFORE INSERT ON " + tableName + " FOR EACH ROW BEGIN IF (new.rowuuid IS NULL) THEN SET new.rowuuid = uuid(); ELSE IF (new.rowuuid NOT REGEXP '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}') THEN SET new.rowuuid = uuid(); END IF; END IF; END;$$\n";
+
+    if (tableElement.attribute("case_action","false") == "true")
+    {
+        QString active_value;
+        if (tableElement.attribute("case_action_type","") == "deactivate")
+            active_value = "0";
+        else
+            active_value = "1";
+        sql = sql + "CREATE TRIGGER " + tableElement.attribute("action_trigger","") + " AFTER INSERT ON " + tableName + " FOR EACH ROW BEGIN SET @odktools_current_user = new._submitted_by; UPDATE " + tableElement.attribute("creator_table","") + " SET _active = " + active_value + " WHERE " + tableElement.attribute("creator_field","") + " = new." + tableElement.attribute("selector_field","") + "; END;$$\n";
+    }
     sql = sql + "delimiter ;\n\n";
     outstrm << sql;
 }
@@ -232,7 +242,7 @@ void procLKPTables(QDomNode start, QTextStream &outstrm)
             fields.append(field);
             field = field.nextSibling();
         }
-        createTable(node.toElement().attribute("name",""),fields,outstrm,node.toElement().attribute("desc",""),node.toElement().attribute("inserttrigger",""));
+        createTable(node.toElement().attribute("name",""),fields,outstrm,node.toElement().attribute("desc",""),node.toElement().attribute("inserttrigger",""),node.toElement());
         //Here we create the insert with the table definition
         node = node.nextSibling();
     }
@@ -259,7 +269,7 @@ void procTables(QDomNode start, QTextStream &outstrm)
         {
             if (proc == false)
             {
-                createTable(tableName,fields,outstrm,tabledesc,insertTrigger); //Create the current table
+                createTable(tableName,fields,outstrm,tabledesc,insertTrigger,start.toElement()); //Create the current table
                 fields.clear(); //Clear the fields
                 proc = true;
             }
@@ -269,7 +279,7 @@ void procTables(QDomNode start, QTextStream &outstrm)
     }
     if (fields.count() > 0)
     {
-        createTable(tableName,fields,outstrm,tabledesc,insertTrigger);
+        createTable(tableName,fields,outstrm,tabledesc,insertTrigger,start.toElement());
     }
 }
 
