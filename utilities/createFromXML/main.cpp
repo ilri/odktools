@@ -33,7 +33,8 @@ typedef relatedField TrelatedField;
 
 struct relatedTable
 {
-    QString name;    
+    QString name;
+    QString relName;
     QList< TrelatedField> fields;
 };
 typedef relatedTable TrelatedTable;
@@ -81,7 +82,7 @@ QString getRelatedFields(TrelatedTable table)
     return res;
 }
 
-void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, QString tableDesc, bool isLookUp)
+void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, QString tableDesc, QString Inserttrigger, QDomElement tableElement)
 {    
     QStringList sfields;
     QStringList indexes;
@@ -131,10 +132,10 @@ void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, 
             if (efield.attribute("rlookup","") == "true")
             {
                 idx++;
-                index = "INDEX fk" + QString::number(idx) + "_" + tableName + "_" + efield.attribute("rtable","") ;
+                index = "INDEX " + efield.attribute("rname","") ;
                 indexes << index.left(64) + " (" + efield.attribute("name","") + ") , " << "\n";
 
-                constraint = "CONSTRAINT fk" + QString::number(idx) + "_" + tableName + "_" + efield.attribute("rtable","");
+                constraint = "CONSTRAINT " + efield.attribute("rname","");
                 rels << constraint.left(64) << "\n";
                 rels << "FOREIGN KEY (" + efield.attribute("name","") + ")" << "\n";
                 rels << "REFERENCES " + efield.attribute("rtable","") + " (" + efield.attribute("rfield","") + ")" << "\n";
@@ -156,10 +157,11 @@ void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, 
                 {
                     TrelatedTable relTable;
                     relTable.name = efield.attribute("rtable","");
+                    relTable.relName = efield.attribute("rname","");
 
                     TrelatedField relfield;
                     relfield.name = efield.attribute("name","");
-                    relfield.rname = efield.attribute("rfield","");
+                    relfield.rname = efield.attribute("rfield","");                    
                     relTable.fields.append(relfield);
                     relTables.append(relTable);
                 }
@@ -170,10 +172,10 @@ void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, 
     for (pos = 0; pos < relTables.count();pos++)
     {
         idx++;
-        index = "INDEX fk" + QString::number(idx) + "_" + tableName + "_" + relTables[pos].name ;
+        index = "INDEX " + relTables[pos].relName ;
         indexes << index.left(64) + " (" + getFields(relTables[pos]) + ") , " << "\n";
 
-        constraint = "CONSTRAINT fk" + QString::number(idx) + "_" + tableName + "_" + relTables[pos].name;
+        constraint = "CONSTRAINT " + relTables[pos].relName;
         rels << constraint.left(64) << "\n";
         rels << "FOREIGN KEY (" + getFields(relTables[pos]) + ")" << "\n";
         rels << "REFERENCES " + relTables[pos].name + " (" + getRelatedFields(relTables[pos]) + ")" << "\n";
@@ -210,10 +212,20 @@ void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, 
     sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + tableDesc + "\"; \n";
     idx++;
     sql = sql + "CREATE UNIQUE INDEX rowuuid" + QString::number(idx) + " ON " + tableName + "(rowuuid);\n";
-    if (isLookUp)
-        sql = sql + "CREATE TRIGGER uudi_" + tableName + " BEFORE INSERT ON " + tableName + " FOR EACH ROW SET new.rowuuid = uuid();\n\n";
-    else
-        sql = sql + "\n";
+
+    sql = sql + "delimiter $$\n\n";
+    sql = sql + "CREATE TRIGGER " + Inserttrigger + " BEFORE INSERT ON " + tableName + " FOR EACH ROW BEGIN IF (new.rowuuid IS NULL) THEN SET new.rowuuid = uuid(); ELSE IF (new.rowuuid NOT REGEXP '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}') THEN SET new.rowuuid = uuid(); END IF; END IF; END;$$\n";
+
+    if (tableElement.attribute("case_action","false") == "true")
+    {
+        QString active_value;
+        if (tableElement.attribute("case_action_type","") == "deactivate")
+            active_value = "0";
+        else
+            active_value = "1";
+        sql = sql + "CREATE TRIGGER " + tableElement.attribute("action_trigger","") + " AFTER INSERT ON " + tableName + " FOR EACH ROW BEGIN SET @odktools_current_user = new._submitted_by; UPDATE " + tableElement.attribute("creator_table","") + " SET _active = " + active_value + " WHERE " + tableElement.attribute("creator_field","") + " = new." + tableElement.attribute("selector_field","") + "; END;$$\n";
+    }
+    sql = sql + "delimiter ;\n\n";
     outstrm << sql;
 }
 
@@ -230,7 +242,7 @@ void procLKPTables(QDomNode start, QTextStream &outstrm)
             fields.append(field);
             field = field.nextSibling();
         }
-        createTable(node.toElement().attribute("name",""),fields,outstrm,node.toElement().attribute("desc",""),true);
+        createTable(node.toElement().attribute("name",""),fields,outstrm,node.toElement().attribute("desc",""),node.toElement().attribute("inserttrigger",""),node.toElement());
         //Here we create the insert with the table definition
         node = node.nextSibling();
     }
@@ -242,6 +254,8 @@ void procTables(QDomNode start, QTextStream &outstrm)
     tableName = start.toElement().attribute("name");
     QString tabledesc;
     tabledesc = start.toElement().attribute("desc");
+    QString insertTrigger;
+    insertTrigger = start.toElement().attribute("inserttrigger");
     //qDebug() << "Creating table:" + tableName;
     QDomNode node = start.firstChild();
     QList<QDomNode> fields;
@@ -255,7 +269,7 @@ void procTables(QDomNode start, QTextStream &outstrm)
         {
             if (proc == false)
             {
-                createTable(tableName,fields,outstrm,tabledesc,false); //Create the current table
+                createTable(tableName,fields,outstrm,tabledesc,insertTrigger,start.toElement()); //Create the current table
                 fields.clear(); //Clear the fields
                 proc = true;
             }
@@ -265,7 +279,7 @@ void procTables(QDomNode start, QTextStream &outstrm)
     }
     if (fields.count() > 0)
     {
-        createTable(tableName,fields,outstrm,tabledesc,false);
+        createTable(tableName,fields,outstrm,tabledesc,insertTrigger,start.toElement());
     }
 }
 
@@ -342,7 +356,7 @@ int main(int argc, char *argv[])
                 out << "-- Code generated by createFromXML" << "\n";
                 out << "-- " + command << "\n";
                 out << "-- Created: " + date.toString("ddd MMMM d yyyy h:m:s ap")  << "\n";
-                out << "-- by: createFromXML Version 1.0" << "\n";
+                out << "-- by: createFromXML Version 2.0" << "\n";
                 out << "-- WARNING! All changes made in this file might be lost when running createFromXML again" << "\n\n";
 
                 QDomNode lkpTables = docA.documentElement().firstChild();
