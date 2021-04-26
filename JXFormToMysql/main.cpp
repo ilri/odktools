@@ -893,7 +893,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "TRANSACTION";
     invalidFieldNames << "TRIGGER";
     invalidFieldNames << "TRIGGERS";
-    invalidFieldNames << "1";
+    invalidFieldNames << "TRUE";
     invalidFieldNames << "TRUNCATE";
     invalidFieldNames << "TYPE";
     invalidFieldNames << "TYPES";
