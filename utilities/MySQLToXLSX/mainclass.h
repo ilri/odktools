@@ -15,11 +15,11 @@ struct fieldDef
   bool isKey = false;
   QString multiSelectTable;
   QString multiSelectField;
-  QStringList multiSelectOptions;
   QStringList multiSelectKeys;
   QString replace_value;
   QString value;
   bool sensitive;
+  QString protection;
 };
 typedef fieldDef TfieldDef;
 
@@ -44,7 +44,7 @@ class mainClass : public QObject
     Q_OBJECT
 public:
     explicit mainClass(QObject *parent = nullptr);
-    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString insertXML, bool separate);
+    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString encryption_key);
     int returnCode;
 signals:
     void finished();
@@ -52,14 +52,10 @@ public slots:
     void run();
 private:
     void log(QString message);
-    int generateXLSX();
-    int parseDataToXLSX();
-    void getFieldData(QString table, QString field, QString &desc, QString &valueType, int &size, int &decsize, bool &isMultiSelect, QString &multiSelectTable, QString &multiSelectField, QStringList &options, bool &isKey, QStringList &multiSelectKeys);
-    const char *getSheetDescription(QString name);
-    void loadTable(QDomNode node, QDomNode insertRoot);
-    void getMultiSelectInfo(QDomNode table, QString table_name, QDomNode root_insert, QString &multiSelect_field, QStringList &options, QStringList &keys);
-    QStringList getMultiSelectValues(QString multiSelectTable, QString multiSelectField, QStringList keys, QStringList multiSelectKeys);
-    QString protect_field(QString table_name, QString field_name, QString field_value, bool &gotProtected);
+    int generateXLSX();        
+    QString getSheetDescription(QString name);
+    void loadTable(QDomNode node);
+    void getMultiSelectInfo(QDomNode table, QString table_name, QString &multiSelect_field, QStringList &keys);
     QString host;
     QString port;
     QString user;
@@ -68,7 +64,7 @@ private:
     QString outputFile;
     QString tempDir;
     QString createXML;
-    QString insertXML;
+    QString encryption_key;
     bool protectSensitive;
     QList<TtableDef> tables;
     QList<TtableDef> mainTables;
@@ -77,9 +73,7 @@ private:
     bool incLookups;
     bool incmsels;
     QString firstSheetName;
-    bool separateSelects;
-    QList<TfieldDef> keys;
-    QList<TfieldDef> replace_values;
+    QStringList protectedKeys;
 };
 
 #endif // MAINCLASS_H

@@ -29,7 +29,7 @@ void mainClass::log(QString message)
     printf("%s", temp.toUtf8().data());
 }
 
-void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString insertXML, bool separate)
+void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString encryption_key)
 {
     this->host = host;
     this->port = port;
@@ -42,109 +42,11 @@ void mainClass::setParameters(QString host, QString port, QString user, QString 
     this->createXML = createXML;
     this->incLookups = incLookups;
     this->incmsels = incmsels;
-    this->firstSheetName = firstSheetName;
-    this->insertXML = insertXML;
-    this->separateSelects = separate;
+    this->firstSheetName = firstSheetName;    
+    this->encryption_key = encryption_key;
 }
 
-QString mainClass::protect_field(QString table_name, QString field_name, QString field_value, bool &gotProtected)
-{
-    bool protect_field;
-    protect_field = false;
-    for (int pos = 0; pos < tables.count(); pos++)
-    {
-        if (tables[pos].name == table_name)
-        {
-            for (int pos2 = 0; pos2 < tables[pos].fields.count(); pos2++)
-            {
-                if (tables[pos].fields[pos2].name == field_name)
-                {
-                    if (tables[pos].fields[pos2].sensitive == true)
-                    {
-                        protect_field = true;
-                    }
-                }
-            }
-        }
-    }
-
-    if (protect_field)
-    {
-        for (int pos = 0; pos < keys.count(); pos++)
-        {
-            if (keys[pos].name == field_name)
-            {
-                for (int pos2 = 0; pos2 < replace_values.count(); pos2++)
-                {
-                    if ((replace_values[pos2].name == field_name) && (replace_values[pos2].value == field_value))
-                    {
-                        gotProtected = true;
-                        return replace_values[pos2].replace_value;
-                    }
-                }
-                QUuid replaceUUID=QUuid::createUuid();
-                QString strReplaceUUID=replaceUUID.toString().replace("{","").replace("}","");
-                TfieldDef a_replace_value;
-                a_replace_value.name = field_name;
-                a_replace_value.value = field_value;
-                a_replace_value.replace_value = strReplaceUUID;
-                replace_values.append(a_replace_value);
-                gotProtected = true;
-                return strReplaceUUID;
-            }
-
-        }
-        for (int pos = 0; pos < tables.count(); pos++)
-        {
-            if (tables[pos].name == table_name)
-            {
-                for (int pos2 = 0; pos2 < tables[pos].fields.count(); pos2++)
-                {
-                    if (tables[pos].fields[pos2].name == field_name)
-                    {
-                        if (tables[pos].fields[pos2].sensitive == true)
-                        {
-                            gotProtected = true;
-                            return "~~exclude~~";
-                        }
-                    }
-                }
-            }
-        }
-    }
-    gotProtected = false;
-    return field_value;
-}
-
-void mainClass::getFieldData(QString table, QString field, QString &desc, QString &valueType, int &size, int &decsize, bool &isMultiSelect, QString &multiSelectTable, QString &multiSelectField, QStringList &options, bool &isKey, QStringList &multiSelectKeys)
-{
-    for (int pos = 0; pos <= tables.count()-1;pos++)
-    {
-        if (tables[pos].name == table)
-        {
-            for (int pos2 = 0; pos2 <= tables[pos].fields.count()-1; pos2++)
-            {
-                if (tables[pos].fields[pos2].name == field)
-                {
-                    desc = tables[pos].fields[pos2].desc;
-                    valueType = tables[pos].fields[pos2].type;
-                    size = tables[pos].fields[pos2].size;
-                    decsize = tables[pos].fields[pos2].decSize;
-                    isMultiSelect = tables[pos].fields[pos2].isMultiSelect;
-                    multiSelectTable = tables[pos].fields[pos2].multiSelectTable;
-                    multiSelectField = tables[pos].fields[pos2].multiSelectField;
-                    options.append(tables[pos].fields[pos2].multiSelectOptions);
-                    multiSelectKeys.append(tables[pos].fields[pos2].multiSelectKeys);
-                    isKey = tables[pos].fields[pos2].isKey;
-                    return;
-                }
-            }
-        }
-    }
-    desc = "NONE";
-}
-
-const char *mainClass::getSheetDescription(QString name)
+QString mainClass::getSheetDescription(QString name)
 {
     QString truncated;
     truncated = name.left(25);
@@ -158,345 +60,19 @@ const char *mainClass::getSheetDescription(QString name)
     if (tableNames.indexOf(truncated) == -1)
     {
         tableNames.append(truncated);
-        return truncated.toUtf8().constData();
+        return truncated;
     }
     else
     {
         truncated = truncated + "_" + QString::number(letterIndex);
         letterIndex++;
         tableNames.append(truncated);
-        return truncated.toUtf8().constData();
+        return truncated;
     }
 }
 
-// Parses a multiselect table and get the value in each row
-// This function must be thought a bit more because is not really efficient. Basically we parse with boost a whole multiselect table
-// pulling those records matching a set of keys. Though boost is very fast we are passing thrrough the whole table for each record
-// of a table
-QStringList mainClass::getMultiSelectValues(QString multiSelectTable, QString multiSelectField, QStringList keys, QStringList multiSelectKeys)
+void mainClass::getMultiSelectInfo(QDomNode table, QString table_name, QString &multiSelect_field, QStringList &keys)
 {
-    QDir currDir(tempDir);
-    QStringList result;
-    QString sourceFile;
-    sourceFile = currDir.absolutePath() + currDir.separator() + multiSelectTable + ".xml";
-    if (QFile::exists(sourceFile))
-    {
-        pt::ptree tree;
-        pt::read_xml(sourceFile.toUtf8().constData(), tree);
-        BOOST_FOREACH(boost::property_tree::ptree::value_type const&db, tree.get_child("mysqldump") )
-        {
-            const boost::property_tree::ptree & aDatabase = db.second; // value (or a subnode)
-            BOOST_FOREACH(boost::property_tree::ptree::value_type const&ctable, aDatabase.get_child("") )
-            {
-                const std::string & key = ctable.first.data();
-                if (key == "table_data")
-                {
-                    const boost::property_tree::ptree & aTable = ctable.second;
-                    BOOST_FOREACH(boost::property_tree::ptree::value_type const&row, aTable.get_child("") )
-                    {
-                        QStringList Rowkeys;
-                        QString rowLookUpValue;
-                        const boost::property_tree::ptree & aRow = row.second;
-                        BOOST_FOREACH(boost::property_tree::ptree::value_type const&field, aRow.get_child("") )
-                        {
-                            const std::string & fkey = field.first.data();
-                            if (fkey == "field")
-                            {
-                                const boost::property_tree::ptree & aField = field.second;
-                                std::string fname = aField.get<std::string>("<xmlattr>.name");
-                                std::string fvalue = aField.data();
-                                QString fieldName = QString::fromStdString(fname);
-                                QString fieldValue = QString::fromStdString(fvalue);
-                                if (multiSelectKeys.indexOf(fieldName) >= 0)
-                                {
-                                    Rowkeys.append(fieldName + "~@~" + fieldValue);
-                                }
-                                if (multiSelectField == fieldName)
-                                {
-                                    rowLookUpValue = fieldValue;
-                                }
-                            }
-                        }
-                        bool notFound = false;
-                        for (int pos = 0; pos < Rowkeys.count(); pos++)
-                        {
-                            if (keys.indexOf(Rowkeys[pos]) < 0)
-                                notFound = true;
-                        }
-                        if (notFound == false)
-                            result.append(rowLookUpValue);
-                    }
-                }
-            }
-        }
-    }
-    return result;
-}
-
-int mainClass::parseDataToXLSX()
-{
-    QDir currDir(tempDir);
-
-    lxw_workbook  *workbook  = workbook_new(outputFile.toUtf8().constData());
-
-    //Parse all tables to the Excel file
-    for (int pos = 0; pos <= tables.count()-1; pos++)
-    {
-        if (tables[pos].islookup == false)
-        {
-            if (tables[pos].name.indexOf("_msel_") < 0)
-            {
-                QString sourceFile;
-                sourceFile = currDir.absolutePath() + currDir.separator() + tables[pos].name + ".xml";
-
-                pt::ptree tree;
-                pt::read_xml(sourceFile.toUtf8().constData(), tree);
-                BOOST_FOREACH(boost::property_tree::ptree::value_type const&db, tree.get_child("mysqldump") )
-                {
-                    const boost::property_tree::ptree & aDatabase = db.second; // value (or a subnode)
-                    BOOST_FOREACH(boost::property_tree::ptree::value_type const&ctable, aDatabase.get_child("") )
-                    {
-                        const std::string & key = ctable.first.data();
-                        if (key == "table_data")
-                        {
-                            const boost::property_tree::ptree & aTable = ctable.second;
-
-                            //Here we need to create the sheet
-                            QString tableDesc;
-                            tableDesc = tables[pos].desc;
-                            if (tableDesc == "")
-                                tableDesc = tables[pos].name;
-                            lxw_worksheet *worksheet = workbook_add_worksheet(workbook,getSheetDescription(tables[pos].desc));
-                            int rowNo = 1;
-                            bool inserted = false;
-                            BOOST_FOREACH(boost::property_tree::ptree::value_type const&row, aTable.get_child("") )
-                            {
-                                const boost::property_tree::ptree & aRow = row.second;
-
-                                //Here we need to append a row
-                                int colNo = 0;
-                                QStringList keys2;
-                                BOOST_FOREACH(boost::property_tree::ptree::value_type const&field, aRow.get_child("") )
-                                {
-                                    const std::string & fkey = field.first.data();
-                                    if (fkey == "field")
-                                    {
-                                        const boost::property_tree::ptree & aField = field.second;
-                                        std::string fname = aField.get<std::string>("<xmlattr>.name");
-                                        std::string fvalue = aField.data();
-                                        QString desc;
-                                        QString valueType;
-                                        int size;
-                                        int decSize;
-                                        QString fieldName = QString::fromStdString(fname);
-                                        QString fieldValue = QString::fromStdString(fvalue);
-                                        bool isMultiSelect;
-                                        QString multiSelectTable;
-                                        QString multiSelectField;
-                                        QStringList options;
-                                        bool isKey;
-                                        QStringList multiSelectKeys;
-                                        getFieldData(tables[pos].name,fieldName,desc,valueType,size,decSize,isMultiSelect,multiSelectTable,multiSelectField,options,isKey,multiSelectKeys);
-                                        if (desc != "NONE")
-                                        {
-                                            bool increase_colno = true;
-                                            if (isKey)
-                                            {
-                                                keys2.append(fieldName + "~@~" + fieldValue);
-                                            }
-                                            bool gotProtected = false;
-                                            if (protectSensitive)
-                                                fieldValue = protect_field(tables[pos].name, fieldName, fieldValue, gotProtected);
-                                            inserted = true;                                            
-
-                                            if (rowNo == 1)
-                                            {
-                                                if (fieldValue != "~~exclude~~")
-                                                {
-                                                    if ((isMultiSelect) && (separateSelects) && (multiSelectTable != ""))
-                                                    {
-                                                        if (!gotProtected)
-                                                        {
-                                                            int mselColno = colNo;
-                                                            for (int opt = 0; opt < options.count(); opt++)
-                                                            {
-                                                                QString fieldWithOption = fieldName + "/" + options[opt];
-                                                                worksheet_write_string(worksheet,0, mselColno, fieldWithOption.toUtf8().constData(), NULL);
-                                                                mselColno++;
-                                                            }
-                                                        }
-                                                        else
-                                                            worksheet_write_string(worksheet,0, colNo, fieldName.toUtf8().constData(), NULL);
-                                                    }
-                                                    else
-                                                        worksheet_write_string(worksheet,0, colNo, fieldName.toUtf8().constData(), NULL);
-                                                }
-                                                else
-                                                    worksheet_write_string(worksheet,0, colNo, fieldName.toUtf8().constData(), NULL);
-
-                                            }                                           
-                                            if (fieldValue != "~~exclude~~")
-                                            {
-                                                if ((isMultiSelect) && (separateSelects) && (multiSelectTable != ""))
-                                                {
-                                                    if (!gotProtected)
-                                                    {
-                                                        QList <ToptionDef> lst_options;
-                                                        for (int opt = 0; opt < options.count(); opt++)
-                                                        {
-                                                            ToptionDef an_option;
-                                                            an_option.code = options[opt];
-                                                            an_option.value = "0";
-                                                            lst_options.append(an_option);
-                                                        }
-                                                        QStringList mselValues = getMultiSelectValues(multiSelectTable,multiSelectField,keys2,multiSelectKeys);
-                                                        for (int mval=0; mval < mselValues.count(); mval++)
-                                                        {
-                                                            for (int opt = 0; opt < lst_options.count(); opt++)
-                                                            {
-                                                                if (lst_options[opt].code == mselValues[mval])
-                                                                {
-                                                                    lst_options[opt].value = "1";
-                                                                }
-                                                            }
-                                                        }
-                                                        for (int opt = 0; opt < lst_options.count(); opt++)
-                                                        {
-                                                            worksheet_write_string(worksheet,rowNo, colNo, lst_options[opt].value.toUtf8().constData(), NULL);
-                                                            colNo++;
-                                                            increase_colno = false;
-                                                        }
-                                                    }
-                                                    else
-                                                        worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
-                                                }
-                                                else
-                                                {
-                                                    if (!isMultiSelect)
-                                                    {
-                                                        worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
-                                                    }
-                                                    else
-                                                    {
-                                                        //                                                   if (tables[pos].name == "maintable")
-                                                        //                                                   {
-                                                        //                                                       for (int tmp = 0; tmp < keys.count(); tmp++)
-                                                        //                                                           log(keys[pos]);
-                                                        //                                                   }
-                                                        if (multiSelectTable != "")
-                                                        {
-                                                            if (!gotProtected)
-                                                            {
-                                                                QStringList mselValues = getMultiSelectValues(multiSelectTable,multiSelectField,keys2,multiSelectKeys);
-                                                                fieldValue = mselValues.join(" ");
-                                                                fieldValue = fieldValue.right(fieldValue.length()-1);
-                                                                worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
-                                                            }
-                                                            else
-                                                                worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
-                                                        }
-                                                        else
-                                                            worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
-                                                    }
-                                                }
-                                            }
-                                            else
-                                                worksheet_write_string(worksheet,rowNo, colNo, "", NULL);
-                                            if (increase_colno)
-                                                colNo++;
-                                        }
-                                    }
-                                }
-                                if (inserted)
-                                    rowNo++;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    //Parse all lookup tables to the Excel file
-    for (int pos = 0; pos <= tables.count()-1; pos++)
-    {
-        if (tables[pos].islookup == true)
-        {
-            QString sourceFile;
-            sourceFile = currDir.absolutePath() + currDir.separator() + tables[pos].name + ".xml";
-
-            pt::ptree tree;
-            pt::read_xml(sourceFile.toUtf8().constData(), tree);
-            BOOST_FOREACH(boost::property_tree::ptree::value_type const&db, tree.get_child("mysqldump") )
-            {
-                const boost::property_tree::ptree & aDatabase = db.second; // value (or a subnode)
-                BOOST_FOREACH(boost::property_tree::ptree::value_type const&ctable, aDatabase.get_child("") )
-                {
-                    const std::string & key = ctable.first.data();
-                    if (key == "table_data")
-                    {
-                        const boost::property_tree::ptree & aTable = ctable.second;
-
-                        //Here we need to create the sheet
-                        QString tableDesc;
-                        tableDesc = tables[pos].desc;
-                        if (tableDesc == "")
-                            tableDesc = tables[pos].name;
-                        lxw_worksheet *worksheet = workbook_add_worksheet(workbook,getSheetDescription(tables[pos].name));
-                        int rowNo = 1;
-                        bool inserted = false;
-                        BOOST_FOREACH(boost::property_tree::ptree::value_type const&row, aTable.get_child("") )
-                        {
-                            const boost::property_tree::ptree & aRow = row.second;
-
-                            //Here we need to append a row
-                            int colNo = 0;
-                            BOOST_FOREACH(boost::property_tree::ptree::value_type const&field, aRow.get_child("") )
-                            {
-                                const std::string & fkey = field.first.data();
-                                if (fkey == "field")
-                                {
-                                    const boost::property_tree::ptree & aField = field.second;
-                                    std::string fname = aField.get<std::string>("<xmlattr>.name");
-                                    std::string fvalue = aField.data();
-                                    QString desc;
-                                    QString valueType;
-                                    int size;
-                                    int decSize;
-                                    QString fieldName = QString::fromStdString(fname);
-                                    QString fieldValue = QString::fromStdString(fvalue);
-                                    bool isMultiSelect;
-                                    QString multiSelectTable;
-                                    QString multiSelectField;
-                                    QStringList options;
-                                    bool isKey;
-                                    QStringList multiSelectKeys;
-                                    getFieldData(tables[pos].name,fieldName,desc,valueType,size,decSize,isMultiSelect,multiSelectTable,multiSelectField,options,isKey, multiSelectKeys);
-                                    if (desc != "NONE")
-                                    {
-                                        inserted = true;
-                                        if (rowNo == 1)
-                                            worksheet_write_string(worksheet,0, colNo, fieldName.toUtf8().constData(), NULL);
-                                        worksheet_write_string(worksheet,rowNo, colNo, fieldValue.toUtf8().constData(), NULL);
-                                        colNo++;
-                                    }
-                                }
-                            }
-                            if (inserted)
-                                rowNo++;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    workbook_close(workbook);
-    return 0;
-}
-
-void mainClass::getMultiSelectInfo(QDomNode table, QString table_name, QDomNode root_insert, QString &multiSelect_field, QStringList &options, QStringList &keys)
-{
-    QString lookupTableName;
     QDomNode child = table.firstChild();
     while (!child.isNull())
     {
@@ -509,8 +85,7 @@ void mainClass::getMultiSelectInfo(QDomNode table, QString table_name, QDomNode 
                 {
                     if (field.toElement().attribute("rlookup","false") == "true")
                     {
-                        multiSelect_field = field.toElement().attribute("name");
-                        lookupTableName = field.toElement().attribute("rtable");
+                        multiSelect_field = field.toElement().attribute("name");                        
                     }
                     else
                     {
@@ -524,24 +99,10 @@ void mainClass::getMultiSelectInfo(QDomNode table, QString table_name, QDomNode 
             }
         }
         child = child.nextSibling();
-    }
-    child = root_insert.firstChild();
-    while (!child.isNull())
-    {
-        if (child.toElement().attribute("name") == lookupTableName)
-        {
-            QDomNode value = child.firstChild();
-            while (!value.isNull())
-            {
-                options.append(value.toElement().attribute("code"));
-                value = value.nextSibling();
-            }
-        }
-        child = child.nextSibling();
-    }
+    }    
 }
 
-void mainClass::loadTable(QDomNode table, QDomNode insertRoot)
+void mainClass::loadTable(QDomNode table)
 {
     QDomElement eTable;
     eTable = table.toElement();
@@ -565,7 +126,10 @@ void mainClass::loadTable(QDomNode table, QDomNode insertRoot)
             aField.size = eField.attribute("size","").toInt();
             aField.decSize = eField.attribute("decsize","").toInt();
             if (eField.attribute("sensitive","false") == "true")
+            {
                 aField.sensitive = true;
+                aField.protection = eField.attribute("protection","exclude");
+            }
             else
                 aField.sensitive = false;
             if (eField.attribute("key","false") == "true")
@@ -573,8 +137,12 @@ void mainClass::loadTable(QDomNode table, QDomNode insertRoot)
                 TfieldDef keyField;
                 keyField.name = aField.name;
                 keyField.replace_value = "";
-                keys.append(keyField);
                 aField.isKey = true;
+                if (aField.sensitive == true)
+                {
+                    if (protectedKeys.indexOf(aField.name) < 0)
+                        protectedKeys.append(aField.name);
+                }
             }
             else
                 aField.isKey = false;
@@ -584,19 +152,17 @@ void mainClass::loadTable(QDomNode table, QDomNode insertRoot)
             {
                 aField.isMultiSelect = true;
                 aField.multiSelectTable = eField.attribute("multiSelectTable");
-                QString multiSelect_field;
-                QStringList options;
+                QString multiSelect_field;                
                 QStringList keys;
-                getMultiSelectInfo(table, aField.multiSelectTable, insertRoot, multiSelect_field, options, keys);
-                aField.multiSelectField = multiSelect_field;
-                aField.multiSelectOptions.append(options);
+                getMultiSelectInfo(table, aField.multiSelectTable, multiSelect_field, keys);
+                aField.multiSelectField = multiSelect_field;                
                 aField.multiSelectKeys.append(keys);
             }
             aTable.fields.append(aField);
         }
         else
         {
-            loadTable(field,insertRoot);
+            loadTable(field);
         }
         field = field.nextSibling();
     }
@@ -606,23 +172,6 @@ void mainClass::loadTable(QDomNode table, QDomNode insertRoot)
 
 int mainClass::generateXLSX()
 {
-    QDomDocument insertDoc("input");
-    QFile insertFile(insertXML);
-    if (!insertFile.open(QIODevice::ReadOnly))
-    {
-        log("Cannot open input insert XML file");
-        returnCode = 1;
-        return returnCode;
-    }
-    if (!insertDoc.setContent(&insertFile))
-    {
-        log("Cannot parse input insert XML file");
-        insertFile.close();
-        returnCode = 1;
-        return returnCode;
-    }
-    insertFile.close();
-    QDomElement insertRoot = insertDoc.documentElement();
 
     QDomDocument docA("input");
     QFile fileA(createXML);
@@ -685,90 +234,215 @@ int mainClass::generateXLSX()
         QDomNode table = rootA.firstChild().nextSibling().firstChild();
 
         //Load the data tables recursively
-        loadTable(table,insertRoot);
+        loadTable(table);
         for (int nt =mainTables.count()-1; nt >= 0;nt--)
-            tables.append(mainTables[nt]);
-        if (firstSheetName != "")
-            tables[0].desc = firstSheetName;
-        //Export the tables as XML to the temp directory
-        //Call MySQLDump to export each table as XML
-        //We use MySQLDump because it very very fast
-
-        QStringList version_arguments;
-        version_arguments.clear();
-        version_arguments << "--version";
-        QString version_info;
-        QProcess *version_process = new QProcess();
-        version_process->start("mariadb_config", version_arguments);
-        version_process->waitForFinished(-1);
-        bool maria_bd = false;
-        if (version_process->exitCode() == 0)
         {
-            maria_bd = true;
-            version_info = version_process->readAllStandardOutput().replace("\n","");
-        }
-        else
-        {
-            version_process->start("mysql_config", version_arguments);
-            version_process->waitForFinished(-1);
-            if (version_process->exitCode() == 0)
+            if (mainTables[nt].name.indexOf("_msel_") < 0)
+                tables.append(mainTables[nt]);
+            else
             {
-                version_info = version_process->readAllStandardOutput().replace("\n","");                
+                if (incmsels)
+                    tables.append(mainTables[nt]);
             }
         }
-        if (version_info == "")
-        {
-            log("Unable to detect the version of MySQL");
-            exit(1);
-        }
-        QStringList version_parts = version_info.split(".");
-        int version_number = version_parts[0].toInt();
+        if (firstSheetName != "")
+            tables[0].desc = firstSheetName;
 
 
-        QDir currDir(tempDir);
-        QString program = "mysqldump";
+        QDir currDir(tempDir);        
         QStringList arguments;
         QProcess *mySQLDumpProcess = new QProcess();        
         QTime procTime;
         procTime.start();
+        QString sql;
+        QStringList fields;
+        QString uri = user + ":" + pass + "@" + host + "/" + schema;
+        QStringList sheets;
+        QStringList csvs;
+        QString leftjoin;
+        QStringList leftjoins;
+
         for (int pos = 0; pos <= tables.count()-1; pos++)
-        {            
-            arguments.clear();
-            arguments << "--single-transaction";
-            if (maria_bd == false && version_number >= 8)
+        {                                    
+            leftjoins.clear();
+            sheets.append(getSheetDescription(tables[pos].desc));
+            fields.clear();
+            for (int fld = 0; fld < tables[pos].fields.count(); fld++)
             {
-                arguments << "--skip-column-statistics";
-                arguments << "--ssl-mode=DISABLED";
+                if (this->protectSensitive)
+                {
+                    if (tables[pos].fields[fld].sensitive == false)
+                    {
+                        if (tables[pos].fields[fld].isMultiSelect == false)
+                        {
+                            if (tables[pos].fields[fld].isKey == false)
+                                fields.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                            else
+                            {
+                                if (protectedKeys.indexOf(tables[pos].fields[fld].name) < 0)
+                                    fields.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                                else
+                                    fields.append("HEX(AES_ENCRYPT(" + tables[pos].name + "." + tables[pos].fields[fld].name + ",UNHEX('" + this->encryption_key + "'))) as " + tables[pos].fields[fld].name);
+                            }
+                        }
+                        else
+                        {
+                            fields.append("GROUP_CONCAT(DISTINCT " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectField + ") AS " + tables[pos].fields[fld].name);
+                            leftjoin = "LEFT JOIN " + tables[pos].fields[fld].multiSelectTable + " ON " + tables[pos].name + "." + tables[pos].fields[fld].multiSelectKeys[0] + " = " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectKeys[0];
+                            for (int key = 1; key < tables[pos].fields[fld].multiSelectKeys.count(); key++)
+                            {
+                                leftjoin = leftjoin + " AND " + tables[pos].name + "." + tables[pos].fields[fld].multiSelectKeys[key] + " = " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectKeys[key];
+                            }
+                            leftjoins.append(leftjoin);
+                        }
+                    }
+                    else
+                    {
+                        if (tables[pos].fields[fld].protection != "exclude")
+                            fields.append("HEX(AES_ENCRYPT(" + tables[pos].name + "." + tables[pos].fields[fld].name + ",UNHEX('" + this->encryption_key + "'))) as " + tables[pos].fields[fld].name);
+                    }
+                }
+                else
+                {
+                    if (tables[pos].fields[fld].isMultiSelect == false)
+                    {
+                        fields.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                    }
+                    else
+                    {
+                        fields.append("GROUP_CONCAT(DISTINCT " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectField + ") AS " + tables[pos].fields[fld].name);
+                        leftjoin = "LEFT JOIN " + tables[pos].fields[fld].multiSelectTable + " ON " + tables[pos].name + "." + tables[pos].fields[fld].multiSelectKeys[0] + " = " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectKeys[0];
+                        for (int key = 1; key < tables[pos].fields[fld].multiSelectKeys.count(); key++)
+                        {
+                            leftjoin = leftjoin + " AND " + tables[pos].name + "." + tables[pos].fields[fld].multiSelectKeys[key] + " = " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectKeys[key];
+                        }
+                        leftjoins.append(leftjoin);
+                    }
+                }
             }
-            arguments << "-h" << host;
-            arguments << "-u" << user;
-            arguments << "--password=" + pass;
-            arguments << "--skip-triggers";
-            arguments << "--xml";
-            arguments << "--no-create-info";
-            arguments << schema;
-            arguments << tables[pos].name;
-            mySQLDumpProcess->setStandardOutputFile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".xml");
-            mySQLDumpProcess->start(program, arguments);
+
+            sql = "SELECT " + fields.join(",") + " FROM " + schema + "." + tables[pos].name;
+            if (leftjoins.length() > 0)
+            {
+                sql = "SET SQL_MODE = '';\n" + sql;
+                sql = sql + " " + leftjoins.join(" ");
+                QStringList grpKeys;
+                for (int fld = 0; fld < tables[pos].fields.count(); fld++)
+                    if (tables[pos].fields[fld].isKey)
+                    {
+                        if (tables[pos].fields[fld].sensitive == false)
+                            grpKeys.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                        else
+                        {
+                            if (this->protectSensitive)
+                                grpKeys.append(tables[pos].name + ".rowuuid");
+                            else
+                                grpKeys.append(tables[pos].fields[fld].name);
+                        }
+                    }
+                sql = sql + " GROUP BY " + grpKeys.join(",");
+            }
+            sql = sql + ";\n";
+
+            arguments.clear();
+            arguments << "--sql";
+            arguments << "--result-format=tabbed";
+            arguments << "--uri=" + uri;
+            QFile sqlfile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".sql");
+            if (!sqlfile.open(QIODevice::WriteOnly | QIODevice::Text))
+            {
+                delete mySQLDumpProcess;
+                return 1;
+            }
+            QTextStream out(&sqlfile);
+            out << sql;
+            sqlfile.close();
+            mySQLDumpProcess->setStandardInputFile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".sql");
+            mySQLDumpProcess->setStandardOutputFile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".txt");
+            mySQLDumpProcess->start("mysqlsh", arguments);
             mySQLDumpProcess->waitForFinished(-1);
             if ((mySQLDumpProcess->exitCode() > 0) || (mySQLDumpProcess->error() == QProcess::FailedToStart))
             {
                 if (mySQLDumpProcess->error() == QProcess::FailedToStart)
                 {
-                    log("Error: Command " +  program + " not found");
+                    log("Error: Command mysqlsh not found");
                 }
                 else
                 {
-                    log("Running mysqldump returned error");
+                    log("Running mysqlsh returned error");
                     QString serror = mySQLDumpProcess->readAllStandardError();
                     log(serror);
                     log("Running paremeters:" + arguments.join(" "));
                 }
+                delete mySQLDumpProcess;
                 return 1;
             }
+            // Convert the tab delimited file to CSV
+            arguments.clear();
+            arguments << "input";
+            arguments << "-d";
+            arguments << "\\t";
+            arguments << currDir.absolutePath() + currDir.separator() + tables[pos].name + ".txt";
+            mySQLDumpProcess->setStandardInputFile(QProcess::nullDevice());
+            mySQLDumpProcess->setStandardOutputFile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".csv");
+            mySQLDumpProcess->start("xsv", arguments);
+            mySQLDumpProcess->waitForFinished(-1);
+            if ((mySQLDumpProcess->exitCode() > 0) || (mySQLDumpProcess->error() == QProcess::FailedToStart))
+            {
+                if (mySQLDumpProcess->error() == QProcess::FailedToStart)
+                {
+                    log("Error: Command xsv not found");
+                }
+                else
+                {
+                    log("Running xsv returned error");
+                    QString serror = mySQLDumpProcess->readAllStandardError();
+                    log(serror);
+                    log("Running paremeters:" + arguments.join(" "));
+                }
+                delete mySQLDumpProcess;
+                return 1;
+            }
+            csvs.append(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".csv");
         }
+
+        // Finally create the Excel file using the CSVs
+        arguments.clear();
+        for (int pos = 0; pos < sheets.count(); pos++)
+        {
+            arguments.append("-s");
+            arguments.append(sheets[pos]);
+        }
+        arguments.append("--output");
+        arguments.append(outputFile);
+        for (int pos = 0; pos < csvs.count(); pos++)
+        {
+            arguments.append(csvs[pos]);
+        }
+        mySQLDumpProcess->setStandardInputFile(QProcess::nullDevice());
+        mySQLDumpProcess->setStandardOutputFile(QProcess::nullDevice());
+        mySQLDumpProcess->start("csv2xlsx", arguments);
+
+        mySQLDumpProcess->waitForFinished(-1);
+        if ((mySQLDumpProcess->exitCode() > 0) || (mySQLDumpProcess->error() == QProcess::FailedToStart))
+        {
+            if (mySQLDumpProcess->error() == QProcess::FailedToStart)
+            {
+                log("Error: Command csv2xlsx not found");
+            }
+            else
+            {
+                log("Running csv2xlsx returned error");
+                QString serror = mySQLDumpProcess->readAllStandardError();
+                log(serror);
+                log("Running paremeters:" + arguments.join(" "));
+            }
+            delete mySQLDumpProcess;
+            return 1;
+        }
+
+
         delete mySQLDumpProcess;
-        returnCode = parseDataToXLSX();
 
         int Hours;
         int Minutes;
