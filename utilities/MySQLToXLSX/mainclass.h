@@ -16,6 +16,8 @@ struct fieldDef
   QString multiSelectTable;
   QString multiSelectField;
   QStringList multiSelectKeys;
+  QString multiSelectRelTable;
+  QString multiSelectRelField;
   QString replace_value;
   QString value;
   bool sensitive;
@@ -55,7 +57,7 @@ private:
     int generateXLSX();        
     QString getSheetDescription(QString name);
     void loadTable(QDomNode node);
-    void getMultiSelectInfo(QDomNode table, QString table_name, QString &multiSelect_field, QStringList &keys);
+    void getMultiSelectInfo(QDomNode table, QString table_name, QString &multiSelect_field, QStringList &keys, QString &rel_table, QString &rel_field);
     QString host;
     QString port;
     QString user;

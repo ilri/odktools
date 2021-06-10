@@ -71,7 +71,7 @@ QString mainClass::getSheetDescription(QString name)
     }
 }
 
-void mainClass::getMultiSelectInfo(QDomNode table, QString table_name, QString &multiSelect_field, QStringList &keys)
+void mainClass::getMultiSelectInfo(QDomNode table, QString table_name, QString &multiSelect_field, QStringList &keys, QString &rel_table, QString &rel_field)
 {
     QDomNode child = table.firstChild();
     while (!child.isNull())
@@ -85,7 +85,9 @@ void mainClass::getMultiSelectInfo(QDomNode table, QString table_name, QString &
                 {
                     if (field.toElement().attribute("rlookup","false") == "true")
                     {
-                        multiSelect_field = field.toElement().attribute("name");                        
+                        multiSelect_field = field.toElement().attribute("name");
+                        rel_table = field.toElement().attribute("rtable");
+                        rel_field = field.toElement().attribute("rfield");
                     }
                     else
                     {
@@ -152,10 +154,14 @@ void mainClass::loadTable(QDomNode table)
             {
                 aField.isMultiSelect = true;
                 aField.multiSelectTable = eField.attribute("multiSelectTable");
-                QString multiSelect_field;                
+                QString multiSelect_field;
                 QStringList keys;
-                getMultiSelectInfo(table, aField.multiSelectTable, multiSelect_field, keys);
-                aField.multiSelectField = multiSelect_field;                
+                QString multiSelectRelTable;
+                QString multiSelectRelField;
+                getMultiSelectInfo(table, aField.multiSelectTable, multiSelect_field, keys, multiSelectRelTable, multiSelectRelField);
+                aField.multiSelectField = multiSelect_field;
+                aField.multiSelectRelTable = multiSelectRelTable;
+                aField.multiSelectRelField = multiSelectRelField;
                 aField.multiSelectKeys.append(keys);
             }
             aTable.fields.append(aField);
@@ -260,10 +266,11 @@ int mainClass::generateXLSX()
         QStringList sheets;
         QStringList csvs;
         QString leftjoin;
-        QStringList leftjoins;
-
+        QStringList leftjoins;                
+        int lkpTblIndex;
         for (int pos = 0; pos <= tables.count()-1; pos++)
         {                                    
+            lkpTblIndex = 1;
             leftjoins.clear();
             sheets.append(getSheetDescription(tables[pos].desc));
             fields.clear();
@@ -287,12 +294,16 @@ int mainClass::generateXLSX()
                         }
                         else
                         {
-                            fields.append("GROUP_CONCAT(DISTINCT " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectField + ") AS " + tables[pos].fields[fld].name);
+                            QString lkpdesc = tables[pos].fields[fld].multiSelectRelField;
+                            lkpdesc = lkpdesc.replace("_cod","_des");
+                            fields.append("GROUP_CONCAT(DISTINCT T" + QString::number(lkpTblIndex) + "." + lkpdesc + ") AS " + tables[pos].fields[fld].name);
                             leftjoin = "LEFT JOIN " + tables[pos].fields[fld].multiSelectTable + " ON " + tables[pos].name + "." + tables[pos].fields[fld].multiSelectKeys[0] + " = " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectKeys[0];
                             for (int key = 1; key < tables[pos].fields[fld].multiSelectKeys.count(); key++)
                             {
                                 leftjoin = leftjoin + " AND " + tables[pos].name + "." + tables[pos].fields[fld].multiSelectKeys[key] + " = " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectKeys[key];
                             }
+                            leftjoins.append(leftjoin);
+                            leftjoin = "LEFT JOIN " + tables[pos].fields[fld].multiSelectRelTable + " AS T" + QString::number(lkpTblIndex) + " ON " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectField + " = T" + QString::number(lkpTblIndex) + "." + tables[pos].fields[fld].multiSelectRelField;
                             leftjoins.append(leftjoin);
                         }
                     }
@@ -310,18 +321,23 @@ int mainClass::generateXLSX()
                     }
                     else
                     {
-                        fields.append("GROUP_CONCAT(DISTINCT " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectField + ") AS " + tables[pos].fields[fld].name);
+                        QString lkpdesc = tables[pos].fields[fld].multiSelectRelField;
+                        lkpdesc = lkpdesc.replace("_cod","_des");
+                        fields.append("GROUP_CONCAT(DISTINCT T" + QString::number(lkpTblIndex) + "." + lkpdesc + ") AS " + tables[pos].fields[fld].name);
                         leftjoin = "LEFT JOIN " + tables[pos].fields[fld].multiSelectTable + " ON " + tables[pos].name + "." + tables[pos].fields[fld].multiSelectKeys[0] + " = " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectKeys[0];
                         for (int key = 1; key < tables[pos].fields[fld].multiSelectKeys.count(); key++)
                         {
                             leftjoin = leftjoin + " AND " + tables[pos].name + "." + tables[pos].fields[fld].multiSelectKeys[key] + " = " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectKeys[key];
                         }
                         leftjoins.append(leftjoin);
+                        leftjoin = "LEFT JOIN " + tables[pos].fields[fld].multiSelectRelTable + " AS T" + QString::number(lkpTblIndex) + " ON " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectField + " = T" + QString::number(lkpTblIndex) + "." + tables[pos].fields[fld].multiSelectRelField;
+                        leftjoins.append(leftjoin);
                     }
                 }
             }
 
-            sql = "SELECT " + fields.join(",") + " FROM " + schema + "." + tables[pos].name;
+            sql = "SELECT " + fields.join(",") + " FROM " + tables[pos].name;
+
             if (leftjoins.length() > 0)
             {
                 sql = "SET SQL_MODE = '';\n" + sql;
@@ -339,7 +355,7 @@ int mainClass::generateXLSX()
                             else
                                 grpKeys.append(tables[pos].fields[fld].name);
                         }
-                    }
+                    }                
                 sql = sql + " GROUP BY " + grpKeys.join(",");
             }
             sql = sql + ";\n";
