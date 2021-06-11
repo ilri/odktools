@@ -19,7 +19,7 @@ namespace pt = boost::property_tree;
 mainClass::mainClass(QObject *parent) : QObject(parent)
 {
     returnCode = 0;
-    letterIndex = 65;
+    letterIndex = 1;
 }
 
 void mainClass::log(QString message)
@@ -123,7 +123,7 @@ void mainClass::loadTable(QDomNode table)
         {
             TfieldDef aField;
             aField.name = eField.attribute("name","");
-            aField.desc = eField.attribute("name","");
+            aField.desc = eField.attribute("desc","");
             aField.type = eField.attribute("type","");
             aField.size = eField.attribute("size","").toInt();
             aField.decSize = eField.attribute("decsize","").toInt();
@@ -198,6 +198,26 @@ int mainClass::generateXLSX()
 
     //Load the lookup tables if asked
     QDomElement rootA = docA.documentElement();
+
+    //Getting the fields to export from tables
+    QDomNode table = rootA.firstChild().nextSibling().firstChild();
+
+    //Load the data tables recursively
+    loadTable(table);
+    for (int nt =mainTables.count()-1; nt >= 0;nt--)
+    {
+        if (mainTables[nt].name.indexOf("_msel_") < 0)
+            tables.append(mainTables[nt]);
+        else
+        {
+            if (incmsels)
+                tables.append(mainTables[nt]);
+        }
+    }
+    if (firstSheetName != "")
+        tables[0].desc = firstSheetName;
+
+
     if (rootA.tagName() == "XMLSchemaStructure")
     {
         if (this->incLookups)
@@ -212,7 +232,7 @@ int mainClass::generateXLSX()
                 TtableDef aTable;
                 aTable.islookup = true;
                 aTable.name = eTable.attribute("name","");
-                aTable.desc = eTable.attribute("desc","");
+                aTable.desc = eTable.attribute("name","");
 
                 QDomNode field = lkpTable.firstChild();
                 while (!field.isNull())
@@ -224,6 +244,13 @@ int mainClass::generateXLSX()
                     aField.name = eField.attribute("name","");
                     aField.desc = eField.attribute("desc","");
                     aField.type = eField.attribute("type","");
+                    if (eField.attribute("sensitive","false") == "true")
+                    {
+                        aField.sensitive = true;
+                        aField.protection = eField.attribute("protection","exclude");
+                    }
+                    else
+                        aField.sensitive = false;
                     aField.size = eField.attribute("size","").toInt();
                     aField.decSize = eField.attribute("decsize","").toInt();
                     aTable.fields.append(aField);
@@ -235,25 +262,6 @@ int mainClass::generateXLSX()
                 lkpTable = lkpTable.nextSibling();
             }
         }
-
-        //Getting the fields to export from tables
-        QDomNode table = rootA.firstChild().nextSibling().firstChild();
-
-        //Load the data tables recursively
-        loadTable(table);
-        for (int nt =mainTables.count()-1; nt >= 0;nt--)
-        {
-            if (mainTables[nt].name.indexOf("_msel_") < 0)
-                tables.append(mainTables[nt]);
-            else
-            {
-                if (incmsels)
-                    tables.append(mainTables[nt]);
-            }
-        }
-        if (firstSheetName != "")
-            tables[0].desc = firstSheetName;
-
 
         QDir currDir(tempDir);        
         QStringList arguments;
@@ -269,13 +277,14 @@ int mainClass::generateXLSX()
         QStringList leftjoins;                
         int lkpTblIndex;
         for (int pos = 0; pos <= tables.count()-1; pos++)
-        {                                    
-            lkpTblIndex = 1;
+        {                                                
+            lkpTblIndex = 0;
             leftjoins.clear();
             sheets.append(getSheetDescription(tables[pos].desc));
             fields.clear();
             for (int fld = 0; fld < tables[pos].fields.count(); fld++)
             {
+                lkpTblIndex++;
                 if (this->protectSensitive)
                 {
                     if (tables[pos].fields[fld].sensitive == false)
@@ -436,7 +445,7 @@ int mainClass::generateXLSX()
             arguments.append(csvs[pos]);
         }
         mySQLDumpProcess->setStandardInputFile(QProcess::nullDevice());
-        mySQLDumpProcess->setStandardOutputFile(QProcess::nullDevice());
+        mySQLDumpProcess->setStandardOutputFile(QProcess::nullDevice());        
         mySQLDumpProcess->start("csv2xlsx", arguments);
 
         mySQLDumpProcess->waitForFinished(-1);
