@@ -31,7 +31,6 @@ License along with CreateFromXML.  If not, see <http://www.gnu.org/licenses/lgpl
 namespace pt = boost::property_tree;
 
 bool keysForRepo;
-bool separate;
 
 struct arraySizeItem
 {
@@ -143,25 +142,7 @@ void parseCreateFile(QDomNode node, pt::ptree &json)
             {
                 if ((node.toElement().attribute("isMultiSelect","false") == "true") && (node.toElement().attribute("multiSelectTable") != ""))
                 {
-                    if (separate)
-                    {                        
-                        QString multiSelectTable = node.toElement().attribute("multiSelectTable");
-                        QStringList separation = separateMultiSelect(multiSelectTable,xmlCode);
-                        if (separation.length() > 0)
-                        {
-                            for (int pos = 0; pos < separation.count(); pos++)
-                            {
-                                json.put(separation[pos].toStdString(),"dummy");
-                            }
-                        }
-                        else
-                        {
-                            log("Cannot separate " + xmlCode + ". With multiselect table: " + multiSelectTable + ". The lookup values were not found!");
-                            exit(1);
-                        }
-                    }
-                    else
-                        json.put(xmlCode.toStdString(),"dummy");
+                    json.put(xmlCode.toStdString(),"dummy");
                 }
                 else
                     json.put(xmlCode.toStdString(),"dummy");
@@ -203,15 +184,12 @@ int main(int argc, char *argv[])
 
     TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "2.0");
 
-    TCLAP::ValueArg<std::string> createArg("c","create","Input create XML file",false,"","string");
-    TCLAP::ValueArg<std::string> intertArg("i","insert","Input create XML file",false,"","string");
+    TCLAP::ValueArg<std::string> createArg("c","create","Input create XML file",false,"","string");    
     TCLAP::ValueArg<std::string> outputArg("o","output","Output JSON file",false,"./output.json","string");
     TCLAP::ValueArg<std::string> arraysArg("a","arrays","Array sizes as defined as name:size,name:size",false,"","string");
-    TCLAP::SwitchArg repoSwitch("r","repository","Generate keys for repository", cmd, false);
-    TCLAP::SwitchArg separateSwitch("s","separate","Separate multiselects in different columns", cmd, false);
+    TCLAP::SwitchArg repoSwitch("r","repository","Generate keys for repository", cmd, false);    
 
-    cmd.add(createArg);
-    cmd.add(intertArg);
+    cmd.add(createArg);    
     cmd.add(outputArg);
     cmd.add(arraysArg);
 
@@ -221,12 +199,10 @@ int main(int argc, char *argv[])
     //Getting the variables from the command    
 
     QString xmlCreate = QString::fromUtf8(createArg.getValue().c_str());
-    QString xmlInsert = QString::fromUtf8(intertArg.getValue().c_str());
 
     QString output = QString::fromUtf8(outputArg.getValue().c_str());
     QString sarrays = QString::fromUtf8(arraysArg.getValue().c_str());
-    keysForRepo = repoSwitch.getValue();
-    separate = separateSwitch.getValue();
+    keysForRepo = repoSwitch.getValue();    
 
     if (sarrays != "")
     {
@@ -262,31 +238,6 @@ int main(int argc, char *argv[])
                 return 1;
             }
             fileCreate.close();
-
-
-            if (separate)
-            {
-                if (xmlInsert == "")
-                {
-                    log("With separation you need to specify both create and insert xml files");
-                    return 1;
-                }
-
-                //Openning and parsing the Insert XML file
-                QFile fileInsert(xmlInsert);
-                if (!fileInsert.open(QIODevice::ReadOnly))
-                {
-                    log("Cannot open insert xml file");
-                    return 1;
-                }
-                if (!xmlInsertDocument.setContent(&fileInsert))
-                {
-                    log("Cannot parse insert xml file");
-                    fileInsert.close();
-                    return 1;
-                }
-                fileInsert.close();
-            }
 
 
             QDomElement rootA = xmlCreateDocument.documentElement();
