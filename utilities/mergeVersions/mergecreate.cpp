@@ -577,7 +577,7 @@ void mergeCreate::addTableToSDiff(QDomNode table, bool lookUp)
     }
     if (hasRelatedTables)
         sql = sql.left(sql.length()-2);
-    sql = sql + ")\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + eTable.attribute("desc","") + "\";\n";
+    sql = sql + ")\n ENGINE = InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT = \"" + eTable.attribute("desc","") + "\";\n";
     sql = sql + "CREATE UNIQUE INDEX DXROWUUID" + strRecordUUID + " ON " + eTable.attribute("name","") + "(rowuuid);\n\n";
 
     QUuid TriggerUUID=QUuid::createUuid();

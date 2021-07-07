@@ -2216,7 +2216,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
         }
         clm = sql.lastIndexOf(",");
         sql = sql.left(clm);
-        sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))) + "\"; \n";
+        sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT = \"" + fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))) + "\"; \n";
         idx++;
         sql = sql + "CREATE UNIQUE INDEX rowuuid" + QString::number(idx) + " ON " + prefix + tables[pos].name.toLower() + "(rowuuid);\n";
 
