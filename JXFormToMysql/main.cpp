@@ -5632,8 +5632,8 @@ bool checkTables2()
                     select_count = select_count + 1;
                 rfcount++;
             }
-        }
-        if (rfcount > 64)
+        }        
+        if (rfcount >= 60)
         {
             Ttblwitherror aTable;
             aTable.name = tables[pos].name;
@@ -5645,7 +5645,7 @@ bool checkTables2()
     {
         if (outputType == "h")
         {
-            log("The following tables have more than 64 selects:");
+            log("The following tables have 60 selects or more:");
             for (pos = 0; pos < tables_with_error.count(); pos++)
             {
                 log(tables_with_error[pos].name + " with " + QString::number(tables_with_error[pos].num_selects) + " selects.");
@@ -5654,7 +5654,7 @@ bool checkTables2()
             log("Some notes on this restriction and how to correct it:");
             log("We tent to organize our ODK forms in sections with questions around a topic. For example: \"livestock inputs\" or \"crops sales\".\n");
             log("These sections have type = \"begin/end group\". We also organize questions that must be repeated in sections with type = \"begin/end repeat.\"\n");
-            log("ODK Tools store repeats as separate tables (like different Excel sheets) however groups are not. ODK tools store all items (questions, notes, calculations, etc.) outside repeats into a table called \"maintable\". Thus \"maintable\" usually end up with several items and if your ODK form have many selects then the \"maintable\" could potentially have more than 64 selects. ODK Tools can only handle 64 selects per table.\n");
+            log("ODK Tools store repeats as separate tables (like different Excel sheets) however groups are not. ODK tools store all items (questions, notes, calculations, etc.) outside repeats into a table called \"maintable\". Thus \"maintable\" usually end up with several items and if your ODK form have many selects then the \"maintable\" could potentially have more than 60 selects. ODK Tools can only handle 64 selects per table.\n");
             log("You can bypass this restriction by creating groups of items inside repeats BUT WITH repeat_count = 1. A repeat with repeat_count = 1 will behave in the same way as a group but ODKTools will create a new table for it to store all its items. Eventually if you export the data to Excel your items will be organized in different sheets each representing a table.\n");
             log("Please edit your ODK XLS/XLSX file, group several items inside repeats with repeat_count = 1 and run this process again.");
             return true;
