@@ -524,6 +524,7 @@ QString mainClass::fixString(QString source)
     res = source;
     res = res.replace("'","`");
     res = res.replace(";","|");
+    res = res.replace("\\n","");
     return res;
 }
 
