@@ -524,7 +524,7 @@ QString mainClass::fixString(QString source)
     res = source;
     res = res.replace("'","`");
     res = res.replace(";","|");
-    res = res.replace("\\n","");
+    res = res.replace("\\n"," ");
     return res;
 }
 
@@ -802,6 +802,7 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
     sql = sqlHeader + " " + sqlValues;
     //Change all empty valued to NULL. This minimize foreign key errors in skips
     sql = sql.replace("''","NULL");
+    sql = sql.replace("\\n"," ");
 
     //Execute the SQL to the database
 
