@@ -247,9 +247,9 @@ int mainClass::generateXLSX()
                             QString lkpdesc = tables[pos].fields[fld].multiSelectRelField;
                             lkpdesc = lkpdesc.replace("_cod","_des");
                             if (resolveMultiSelects)
-                                fields.append("GROUP_CONCAT(DISTINCT T" + QString::number(lkpTblIndex) + "." + lkpdesc + ") AS " + tables[pos].fields[fld].name);
+                                fields.append("GROUP_CONCAT(DISTINCT T" + QString::number(lkpTblIndex) + "." + lkpdesc + " SEPARATOR '|') AS " + tables[pos].fields[fld].name);
                             else
-                                fields.append("GROUP_CONCAT(DISTINCT " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectField + " SEPARATOR ' ') AS " + tables[pos].fields[fld].name);
+                                fields.append("GROUP_CONCAT(DISTINCT " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectField + " SEPARATOR '|') AS " + tables[pos].fields[fld].name);
                             leftjoin = "LEFT JOIN " + tables[pos].fields[fld].multiSelectTable + " ON " + tables[pos].name + "." + tables[pos].fields[fld].multiSelectKeys[0] + " = " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectKeys[0];
                             for (int key = 1; key < tables[pos].fields[fld].multiSelectKeys.count(); key++)
                             {
@@ -280,9 +280,9 @@ int mainClass::generateXLSX()
                         QString lkpdesc = tables[pos].fields[fld].multiSelectRelField;
                         lkpdesc = lkpdesc.replace("_cod","_des");
                         if (resolveMultiSelects)
-                            fields.append("GROUP_CONCAT(DISTINCT T" + QString::number(lkpTblIndex) + "." + lkpdesc + ") AS " + tables[pos].fields[fld].name);
+                            fields.append("GROUP_CONCAT(DISTINCT T" + QString::number(lkpTblIndex) + "." + lkpdesc + " SEPARATOR '|') AS " + tables[pos].fields[fld].name);
                         else
-                            fields.append("GROUP_CONCAT(DISTINCT " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectField + " SEPARATOR ' ') AS " + tables[pos].fields[fld].name);
+                            fields.append("GROUP_CONCAT(DISTINCT " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectField + " SEPARATOR '|') AS " + tables[pos].fields[fld].name);
                         leftjoin = "LEFT JOIN " + tables[pos].fields[fld].multiSelectTable + " ON " + tables[pos].name + "." + tables[pos].fields[fld].multiSelectKeys[0] + " = " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectKeys[0];
                         for (int key = 1; key < tables[pos].fields[fld].multiSelectKeys.count(); key++)
                         {
