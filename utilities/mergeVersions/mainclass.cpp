@@ -69,10 +69,19 @@ void mainClass::run()
                 returnCode = 1;
         }
     }
-    if (returnCode == 0)
-    {
-        returnCode = insert.createCFile();
-        if (returnCode == 0)
+    qDebug() << "------------------------";
+    qDebug() << returnCode;
+    qDebug() << "------------------------";
+    //if (returnCode == 0)
+    //{
+
+        int loaded = insert.createCFile();
+
+        qDebug() << "------------------------0";
+        qDebug() << loaded;
+        qDebug() << "------------------------0";
+
+        if (loaded == 0)
         {
             mergeCreate create;
             create.setFiles(a_createXML,b_createXML,c_createXML,d_createSQL,output_type);
@@ -105,7 +114,7 @@ void mainClass::run()
                 }
             }
         }
-    }
+    //}
     if (returnCode == 0)
     {
         returnCode = insert.createDiffFile();
