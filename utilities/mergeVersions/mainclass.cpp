@@ -65,6 +65,8 @@ void mainClass::run()
             anError.setAttribute("from",errorList[pos].from);
             anError.setAttribute("to",errorList[pos].to);
             eErrors.appendChild(anError);
+            if (errorList[pos].code == "RNS")
+                returnCode = 1;
         }
     }
     if (returnCode == 0)
@@ -90,6 +92,8 @@ void mainClass::run()
                     anError.setAttribute("from",errorList[pos].from);
                     anError.setAttribute("to",errorList[pos].to);
                     eErrors.appendChild(anError);
+                    if (errorList[pos].code == "TNS" || errorList[pos].code == "TWP" || errorList[pos].code == "FNS")
+                        returnCode = 1;
                 }
             }
             if (returnCode == 0)
