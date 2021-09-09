@@ -1093,6 +1093,15 @@ void mergeCreate::compareTables(QDomNode table,QDomDocument &docB)
         parentfound = findTable(docB,parentTableName);
         if (!parentfound.isNull())
         {
+            QDomNode field = table.firstChild();
+            while (!field.isNull())
+            {
+                QDomElement eField = field.toElement();
+                if (eField.tagName() == "table")
+                    compareTables(field,docB);
+                field = field.nextSibling();
+            }
+
             if (outputType == "h")
                 log("TNF:Table " + eTable.toElement().attribute("name","") + " from A not found in B");
             else
