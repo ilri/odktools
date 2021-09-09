@@ -661,7 +661,14 @@ QString mergeCreate::compareFields(QDomElement a, QDomElement b, int &newSize, i
             return "CHR";
         }
         else
-            return "RNS";
+        {
+            if (a.attribute("rtable","") != "")
+                return "RNS";
+            else
+            {
+                return "FNS";
+            }
+        }
     }
     if (a.attribute("type","") != b.attribute("type",""))
     {
