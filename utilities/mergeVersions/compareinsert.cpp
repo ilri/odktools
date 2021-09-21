@@ -254,7 +254,7 @@ QDomNode compareInsert::findValue(QDomNode table,QString code)
     node = table.firstChild();
     while (!node.isNull())
     {
-        if (node.toElement().attribute("code","") == code)
+        if (node.toElement().attribute("code","").toUpper() == code.toUpper())
             return node;
         node = node.nextSibling();
     }

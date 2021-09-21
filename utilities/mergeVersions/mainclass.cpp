@@ -69,17 +69,17 @@ void mainClass::run()
                 returnCode = 1;
         }
     }
-    qDebug() << "------------------------";
-    qDebug() << returnCode;
-    qDebug() << "------------------------";
+//    qDebug() << "------------------------";
+//    qDebug() << returnCode;
+//    qDebug() << "------------------------";
     //if (returnCode == 0)
     //{
 
         int loaded = insert.createCFile();
 
-        qDebug() << "------------------------0";
-        qDebug() << loaded;
-        qDebug() << "------------------------0";
+//        qDebug() << "------------------------0";
+//        qDebug() << loaded;
+//        qDebug() << "------------------------0";
 
         if (loaded == 0)
         {
