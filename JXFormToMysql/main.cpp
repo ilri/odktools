@@ -61,6 +61,7 @@ int numColumnsInData;
 QStringList duplicatedTables;
 bool justCheck;
 QStringList requiredFiles;
+QStringList ODKLanguages;
 
 
 //********************************************Global structures****************************************
@@ -4766,7 +4767,19 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList)
     for (int nkey = 0; nkey < JSONObject.keys().count(); nkey++)
     {
         QString key = JSONObject.keys()[nkey];
-        if (key != "label")
+        QString subKey;
+        QString subKeyLang;
+        if (key.indexOf(":") >= 0)
+        {
+            QStringList parts = key.split(":");
+            if (parts[0] == "label")
+            {
+                subKey = "label";
+                subKeyLang = parts[1];
+            }
+        }
+
+        if (key != "label" && subKey == "")
         {
             QJsonValue value;
             value = JSONObject.value(key);
@@ -4790,25 +4803,26 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList)
         }
         else
         {
-            QJsonValue value;
-            value = JSONObject.value(key);
-            if (value.isObject())
+            if (subKey == "")
             {
-                QJsonObject labelObject = value.toObject();
-                for (int nitem = 0; nitem < labelObject.keys().count(); nitem++)
+                QJsonValue value;
+                value = JSONObject.value(key);
+                if (value.isObject())
                 {
-                    QString language;                    
-                    language = labelObject.keys()[nitem];
-//                    if (language == "default")
-//                    {
-//                        if (default_language == "default")
-//                            language = "english";
-//                        else
-//                            language = default_language;
-//                    }
-                    if (languageList.indexOf(language) < 0)
-                        languageList.append(language);
+                    QJsonObject labelObject = value.toObject();
+                    for (int nitem = 0; nitem < labelObject.keys().count(); nitem++)
+                    {
+                        QString language;
+                        language = labelObject.keys()[nitem];
+                        if (languageList.indexOf(language) < 0)
+                            languageList.append(language);
+                    }
                 }
+            }
+            else
+            {
+                if (languageList.indexOf(subKeyLang) < 0)
+                    languageList.append(subKeyLang);
             }
         }
     }
@@ -5079,7 +5093,6 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
             }
         }
 
-        QStringList ODKLanguages;
         getLanguages(firstObject, ODKLanguages);
         QStringList uncoded_languages;
         //Process the internal languages to see if they are coded like English (en)
@@ -5168,6 +5181,9 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                 }
             }
         }
+
+//        qDebug() << ODKLanguages.count();
+//        qDebug() << languages.count();
 
         //Check if we have indicated the proper amount of languages
         if ((ODKLanguages.count() > 1) && (languages.count() == 1))
@@ -5769,7 +5785,9 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> tempDirArg("e","tempdirectory","Temporary directory. ./tmp by default",false,"./tmp","string");
     TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");    
     TCLAP::SwitchArg justCheckSwitch("K","justCheck","Just check of main inconsistencies and report back", cmd, false);    
+    TCLAP::SwitchArg displayLanguages("L","displayLanguages","Display languages", cmd, false);
     TCLAP::UnlabeledMultiArg<std::string> suppFiles("supportFile", "support files", false, "string");
+
 
     debug = false;
 
@@ -6097,5 +6115,40 @@ int main(int argc, char *argv[])
     }    
     if (outputType == "h")
         log("Done without errors");
+
+    if (displayLanguages.getValue() == true)
+    {
+        QDomDocument XMLResult;
+        XMLResult = QDomDocument("ODKLanguages");
+        QDomElement XMLRoot;
+        XMLRoot = XMLResult.createElement("ODKLanguages");
+        XMLResult.appendChild(XMLRoot);
+        for (int item = 0; item < ODKLanguages.count(); item++)
+        {
+            QString languaje = ODKLanguages[item];
+            languaje = languaje.replace("(","|");
+            languaje = languaje.replace(")","");
+            if (languaje.indexOf("|") >= 0)
+            {
+
+                QStringList parts = languaje.split("|");
+                QDomElement eLanguageItem;
+                eLanguageItem = XMLResult.createElement("language");
+                eLanguageItem.setAttribute("code",parts[1].simplified());
+                eLanguageItem.setAttribute("description",parts[0].simplified());
+                XMLRoot.appendChild(eLanguageItem);
+            }
+            else
+            {
+                QDomElement eLanguageItem;
+                eLanguageItem = XMLResult.createElement("language");
+                eLanguageItem.setAttribute("code",languaje.simplified());
+                eLanguageItem.setAttribute("description",languaje.simplified());
+                XMLRoot.appendChild(eLanguageItem);
+            }
+        }
+        log(XMLResult.toString());
+    }
+
     return 0;
 }
