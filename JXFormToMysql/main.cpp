@@ -4765,21 +4765,46 @@ void parseJSONObject(QJsonObject JSONObject, QString mainTable, QString mainFiel
 void getLanguages(QJsonObject JSONObject, QStringList &languageList)
 {
     for (int nkey = 0; nkey < JSONObject.keys().count(); nkey++)
-    {
+    {        
         QString key = JSONObject.keys()[nkey];
-        QString subKey;
-        QString subKeyLang;
         if (key.indexOf(":") >= 0)
         {
             QStringList parts = key.split(":");
             if (parts[0] == "label")
             {
-                subKey = "label";
-                subKeyLang = parts[1];
+                exit(7);
             }
         }
 
-        if (key != "label" && subKey == "")
+        if (key == "choices")
+        {
+            bool label_found = false;
+            QJsonValue value;
+            value = JSONObject.value(key);
+            if (value.isArray())
+            {
+                QJsonArray JSONArray = value.toArray();
+                for (int nitem = 0; nitem < JSONArray.count(); nitem++)
+                {
+                    QJsonValue value = JSONArray.at(nitem);
+                    if (value.isObject())
+                    {
+                        QJsonObject valueObj = value.toObject();
+                        for (int a_choice = 0; a_choice < valueObj.keys().count(); a_choice++)
+                        {
+                            if (valueObj.keys()[a_choice] == "label")
+                                label_found = true;
+                        }
+                    }
+                }
+            }
+            if (!label_found)
+            {
+                exit(8);
+            }
+        }
+
+        if (key != "label")
         {
             QJsonValue value;
             value = JSONObject.value(key);
@@ -4803,26 +4828,18 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList)
         }
         else
         {
-            if (subKey == "")
+            QJsonValue value;
+            value = JSONObject.value(key);
+            if (value.isObject())
             {
-                QJsonValue value;
-                value = JSONObject.value(key);
-                if (value.isObject())
+                QJsonObject labelObject = value.toObject();
+                for (int nitem = 0; nitem < labelObject.keys().count(); nitem++)
                 {
-                    QJsonObject labelObject = value.toObject();
-                    for (int nitem = 0; nitem < labelObject.keys().count(); nitem++)
-                    {
-                        QString language;
-                        language = labelObject.keys()[nitem];
-                        if (languageList.indexOf(language) < 0)
-                            languageList.append(language);
-                    }
+                    QString language;
+                    language = labelObject.keys()[nitem];
+                    if (languageList.indexOf(language) < 0)
+                        languageList.append(language);
                 }
-            }
-            else
-            {
-                if (languageList.indexOf(subKeyLang) < 0)
-                    languageList.append(subKeyLang);
             }
         }
     }
@@ -5205,9 +5222,15 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                         eLanguages = XMLResult.createElement("languages");
                         for (int pos = 0; pos <= ODKLanguages.count()-1;pos++)
                         {
+                            QString language_desc = ODKLanguages[pos];
+                            if (language_desc.indexOf("(") >= 0)
+                            {
+                                QStringList parts = language_desc.split("(");
+                                language_desc = parts[0].simplified();
+                            }
                             QDomElement eLanguage;
                             eLanguage = XMLResult.createElement("language");
-                            eLanguage.setAttribute("name",ODKLanguages[pos]);
+                            eLanguage.setAttribute("name",language_desc);
                             eLanguages.appendChild(eLanguage);
                         }
                         XMLRoot.appendChild(eLanguages);
@@ -5736,34 +5759,34 @@ int main(int argc, char *argv[])
 {
     QString title;
     title = title + "********************************************************************* \n";
-    title = title + " * JSON XForm To MySQL                                               * \n";
-    title = title + " * This tool generates a MySQL schema from a PyXForm JSON file.      * \n";
-    title = title + " * JXFormToMySQL generates full relational MySQL databases.          * \n";
-    title = title + " *                                                                   * \n";
-    title = title + " * Exit codes:                                                       * \n";
-    title = title + " * 1: General processing error.                                      * \n";
-    title = title + " * 2: Tables with more than 64 relationhips. (XML)                   * \n";
-    title = title + " * 3: otherlanguages option is empty (XML).                          * \n";
-    title = title + " * 4: Language not found. (XML)                                      * \n";
-    title = title + " * 5: Malformed deflanguage option.                                  * \n";
-    title = title + " * 6: Malformed otherlanguages option.                               * \n";
-    title = title + " * 7: Not used.                                                      * \n";
-    title = title + " * 8: Not used.                                                      * \n";
-    title = title + " * 9: The ODK has duplicated choice options (XML).                   * \n";
-    title = title + " * 10: Primary key not found.                                        * \n";
-    title = title + " * 11: Resource XML file was not attached (XML).                     * \n";
-    title = title + " * 12: Error parsing resource XML file (XML).                        * \n";
-    title = title + " * 13: Resource CSV file was not attached (XML).                     * \n";
-    title = title + " * 14: Resource CSV file has invalid characters (XML).               * \n";
-    title = title + " * 15: Error parsing CSV file (XML).                                 * \n";
-    title = title + " * 16: Error parsing search expression (XML).                        * \n";
-    title = title + " * 17: Primary key is invalid.                                       * \n";
-    title = title + " * 18: Duplicated tables (XML).                                      * \n";
-    title = title + " * 19: Duplicated field (XML).                                       * \n";
-    title = title + " * 20: Invalid fields (XML).                                         * \n";
-    title = title + " * 21: Duplicated lookups (XML).                                     * \n";
-    title = title + " *                                                                   * \n";
-    title = title + " * XML = XML oputput is available.                                   * \n";
+    title = title + " * JSON XForm To MySQL                                                 * \n";
+    title = title + " * This tool generates a MySQL schema from a PyXForm JSON file.        * \n";
+    title = title + " * JXFormToMySQL generates full relational MySQL databases.            * \n";
+    title = title + " *                                                                     * \n";
+    title = title + " * Exit codes:                                                         * \n";
+    title = title + " * 1: General processing error.                                        * \n";
+    title = title + " * 2: Tables with more than 64 relationhips. (XML)                     * \n";
+    title = title + " * 3: otherlanguages option is empty (XML).                            * \n";
+    title = title + " * 4: Language not found. (XML)                                        * \n";
+    title = title + " * 5: Malformed deflanguage option.                                    * \n";
+    title = title + " * 6: Malformed otherlanguages option.                                 * \n";
+    title = title + " * 7: Malformed language in the ODK. You have label:X when is label::X * \n";
+    title = title + " * 8: There have choices without labels. Maybe you missed the ::       * \n";
+    title = title + " * 9: The ODK has duplicated choice options (XML).                     * \n";
+    title = title + " * 10: Primary key not found.                                          * \n";
+    title = title + " * 11: Resource XML file was not attached (XML).                       * \n";
+    title = title + " * 12: Error parsing resource XML file (XML).                          * \n";
+    title = title + " * 13: Resource CSV file was not attached (XML).                       * \n";
+    title = title + " * 14: Resource CSV file has invalid characters (XML).                 * \n";
+    title = title + " * 15: Error parsing CSV file (XML).                                   * \n";
+    title = title + " * 16: Error parsing search expression (XML).                          * \n";
+    title = title + " * 17: Primary key is invalid.                                         * \n";
+    title = title + " * 18: Duplicated tables (XML).                                        * \n";
+    title = title + " * 19: Duplicated field (XML).                                         * \n";
+    title = title + " * 20: Invalid fields (XML).                                           * \n";
+    title = title + " * 21: Duplicated lookups (XML).                                       * \n";
+    title = title + " *                                                                     * \n";
+    title = title + " * XML = XML oputput is available.                                     * \n";
     title = title + " ********************************************************************* \n";
 
     TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "2.0");
