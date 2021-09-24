@@ -4762,7 +4762,7 @@ void parseJSONObject(QJsonObject JSONObject, QString mainTable, QString mainFiel
     }
 }
 
-void getLanguages(QJsonObject JSONObject, QStringList &languageList)
+void getLanguages(QJsonObject JSONObject, QStringList &languageList, int &num_labels)
 {
     for (int nkey = 0; nkey < JSONObject.keys().count(); nkey++)
     {        
@@ -4778,7 +4778,6 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList)
 
         if (key == "choices")
         {
-            bool label_found = false;
             QJsonValue value;
             value = JSONObject.value(key);
             if (value.isArray())
@@ -4793,14 +4792,10 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList)
                         for (int a_choice = 0; a_choice < valueObj.keys().count(); a_choice++)
                         {
                             if (valueObj.keys()[a_choice] == "label")
-                                label_found = true;
+                                num_labels++;
                         }
                     }
                 }
-            }
-            if (!label_found)
-            {
-                exit(8);
             }
         }
 
@@ -4811,7 +4806,7 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList)
             if (!value.isArray())
             {
                 if (value.isObject())
-                    getLanguages(value.toObject(), languageList);
+                    getLanguages(value.toObject(), languageList, num_labels);
             }
             else
             {
@@ -4821,7 +4816,7 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList)
                     QJsonValue value = JSONArray.at(nitem);
                     if (value.isObject())
                     {
-                        getLanguages(value.toObject(), languageList);
+                        getLanguages(value.toObject(), languageList, num_labels);
                     }
                 }
             }
@@ -5109,8 +5104,10 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                 exit(17);
             }
         }
-
-        getLanguages(firstObject, ODKLanguages);
+        int num_labels = 0;
+        getLanguages(firstObject, ODKLanguages, num_labels);
+        if (num_labels == 0)
+            exit(8);
         QStringList uncoded_languages;
         //Process the internal languages to see if they are coded like English (en)
         if (ODKLanguages.length() > 0)
