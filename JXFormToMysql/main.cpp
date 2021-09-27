@@ -3176,7 +3176,7 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
                         else
                         {
                             report_file_error(fileName);
-                        }
+                        }                        
                         exit(15);
                     }
                 }
@@ -3207,7 +3207,7 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
                 else
                 {
                     report_file_error(fileName);
-                }
+                }                
                 exit(15);
             }
         }
@@ -3327,14 +3327,11 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
                 }
                 else
                 {
-                    if (!justCheck)
+                    if (outputType == "h")
+                        log("Unable to retreive data for search \"" + file + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
+                    else
                     {
-                        if (outputType == "h")
-                            log("Unable to retreive data for search \"" + file + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
-                        else
-                        {
-                            report_file_error(file);
-                        }
+                        report_file_error(file);
                     }
                     exit(15);
                 }
@@ -3848,7 +3845,15 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 select_type = 5;
                 external_file = "itemsets.csv";
                 if (result != 0)
+                {
+                    if (outputType == "h")
+                        log("The file itemsets.csv is not a valid ODK resource file");
+                    else
+                    {
+                        report_file_error("itemsets.csv");
+                    }
                     exit(15);
+                }
             }
         }
 
