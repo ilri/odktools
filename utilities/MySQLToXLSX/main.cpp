@@ -61,6 +61,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> tmpArg("T","tempdir","Temporary directory (./tmp by default)",false,"./tmp","string");
     TCLAP::ValueArg<std::string> firstArg("f","firstsheetname","Name for the first sheet",false,"","string");
     TCLAP::ValueArg<std::string> encryptArg("e","encrypt","32 char hex encryption key. Auto generate if empty",false,"","string");
+    TCLAP::ValueArg<std::string> resolveArg("r","resolve","Resolve lookup values: 1=Codes only (default), 2=Descriptions, 3=Codes and descriptions",false,"1","string");
     TCLAP::SwitchArg lookupSwitch("l","includelookups","Include lookup tables. False by default", cmd, false);
     TCLAP::SwitchArg mselSwitch("m","includemultiselects","Include multi-select tables as sheets. False by default", cmd, false);    
     TCLAP::SwitchArg protectSwitch("c","protect","Protect sensitive fields. False by default", cmd, false);
@@ -75,6 +76,7 @@ int main(int argc, char *argv[])
     cmd.add(createArg);    
     cmd.add(firstArg);
     cmd.add(encryptArg);
+    cmd.add(resolveArg);
     //Parsing the command lines
     cmd.parse( argc, argv );
 
@@ -99,6 +101,7 @@ int main(int argc, char *argv[])
     QString createXML = QString::fromUtf8(createArg.getValue().c_str());    
     QString firstSheetName = QString::fromUtf8(firstArg.getValue().c_str());
     QString encryption_key = QString::fromUtf8(encryptArg.getValue().c_str());
+    QString resolve_type = QString::fromUtf8(resolveArg.getValue().c_str());
     if (encryption_key == "")
     {
         QTime time = QTime::currentTime();
@@ -107,7 +110,7 @@ int main(int argc, char *argv[])
     }
 
     mainClass *task = new mainClass(&app);
-    task->setParameters(host,port,user,pass,schema,createXML,outputFile,protectSensitive,tmpDir, includeLookUps, includeMSels, firstSheetName, encryption_key);
+    task->setParameters(host,port,user,pass,schema,createXML,outputFile,protectSensitive,tmpDir, includeLookUps, includeMSels, firstSheetName, encryption_key, resolve_type);
     QObject::connect(task, SIGNAL(finished()), &app, SLOT(quit()));
     QTimer::singleShot(0, task, SLOT(run()));
     app.exec();

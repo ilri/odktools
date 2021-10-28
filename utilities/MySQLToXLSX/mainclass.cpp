@@ -29,7 +29,7 @@ void mainClass::log(QString message)
     printf("%s", temp.toUtf8().data());
 }
 
-void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString encryption_key)
+void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString encryption_key, QString resolve_type)
 {
     this->host = host;
     this->port = port;
@@ -44,6 +44,7 @@ void mainClass::setParameters(QString host, QString port, QString user, QString 
     this->incmsels = incmsels;
     this->firstSheetName = firstSheetName;    
     this->encryption_key = encryption_key;
+    this->resolve_type = resolve_type.toInt();
 }
 
 QString mainClass::getSheetDescription(QString name)
@@ -127,6 +128,12 @@ void mainClass::loadTable(QDomNode table)
             aField.type = eField.attribute("type","");
             aField.size = eField.attribute("size","").toInt();
             aField.decSize = eField.attribute("decsize","").toInt();
+            if (eField.attribute("rlookup","false") == "true")
+            {
+                aField.isLookUp = true;
+                aField.lookupRelTable = eField.attribute("rtable");
+                aField.lookupRelField = eField.attribute("rfield");
+            }
             if (eField.attribute("sensitive","false") == "true")
             {
                 aField.sensitive = true;
@@ -274,17 +281,17 @@ int mainClass::generateXLSX()
         QStringList sheets;
         QStringList csvs;
         QString leftjoin;
-        QStringList leftjoins;                
-        int lkpTblIndex;
+        QStringList leftjoins;
+        QVector <TlinkedTable> linked_tables;
         for (int pos = 0; pos <= tables.count()-1; pos++)
         {                                                
-            lkpTblIndex = 0;
+            qDebug() << "Processing " + tables[pos].name;
             leftjoins.clear();
+            linked_tables.clear();
             sheets.append(getSheetDescription(tables[pos].desc));
             fields.clear();
             for (int fld = 0; fld < tables[pos].fields.count(); fld++)
             {
-                lkpTblIndex++;
                 if (this->protectSensitive)
                 {
                     if (tables[pos].fields[fld].sensitive == false)
@@ -292,11 +299,35 @@ int mainClass::generateXLSX()
                         if (tables[pos].fields[fld].isMultiSelect == false)
                         {
                             if (tables[pos].fields[fld].isKey == false)
-                                fields.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                            {
+                                if (tables[pos].fields[fld].isLookUp == false)
+                                    fields.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                                else
+                                {
+                                    if (this->resolve_type != 1)
+                                    {
+                                        TlinkedTable a_linked_table;
+                                        a_linked_table.field = tables[pos].fields[fld].name;
+                                        a_linked_table.related_table = tables[pos].fields[fld].lookupRelTable;
+                                        a_linked_table.related_field = tables[pos].fields[fld].lookupRelField;
+                                        linked_tables.append(a_linked_table);
+                                    }
+                                    if (this->resolve_type == 3)
+                                    {
+                                        fields.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                                        fields.append("'' as '" + tables[pos].fields[fld].name + "-desc'");
+                                    }
+                                    else
+                                        fields.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                                }
+                            }
                             else
                             {
                                 if (protectedKeys.indexOf(tables[pos].fields[fld].name) < 0)
+                                {
+
                                     fields.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                                }
                                 else
                                     fields.append("HEX(AES_ENCRYPT(" + tables[pos].name + "." + tables[pos].fields[fld].name + ",UNHEX('" + this->encryption_key + "'))) as " + tables[pos].fields[fld].name);
                             }
@@ -305,14 +336,14 @@ int mainClass::generateXLSX()
                         {
                             QString lkpdesc = tables[pos].fields[fld].multiSelectRelField;
                             lkpdesc = lkpdesc.replace("_cod","_des");
-                            fields.append("GROUP_CONCAT(DISTINCT T" + QString::number(lkpTblIndex) + "." + lkpdesc + ") AS " + tables[pos].fields[fld].name);
+                            fields.append("GROUP_CONCAT(DISTINCT " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectField + ") AS " + tables[pos].fields[fld].name);
+                            if (this->resolve_type == 3)
+                                fields.append("'' as '" + tables[pos].fields[fld].name + "-desc'");
                             leftjoin = "LEFT JOIN " + tables[pos].fields[fld].multiSelectTable + " ON " + tables[pos].name + "." + tables[pos].fields[fld].multiSelectKeys[0] + " = " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectKeys[0];
                             for (int key = 1; key < tables[pos].fields[fld].multiSelectKeys.count(); key++)
                             {
                                 leftjoin = leftjoin + " AND " + tables[pos].name + "." + tables[pos].fields[fld].multiSelectKeys[key] + " = " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectKeys[key];
                             }
-                            leftjoins.append(leftjoin);
-                            leftjoin = "LEFT JOIN " + tables[pos].fields[fld].multiSelectRelTable + " AS T" + QString::number(lkpTblIndex) + " ON " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectField + " = T" + QString::number(lkpTblIndex) + "." + tables[pos].fields[fld].multiSelectRelField;
                             leftjoins.append(leftjoin);
                         }
                     }
@@ -326,30 +357,56 @@ int mainClass::generateXLSX()
                 {
                     if (tables[pos].fields[fld].isMultiSelect == false)
                     {
-                        fields.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                        if (tables[pos].fields[fld].isLookUp == false)
+                            fields.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                        else
+                        {
+                            if (this->resolve_type != 1)
+                            {
+                                TlinkedTable a_linked_table;
+                                a_linked_table.field = tables[pos].fields[fld].name;
+                                a_linked_table.related_table = tables[pos].fields[fld].lookupRelTable;
+                                a_linked_table.related_field = tables[pos].fields[fld].lookupRelField;
+                                linked_tables.append(a_linked_table);
+                            }
+                            if (this->resolve_type == 3)
+                            {
+                                fields.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                                fields.append("'' as '" + tables[pos].fields[fld].name + "-desc'");
+                            }
+                            else
+                                fields.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                        }
                     }
                     else
                     {
                         QString lkpdesc = tables[pos].fields[fld].multiSelectRelField;
                         lkpdesc = lkpdesc.replace("_cod","_des");
-                        fields.append("GROUP_CONCAT(DISTINCT T" + QString::number(lkpTblIndex) + "." + lkpdesc + ") AS " + tables[pos].fields[fld].name);
+                        fields.append("GROUP_CONCAT(DISTINCT " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectField + ") AS " + tables[pos].fields[fld].name);
+                        if (this->resolve_type == 3)
+                            fields.append("'' as '" + tables[pos].fields[fld].name + "-desc'");
                         leftjoin = "LEFT JOIN " + tables[pos].fields[fld].multiSelectTable + " ON " + tables[pos].name + "." + tables[pos].fields[fld].multiSelectKeys[0] + " = " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectKeys[0];
                         for (int key = 1; key < tables[pos].fields[fld].multiSelectKeys.count(); key++)
                         {
                             leftjoin = leftjoin + " AND " + tables[pos].name + "." + tables[pos].fields[fld].multiSelectKeys[key] + " = " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectKeys[key];
                         }
                         leftjoins.append(leftjoin);
-                        leftjoin = "LEFT JOIN " + tables[pos].fields[fld].multiSelectRelTable + " AS T" + QString::number(lkpTblIndex) + " ON " + tables[pos].fields[fld].multiSelectTable + "." + tables[pos].fields[fld].multiSelectField + " = T" + QString::number(lkpTblIndex) + "." + tables[pos].fields[fld].multiSelectRelField;
-                        leftjoins.append(leftjoin);
                     }
                 }
             }
-
-            sql = "SELECT " + fields.join(",") + " FROM " + tables[pos].name;
+            QString temp_table;
+            sql = "SET SQL_MODE = '';\n";
+            if (this->resolve_type == 1)
+                sql = sql + "SELECT " + fields.join(",") + " FROM " + tables[pos].name;
+            else
+            {
+                QUuid recordUUID=QUuid::createUuid();
+                temp_table = "TMP_" + recordUUID.toString().replace("{","").replace("}","").replace("-","_");
+                sql = sql + "CREATE TABLE " + temp_table + " AS SELECT " + fields.join(",") + " FROM " + tables[pos].name;
+            }
 
             if (leftjoins.length() > 0)
-            {
-                sql = "SET SQL_MODE = '';\n" + sql;
+            {                
                 sql = sql + " " + leftjoins.join(" ");
                 QStringList grpKeys;
                 for (int fld = 0; fld < tables[pos].fields.count(); fld++)
@@ -364,10 +421,106 @@ int mainClass::generateXLSX()
                             else
                                 grpKeys.append(tables[pos].fields[fld].name);
                         }
-                    }                
+                    }
                 sql = sql + " GROUP BY " + grpKeys.join(",");
             }
             sql = sql + ";\n";
+
+            if (this->resolve_type != 1)
+            {
+                arguments.clear();
+                arguments.append("--host=" + this->host);
+                arguments.append("--port=" + this->port);
+                arguments.append("--password=" + this->pass);
+                arguments.append("--user=" + this->user);
+                arguments.append("--database=" + this->schema);
+
+                QFile tempfile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".sql");
+                if (!tempfile.open(QIODevice::WriteOnly | QIODevice::Text))
+                {
+                    delete mySQLDumpProcess;
+                    return 1;
+                }
+                QTextStream temout(&tempfile);
+                temout << sql;
+                tempfile.close();
+
+                mySQLDumpProcess->setStandardInputFile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".sql");
+                mySQLDumpProcess->setStandardOutputFile(QProcess::nullDevice());
+                mySQLDumpProcess->start("mysql", arguments);
+                mySQLDumpProcess->waitForFinished(-1);
+                if (mySQLDumpProcess->exitCode() > 0)
+                {
+                    QString serror = mySQLDumpProcess->readAllStandardError();
+                    log(serror);
+                    delete mySQLDumpProcess;
+                    return 1;
+                }
+                arguments.clear();
+
+                if (linked_tables.count() > 0)
+                {
+
+                    QStringList sqls;
+                    for (int i_table=0; i_table < linked_tables.count(); i_table++)
+                    {
+                        sql = "MODIFY COLUMN ";
+                        if (this->resolve_type == 2)
+                            sql = sql +  linked_tables[i_table].field;
+                        else
+                            sql = sql + "`" + linked_tables[i_table].field + "-desc`";
+                        sql = sql + " TEXT";
+                        sqls.append(sql);
+                    }
+                    sql = "ALTER TABLE " + temp_table + " " + sqls.join(",") + ";\n";
+                    sqls.clear();
+                    sqls.append(sql);
+
+
+                    for (int i_table=0; i_table < linked_tables.count(); i_table++)
+                    {
+                        sql = "UPDATE " + temp_table + "," + linked_tables[i_table].related_table + " AS T" + QString::number(i_table) + " SET ";
+                        QString relfield = linked_tables[i_table].related_field;
+                        if (this->resolve_type == 2)
+                            sql = sql + temp_table + "." + linked_tables[i_table].field + " = T" + QString::number(i_table) + "." + relfield.replace("_cod","_des");
+                        else
+                            sql = sql + temp_table + ".`" + linked_tables[i_table].field + "-desc` = T" + QString::number(i_table) + "." + relfield.replace("_cod","_des");
+                        sql = sql + " WHERE " + temp_table + "." + linked_tables[i_table].field + " = T" + QString::number(i_table) + "." + linked_tables[i_table].related_field + ";\n";
+                        sqls.append(sql);
+                    }
+
+                    QFile tempfile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".sql");
+                    if (!tempfile.open(QIODevice::WriteOnly | QIODevice::Text))
+                    {
+                        delete mySQLDumpProcess;
+                        return 1;
+                    }
+                    QTextStream temout(&tempfile);
+                    for (int isql=0; isql < sqls.count(); isql++)
+                        temout << sqls[isql];
+                    tempfile.close();
+
+                    arguments.clear();
+                    arguments.append("--host=" + this->host);
+                    arguments.append("--port=" + this->port);
+                    arguments.append("--password=" + this->pass);
+                    arguments.append("--user=" + this->user);
+                    arguments.append("--database=" + this->schema);
+
+                    mySQLDumpProcess->setStandardInputFile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".sql");
+                    mySQLDumpProcess->setStandardOutputFile(QProcess::nullDevice());
+                    mySQLDumpProcess->start("mysql", arguments);
+                    mySQLDumpProcess->waitForFinished(-1);
+                    if (mySQLDumpProcess->exitCode() > 0)
+                    {
+                        QString serror = mySQLDumpProcess->readAllStandardError();
+                        log(serror);
+                        delete mySQLDumpProcess;
+                        return 1;
+                    }
+                }
+                sql = "SELECT * FROM " + temp_table + ";";
+            }
 
             arguments.clear();
             arguments << "--sql";
@@ -402,6 +555,30 @@ int mainClass::generateXLSX()
                 delete mySQLDumpProcess;
                 return 1;
             }
+
+            if (this->resolve_type != 1)
+            {
+                arguments.clear();
+                arguments.append("--host=" + this->host);
+                arguments.append("--port=" + this->port);
+                arguments.append("--password=" + this->pass);
+                arguments.append("--user=" + this->user);
+                arguments.append("--database=" + this->schema);
+                arguments.append("--execute=DROP TABLE " + temp_table );
+
+                mySQLDumpProcess->setStandardInputFile(QProcess::nullDevice());
+                mySQLDumpProcess->setStandardOutputFile(QProcess::nullDevice());
+                mySQLDumpProcess->start("mysql", arguments);
+                mySQLDumpProcess->waitForFinished(-1);
+                if (mySQLDumpProcess->exitCode() > 0)
+                {
+                    QString serror = mySQLDumpProcess->readAllStandardError();
+                    log(serror);
+                    delete mySQLDumpProcess;
+                    return 1;
+                }
+            }
+            qDebug() << "Creating CSV for table" + tables[pos].name;
             // Convert the tab delimited file to CSV
             arguments.clear();
             arguments << "input";
@@ -431,6 +608,7 @@ int mainClass::generateXLSX()
             csvs.append(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".csv");
         }
 
+        qDebug() << "Creating Excel";
         // Finally create the Excel file using the CSVs
         arguments.clear();
         for (int pos = 0; pos < sheets.count(); pos++)

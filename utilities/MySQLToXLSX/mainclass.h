@@ -13,11 +13,14 @@ struct fieldDef
   int decSize; //Variable decimal size
   bool isMultiSelect = false;
   bool isKey = false;
+  bool isLookUp = false;
   QString multiSelectTable;
   QString multiSelectField;
   QStringList multiSelectKeys;
   QString multiSelectRelTable;
   QString multiSelectRelField;
+  QString lookupRelTable;
+  QString lookupRelField;
   QString replace_value;
   QString value;
   bool sensitive;
@@ -34,19 +37,20 @@ struct tableDef
 };
 typedef tableDef TtableDef;
 
-struct optionDef
+struct linkedTable
 {
-    QString code;
-    QString value;
+    QString field;
+    QString related_table;
+    QString related_field;
 };
-typedef optionDef ToptionDef;
+typedef linkedTable TlinkedTable;
 
 class mainClass : public QObject
 {
     Q_OBJECT
 public:
     explicit mainClass(QObject *parent = nullptr);
-    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString encryption_key);
+    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString encryption_key, QString resolve_type);
     int returnCode;
 signals:
     void finished();
@@ -67,6 +71,7 @@ private:
     QString tempDir;
     QString createXML;
     QString encryption_key;
+    int resolve_type = 1;
     bool protectSensitive;
     QList<TtableDef> tables;
     QList<TtableDef> mainTables;
