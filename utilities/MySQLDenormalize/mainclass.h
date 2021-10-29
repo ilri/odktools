@@ -17,11 +17,14 @@ struct fieldDef
   int decSize; //Variable decimal size
   bool isMultiSelect = false;
   bool isKey = false;
+  bool isLookUp = false;
   QString multiSelectTable;
   QString multiSelectField;
   QStringList multiSelectKeys;
   QString multiSelectRelTable;
   QString multiSelectRelField;
+  QString lookupRelTable;
+  QString lookupRelField;
   QString replace_value;
   QString value;
   bool sensitive;
@@ -52,12 +55,31 @@ struct UUIDDef
 };
 typedef UUIDDef TUUIDDef;
 
+struct linkedTable
+{
+    QString field;
+    QString related_table;
+    QString related_field;
+};
+typedef linkedTable TlinkedTable;
+
+struct multiSelectTable
+{
+    QString field;
+    QString multiSelectTable;
+    QString multiSelectField;
+    QString multiSelectRelTable;
+    QString multiSelectRelField;
+    QStringList multiSelectKeys;
+};
+typedef multiSelectTable TmultiSelectTable;
+
 class mainClass : public QObject
 {
     Q_OBJECT
 public:
     explicit mainClass(QObject *parent = nullptr);
-    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, bool protectSensitive, QString tempDir, QString encryption_key, QString mapDir, QString outputDir, QString mainTable, bool resolveMultiSelects, QString primaryKey);
+    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, bool protectSensitive, QString tempDir, QString encryption_key, QString mapDir, QString outputDir, QString mainTable, QString resolve_type, QString primaryKey);
     int returnCode;
 signals:
     void finished();
@@ -85,7 +107,7 @@ private:
     QString mapDir;
     QString outputDir;
     QString mainTable;
-    bool resolveMultiSelects;
+    int resolve_type;
     QString primaryKey;
     mongocxx::collection mongo_collection;
     void getAllUUIDs(QDomNode node,QStringList &UUIDs);

@@ -63,9 +63,10 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> mapArg("m","mapdirectory","Directory containing the map XML files",true,"","string");
     TCLAP::ValueArg<std::string> outArg("o","output","Output directory to store the JSON result files",true,"","string");
     TCLAP::ValueArg<std::string> keyArg("k","key","Specific primary key to extract",false,"","string");
+    TCLAP::ValueArg<std::string> resolveArg("r","resolve","Resolve lookup values: 1=Codes only (default), 2=Descriptions, 3=Codes and descriptions",false,"1","string");
 
     TCLAP::SwitchArg protectSwitch("c","protect","Protect sensitive fields. False by default", cmd, false);
-    TCLAP::SwitchArg resolveSwitch("r","resolve","Resolve multi-selects", cmd, true);
+
 
     cmd.add(hostArg);
     cmd.add(portArg);
@@ -79,6 +80,7 @@ int main(int argc, char *argv[])
     cmd.add(tableArg);
     cmd.add(mapArg);
     cmd.add(outArg);
+    cmd.add(resolveArg);
 
     //Parsing the command lines
     cmd.parse( argc, argv );
@@ -86,10 +88,6 @@ int main(int argc, char *argv[])
     //Getting the variables from the command
     bool protectSensitive;
     protectSensitive = protectSwitch.getValue();
-
-    bool resolveMultiSelects;
-    resolveMultiSelects = resolveSwitch.getValue();
-
 
 
     QString host = QString::fromUtf8(hostArg.getValue().c_str());
@@ -100,7 +98,7 @@ int main(int argc, char *argv[])
     QString key = QString::fromUtf8(keyArg.getValue().c_str());
     QString tmpDir = QString::fromUtf8(tmpArg.getValue().c_str());
     QString createXML = QString::fromUtf8(createArg.getValue().c_str());    
-
+    QString resolve_type = QString::fromUtf8(resolveArg.getValue().c_str());
     QString encryption_key = QString::fromUtf8(encryptArg.getValue().c_str());
     if (encryption_key == "")
     {
@@ -114,7 +112,7 @@ int main(int argc, char *argv[])
     QString outputDir = QString::fromUtf8(outArg.getValue().c_str());
 
     mainClass *task = new mainClass(&app);
-    task->setParameters(host,port,user,pass,schema,createXML,protectSensitive,tmpDir,encryption_key,mapDir,outputDir,mainTable, resolveMultiSelects, key);
+    task->setParameters(host,port,user,pass,schema,createXML,protectSensitive,tmpDir,encryption_key,mapDir,outputDir,mainTable, resolve_type, key);
     QObject::connect(task, SIGNAL(finished()), &app, SLOT(quit()));
     QTimer::singleShot(0, task, SLOT(run()));
     app.exec();
