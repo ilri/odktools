@@ -45,6 +45,17 @@ struct linkedTable
 };
 typedef linkedTable TlinkedTable;
 
+struct multiSelectTable
+{
+    QString field;
+    QString multiSelectTable;
+    QString multiSelectField;
+    QString multiSelectRelTable;
+    QString multiSelectRelField;
+    QStringList multiSelectKeys;
+};
+typedef multiSelectTable TmultiSelectTable;
+
 class mainClass : public QObject
 {
     Q_OBJECT
