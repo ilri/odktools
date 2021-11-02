@@ -333,7 +333,7 @@ int mainClass::generateXLSX()
 
             QUuid recordUUID=QUuid::createUuid();
             temp_table = "TMP_" + recordUUID.toString().replace("{","").replace("}","").replace("-","_");
-            sql = sql + "CREATE TABLE " + temp_table + " ENGINE=MyISAM DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_unicode_ci AS SELECT " + fields.join(",") + " FROM " + tables[pos].name + ";";
+            sql = sql + "CREATE TABLE " + temp_table + " ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AS SELECT " + fields.join(",") + " FROM " + tables[pos].name + ";";
 
             arguments.clear();
             arguments.append("--host=" + this->host);
@@ -367,6 +367,12 @@ int mainClass::generateXLSX()
 
             QStringList sqls;
             qDebug() << "Performing Alters on temp table";
+            for (int fld = 0; fld < tables[pos].fields.count(); fld++)
+            {
+                if (tables[pos].fields[fld].isKey)
+                    sqls.append("ALTER TABLE " + temp_table + " MODIFY COLUMN " + tables[pos].fields[fld].name + " VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\n");
+            }
+
             if (multiSelectTables.count() > 0)
             {
                 QStringList modifies;
@@ -415,7 +421,7 @@ int mainClass::generateXLSX()
                 {
                     if (this->resolve_type == 1 || this->resolve_type == 3)
                     {
-                        sql = "UPDATE " + temp_table + " AS TA SET TA." + multiSelectTables[i_table].field + " = (SELECT GROUP_CONCAT(TB." + multiSelectTables[i_table].multiSelectField + " SEPARATOR ',') FROM " + multiSelectTables[i_table].multiSelectTable + " as TB";
+                        sql = "UPDATE " + temp_table + " AS TA SET TA." + multiSelectTables[i_table].field + " = (SELECT GROUP_CONCAT(TB." + multiSelectTables[i_table].multiSelectField + " SEPARATOR '|') FROM " + multiSelectTables[i_table].multiSelectTable + " as TB";
                         QStringList wheres;
                         QStringList groups;
                         for (int a_key = 0; a_key < multiSelectTables[i_table].multiSelectKeys.count(); a_key++)
@@ -431,7 +437,7 @@ int mainClass::generateXLSX()
                     {
                         QString desc_field = multiSelectTables[i_table].multiSelectRelField;
                         desc_field = desc_field.replace("_cod","_des");
-                        sql = "UPDATE " + temp_table + " AS TA SET TA." + multiSelectTables[i_table].field + " = (SELECT GROUP_CONCAT(TC." + desc_field + " SEPARATOR ',') FROM " + multiSelectTables[i_table].multiSelectTable + " as TB," +  multiSelectTables[i_table].multiSelectRelTable + " as TC";
+                        sql = "UPDATE " + temp_table + " AS TA SET TA." + multiSelectTables[i_table].field + " = (SELECT GROUP_CONCAT(TC." + desc_field + " SEPARATOR '|') FROM " + multiSelectTables[i_table].multiSelectTable + " as TB," +  multiSelectTables[i_table].multiSelectRelTable + " as TC";
                         sql = sql + " WHERE TB." + multiSelectTables[i_table].multiSelectField + " = TC." + multiSelectTables[i_table].multiSelectRelField;
                         QStringList wheres;
                         QStringList groups;
@@ -448,7 +454,7 @@ int mainClass::generateXLSX()
                     {
                         QString desc_field = multiSelectTables[i_table].multiSelectRelField;
                         desc_field = desc_field.replace("_cod","_des");
-                        sql = "UPDATE " + temp_table + " AS TA SET TA.`" + multiSelectTables[i_table].field + "-desc` = (SELECT GROUP_CONCAT(TC." + desc_field + " SEPARATOR ',') FROM " + multiSelectTables[i_table].multiSelectTable + " as TB," +  multiSelectTables[i_table].multiSelectRelTable + " as TC";
+                        sql = "UPDATE " + temp_table + " AS TA SET TA.`" + multiSelectTables[i_table].field + "-desc` = (SELECT GROUP_CONCAT(TC." + desc_field + " SEPARATOR '|') FROM " + multiSelectTables[i_table].multiSelectTable + " as TB," +  multiSelectTables[i_table].multiSelectRelTable + " as TC";
                         sql = sql + " WHERE TB." + multiSelectTables[i_table].multiSelectField + " = TC." + multiSelectTables[i_table].multiSelectRelField;
                         QStringList wheres;
                         QStringList groups;
@@ -463,6 +469,7 @@ int mainClass::generateXLSX()
                     }
                 }
             }
+//            qDebug() << "*****************" + tables[pos].name + "**********************" ;
 //            for (int p=0; p < sqls.count(); p++)
 //                qDebug() << sqls[p];
 
@@ -536,6 +543,27 @@ int mainClass::generateXLSX()
                 delete mySQLDumpProcess;
                 return 1;
             }
+
+            arguments.clear();
+            arguments.append("--host=" + this->host);
+            arguments.append("--port=" + this->port);
+            arguments.append("--password=" + this->pass);
+            arguments.append("--user=" + this->user);
+            arguments.append("--database=" + this->schema);
+            arguments.append("--execute=DROP TABLE " + temp_table );
+
+            mySQLDumpProcess->setStandardInputFile(QProcess::nullDevice());
+            mySQLDumpProcess->setStandardOutputFile(QProcess::nullDevice());
+            mySQLDumpProcess->start("mysql", arguments);
+            mySQLDumpProcess->waitForFinished(-1);
+            if (mySQLDumpProcess->exitCode() > 0)
+            {
+                QString serror = mySQLDumpProcess->readAllStandardError();
+                log(serror);
+                delete mySQLDumpProcess;
+                return 1;
+            }
+
             jsonFiles.append(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".txt");
         }
 

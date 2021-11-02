@@ -31,6 +31,7 @@ License along with CreateFromXML.  If not, see <http://www.gnu.org/licenses/lgpl
 namespace pt = boost::property_tree;
 
 bool keysForRepo;
+int resolve_type;
 
 struct arraySizeItem
 {
@@ -142,10 +143,39 @@ void parseCreateFile(QDomNode node, pt::ptree &json)
             {
                 if ((node.toElement().attribute("isMultiSelect","false") == "true") && (node.toElement().attribute("multiSelectTable") != ""))
                 {
-                    json.put(xmlCode.toStdString(),"dummy");
+                    if (resolve_type == 1 || resolve_type == 2)
+                        json.put(xmlCode.toStdString(),"dummy");
+                    else
+                    {
+                        if (keysForRepo)
+                        {
+                            json.put(xmlCode.toStdString(),"dummy");
+                            json.put(xmlCode.toStdString() + "-desc","dummy");
+                        }
+                        else
+                            json.put(xmlCode.toStdString(),"dummy");
+                    }
                 }
                 else
-                    json.put(xmlCode.toStdString(),"dummy");
+                {
+                    if (node.toElement().attribute("rlookup","false") == "true")
+                    {
+                        if (resolve_type == 1 || resolve_type == 2)
+                            json.put(xmlCode.toStdString(),"dummy");
+                        else
+                        {
+                            if (keysForRepo)
+                            {
+                                json.put(xmlCode.toStdString(),"dummy");
+                                json.put(xmlCode.toStdString() + "-desc","dummy");
+                            }
+                            else
+                                json.put(xmlCode.toStdString(),"dummy");
+                        }
+                    }
+                    else
+                        json.put(xmlCode.toStdString(),"dummy");
+                }
             }
         }
         else
@@ -187,11 +217,13 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> createArg("c","create","Input create XML file",false,"","string");    
     TCLAP::ValueArg<std::string> outputArg("o","output","Output JSON file",false,"./output.json","string");
     TCLAP::ValueArg<std::string> arraysArg("a","arrays","Array sizes as defined as name:size,name:size",false,"","string");
+    TCLAP::ValueArg<std::string> resolveArg("l","resolve","Resolve lookup values: 1=Codes only (default), 2=Descriptions, 3=Codes and descriptions",false,"1","string");
     TCLAP::SwitchArg repoSwitch("r","repository","Generate keys for repository", cmd, false);    
 
     cmd.add(createArg);    
     cmd.add(outputArg);
     cmd.add(arraysArg);
+    cmd.add(resolveArg);
 
     //Parsing the command lines
     cmd.parse( argc, argv );
@@ -202,6 +234,8 @@ int main(int argc, char *argv[])
 
     QString output = QString::fromUtf8(outputArg.getValue().c_str());
     QString sarrays = QString::fromUtf8(arraysArg.getValue().c_str());
+    QString tresolve_type = QString::fromUtf8(resolveArg.getValue().c_str());
+    resolve_type = tresolve_type.toInt();
     keysForRepo = repoSwitch.getValue();    
 
     if (sarrays != "")

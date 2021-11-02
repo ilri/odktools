@@ -433,6 +433,13 @@ int mainClass::generateXLSX()
 
             QStringList sqls;
             qDebug() << "Performing Alters on temp table";
+
+            for (int fld = 0; fld < tables[pos].fields.count(); fld++)
+            {
+                if (tables[pos].fields[fld].isKey)
+                    sqls.append("ALTER TABLE " + temp_table + " MODIFY COLUMN " + tables[pos].fields[fld].name + " VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\n");
+            }
+
             if (multiSelectTables.count() > 0)
             {
                 QStringList modifies;
@@ -603,25 +610,25 @@ int mainClass::generateXLSX()
                 return 1;
             }
 
-//            arguments.clear();
-//            arguments.append("--host=" + this->host);
-//            arguments.append("--port=" + this->port);
-//            arguments.append("--password=" + this->pass);
-//            arguments.append("--user=" + this->user);
-//            arguments.append("--database=" + this->schema);
-//            arguments.append("--execute=DROP TABLE " + temp_table );
+            arguments.clear();
+            arguments.append("--host=" + this->host);
+            arguments.append("--port=" + this->port);
+            arguments.append("--password=" + this->pass);
+            arguments.append("--user=" + this->user);
+            arguments.append("--database=" + this->schema);
+            arguments.append("--execute=DROP TABLE " + temp_table );
 
-//            mySQLDumpProcess->setStandardInputFile(QProcess::nullDevice());
-//            mySQLDumpProcess->setStandardOutputFile(QProcess::nullDevice());
-//            mySQLDumpProcess->start("mysql", arguments);
-//            mySQLDumpProcess->waitForFinished(-1);
-//            if (mySQLDumpProcess->exitCode() > 0)
-//            {
-//                QString serror = mySQLDumpProcess->readAllStandardError();
-//                log(serror);
-//                delete mySQLDumpProcess;
-//                return 1;
-//            }
+            mySQLDumpProcess->setStandardInputFile(QProcess::nullDevice());
+            mySQLDumpProcess->setStandardOutputFile(QProcess::nullDevice());
+            mySQLDumpProcess->start("mysql", arguments);
+            mySQLDumpProcess->waitForFinished(-1);
+            if (mySQLDumpProcess->exitCode() > 0)
+            {
+                QString serror = mySQLDumpProcess->readAllStandardError();
+                log(serror);
+                delete mySQLDumpProcess;
+                return 1;
+            }
 
             qDebug() << "Creating CSV for table" + tables[pos].name;
             // Convert the tab delimited file to CSV
