@@ -62,7 +62,7 @@ QStringList duplicatedTables;
 bool justCheck;
 QStringList requiredFiles;
 QStringList ODKLanguages;
-
+bool hasSelects;
 
 //********************************************Global structures****************************************
 
@@ -1351,6 +1351,7 @@ QString getLanguageCode(QString languageName)
 
 int getMaxDescLength(QList<TlkpValue> values)
 {
+    hasSelects = true;
     int res;
     res = 0;
     int pos;
@@ -5111,7 +5112,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         }
         int num_labels = 0;
         getLanguages(firstObject, ODKLanguages, num_labels);
-        if (num_labels == 0)
+        if (num_labels == 0 && hasSelects)
             exit(8);
         QStringList uncoded_languages;
         //Process the internal languages to see if they are coded like English (en)
@@ -5841,7 +5842,7 @@ int main(int argc, char *argv[])
 
     //Parsing the command lines
     cmd.parse( argc, argv );
-
+    hasSelects = false;
     //Get the support files
     std::vector<std::string> v = suppFiles.getValue();
     for (int i = 0; static_cast<unsigned int>(i) < v.size(); i++)
