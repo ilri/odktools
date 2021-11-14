@@ -3585,6 +3585,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
             }
             else
             {
+                hasSelects = true;
                 aField.rName = getUUIDCode();
                 aField.rTable = lkpTable.name;
                 aField.rField = getKeyField(lkpTable.name);
@@ -3861,6 +3862,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
         //Creating a select one field
         if ((isSelect(variableType) == 1) || (isSelect(variableType) == 2))
         {
+            hasSelects = true;
             TfieldDef aField;
             aField.selectSource = "NONE";
             aField.name = fixField(variableName.toLower());
@@ -4043,6 +4045,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
         else
         {
             //Creating a multiSelect
+            hasSelects = true;
             TfieldDef aField;
             aField.name = fixField(variableName.toLower());
             aField.selectType = select_type;
@@ -4435,6 +4438,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
     }
     if (tableType == "loop")
     {
+        hasSelects = true;
         aTable.isLoop = true;
         QList<TlkpValue> values;
         values.append(getSelectValues(aTable.name,tableObject.value("columns").toArray(),false));
@@ -5112,8 +5116,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         }
         int num_labels = 0;
         getLanguages(firstObject, ODKLanguages, num_labels);
-        if (num_labels == 0 && hasSelects)
-            exit(8);
+
         QStringList uncoded_languages;
         //Process the internal languages to see if they are coded like English (en)
         if (ODKLanguages.length() > 0)
@@ -5607,6 +5610,11 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
 
         primaryKeyAdded = true;        
         parseJSONObject(firstObject, mainTable, mainField, dir, database);       
+
+        getLanguages(firstObject, ODKLanguages, num_labels);
+        if (num_labels == 0 && hasSelects)
+            exit(8);
+
         if (duplicatedTables.count() > 0)
         {
             reportDuplicatedTables();
