@@ -3,9 +3,26 @@
 sudo add-apt-repository universe
 sudo add-apt-repository multiverse
 sudo apt-get update
-sudo apt-get install build-essential qt5-default qtbase5-private-dev qtdeclarative5-dev libqt5sql5-mysql libqt5sql5-sqlite cmake mongodb jq libboost-all-dev unzip zlib1g-dev automake npm
+sudo apt-get install build-essential qt5-default qtbase5-private-dev qtdeclarative5-dev libqt5sql5-mysql libqt5sql5-sqlite cmake mongodb jq libboost-all-dev unzip zlib1g-dev automake npm sqlite3 libqt5sql5-sqlite golang-go
+
+sudo wget https://dev.mysql.com/get/mysql-apt-config_0.8.17-1_all.deb
+sudo dpkg -i ./mysql-apt-config_0.8.17-1_all.deb
+sudo apt-get update
+sudo apt-get install mysql-shell
 
 cd /opt
+
+sudo wget https://github.com/BurntSushi/xsv/releases/download/0.13.0/xsv-0.13.0-x86_64-unknown-linux-musl.tar.gz
+cd /bin
+sudo tar xvfz /opt/xsv-0.13.0-x86_64-unknown-linux-musl.tar.gz
+
+cd /opt
+
+sudo git clone https://github.com/qlands/csv2xlsx.git
+cd csv2xlsx
+sudo go build
+sudo cp csv2xlsx /bin
+
 sudo git clone https://github.com/qlands/odktools.git
 sudo mkdir odktools-deps
 cd odktools-deps
