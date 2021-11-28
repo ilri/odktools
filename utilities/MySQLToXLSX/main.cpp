@@ -2,6 +2,8 @@
 #include <tclap/CmdLine.h>
 #include <QTimer>
 #include "mainclass.h"
+#include <QTime>
+
 /*
 MySQLToXLSX
 
@@ -21,6 +23,18 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with MySQLToXLSX.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
 */
+
+QString getRandomHex(const int &length)
+{
+    QString randomHex;
+
+    for(int i = 0; i < length; i++) {
+        int n = qrand() % 16;
+        randomHex.append(QString::number(n,16));
+    }
+
+    return randomHex;
+}
 
 int main(int argc, char *argv[])
 {
@@ -43,16 +57,14 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> passArg("p","password","Password to connect to MySQL",true,"","string");
     TCLAP::ValueArg<std::string> schemaArg("s","schema","Schema in MySQL",true,"","string");
     TCLAP::ValueArg<std::string> createArg("x","createxml","Input create XML file",true,"","string");
-    TCLAP::ValueArg<std::string> insertArg("I","insertxml","Input insert XML file",true,"","string");
     TCLAP::ValueArg<std::string> outArg("o","output","Output XLSX file",true,"","string");
     TCLAP::ValueArg<std::string> tmpArg("T","tempdir","Temporary directory (./tmp by default)",false,"./tmp","string");
-    TCLAP::ValueArg<std::string> firstArg("f","firstsheetname","Name for the first sheet",false,"","string");    
+    TCLAP::ValueArg<std::string> firstArg("f","firstsheetname","Name for the first sheet",false,"","string");
+    TCLAP::ValueArg<std::string> encryptArg("e","encrypt","32 char hex encryption key. Auto generate if empty",false,"","string");
+    TCLAP::ValueArg<std::string> resolveArg("r","resolve","Resolve lookup values: 1=Codes only (default), 2=Descriptions, 3=Codes and descriptions",false,"1","string");
     TCLAP::SwitchArg lookupSwitch("l","includelookups","Include lookup tables. False by default", cmd, false);
-    TCLAP::SwitchArg mselSwitch("m","includemultiselects","Include multi-select tables as sheets. False by default", cmd, false);
-    TCLAP::SwitchArg separateSwitch("S","separatemultiselects","Separate multi-select fields in different columns. False by default", cmd, false);
+    TCLAP::SwitchArg mselSwitch("m","includemultiselects","Include multi-select tables as sheets. False by default", cmd, false);    
     TCLAP::SwitchArg protectSwitch("c","protect","Protect sensitive fields. False by default", cmd, false);
-
-
 
     cmd.add(hostArg);
     cmd.add(portArg);
@@ -61,9 +73,10 @@ int main(int argc, char *argv[])
     cmd.add(schemaArg);
     cmd.add(outArg);
     cmd.add(tmpArg);
-    cmd.add(createArg);
-    cmd.add(insertArg);
+    cmd.add(createArg);    
     cmd.add(firstArg);
+    cmd.add(encryptArg);
+    cmd.add(resolveArg);
     //Parsing the command lines
     cmd.parse( argc, argv );
 
@@ -77,8 +90,6 @@ int main(int argc, char *argv[])
     bool includeMSels;
     includeMSels = mselSwitch.getValue();
 
-    bool separate;
-    separate = separateSwitch.getValue();
 
     QString host = QString::fromUtf8(hostArg.getValue().c_str());
     QString port = QString::fromUtf8(portArg.getValue().c_str());
@@ -87,12 +98,19 @@ int main(int argc, char *argv[])
     QString schema = QString::fromUtf8(schemaArg.getValue().c_str());
     QString outputFile = QString::fromUtf8(outArg.getValue().c_str());
     QString tmpDir = QString::fromUtf8(tmpArg.getValue().c_str());
-    QString createXML = QString::fromUtf8(createArg.getValue().c_str());
-    QString insertXML = QString::fromUtf8(insertArg.getValue().c_str());
+    QString createXML = QString::fromUtf8(createArg.getValue().c_str());    
     QString firstSheetName = QString::fromUtf8(firstArg.getValue().c_str());
+    QString encryption_key = QString::fromUtf8(encryptArg.getValue().c_str());
+    QString resolve_type = QString::fromUtf8(resolveArg.getValue().c_str());
+    if (encryption_key == "")
+    {
+        QTime time = QTime::currentTime();
+        qsrand((uint)time.msec());
+        encryption_key = getRandomHex(32);
+    }
 
     mainClass *task = new mainClass(&app);
-    task->setParameters(host,port,user,pass,schema,createXML,outputFile,protectSensitive,tmpDir, includeLookUps, includeMSels, firstSheetName, insertXML, separate);
+    task->setParameters(host,port,user,pass,schema,createXML,outputFile,protectSensitive,tmpDir, includeLookUps, includeMSels, firstSheetName, encryption_key, resolve_type);
     QObject::connect(task, SIGNAL(finished()), &app, SLOT(quit()));
     QTimer::singleShot(0, task, SLOT(run()));
     app.exec();

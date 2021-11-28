@@ -61,7 +61,7 @@ class mainClass : public QObject
     Q_OBJECT
 public:
     explicit mainClass(QObject *parent = nullptr);
-    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString encryption_key, QString resolve_type);
+    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString table, QString fields, QString table_name, QString resolve_type, QString tmp_dir);
     int returnCode;
 signals:
     void finished();
@@ -78,20 +78,16 @@ private:
     QString user;
     QString pass;
     QString schema;
-    QString outputFile;
-    QString tempDir;
-    QString createXML;
-    QString encryption_key;
+    QString table_to_export;
+    QStringList fields_to_export;
+    QString tmp_table_name;
+    QString createXML;    
     int resolve_type = 1;
-    bool protectSensitive;
+    QString tempdir;
     QList<TtableDef> tables;
     QList<TtableDef> mainTables;
     QStringList tableNames;
-    int letterIndex;
-    bool incLookups;
-    bool incmsels;
-    QString firstSheetName;
-    QStringList protectedKeys;
+    int letterIndex;    
 };
 
 #endif // MAINCLASS_H

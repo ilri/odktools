@@ -577,7 +577,7 @@ void mergeCreate::addTableToSDiff(QDomNode table, bool lookUp)
     }
     if (hasRelatedTables)
         sql = sql.left(sql.length()-2);
-    sql = sql + ")\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + eTable.attribute("desc","") + "\";\n";
+    sql = sql + ")\n ENGINE = InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT = \"" + eTable.attribute("desc","") + "\";\n";
     sql = sql + "CREATE UNIQUE INDEX DXROWUUID" + strRecordUUID + " ON " + eTable.attribute("name","") + "(rowuuid);\n\n";
 
     QUuid TriggerUUID=QUuid::createUuid();
@@ -661,7 +661,14 @@ QString mergeCreate::compareFields(QDomElement a, QDomElement b, int &newSize, i
             return "CHR";
         }
         else
-            return "RNS";
+        {
+            if (a.attribute("rtable","") != "")
+                return "RNS";
+            else
+            {
+                return "FNS";
+            }
+        }
     }
     if (a.attribute("type","") != b.attribute("type",""))
     {
@@ -1093,6 +1100,15 @@ void mergeCreate::compareTables(QDomNode table,QDomDocument &docB)
         parentfound = findTable(docB,parentTableName);
         if (!parentfound.isNull())
         {
+            QDomNode field = table.firstChild();
+            while (!field.isNull())
+            {
+                QDomElement eField = field.toElement();
+                if (eField.tagName() == "table")
+                    compareTables(field,docB);
+                field = field.nextSibling();
+            }
+
             if (outputType == "h")
                 log("TNF:Table " + eTable.toElement().attribute("name","") + " from A not found in B");
             else

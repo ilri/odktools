@@ -1,9 +1,9 @@
 QT -= gui
-QT += core xml sql
+QT += core xml
 
 CONFIG += c++11 console
 CONFIG -= app_bundle
-TARGET = mysqldenormalize
+TARGET = createtemporarytable
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -16,10 +16,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-unix:INCLUDEPATH += ../../3rdparty /usr/include/mongocxx/v_noabi /usr/include/bsoncxx/v_noabi \
-/usr/local/include/mongocxx/v_noabi /usr/local/include/bsoncxx/v_noabi
+unix:INCLUDEPATH += ../../3rdparty
 
-unix:LIBS += -L/lib64 -L/usr/lib64 -L/usr/local/lib -lmongocxx -lbsoncxx
+unix:LIBS += -L/lib64 -L/usr/lib64 -L/usr/local/lib
 
 SOURCES += main.cpp \
     mainclass.cpp

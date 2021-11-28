@@ -1,70 +1,85 @@
-/*
-MySQLDenormalize
-
-Copyright (C) 2018 QLands Technology Consultants.
-Author: Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
-
-MySQLDenormalize is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as
-published by the Free Software Foundation, either version 3 of
-the License, or (at your option) any later version.
-
-MySQLDenormalize is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public
-License along with MySQLDenormalize.  If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
-*/
-
 #ifndef MAINCLASS_H
 #define MAINCLASS_H
 
 #include <QObject>
-#include <QSqlDatabase>
-#include <QDomDocument>
-#include <QDomElement>
-#include <QProcess>
-#include <QJsonObject>
-#include <bsoncxx/json.hpp>
-#include <mongocxx/client.hpp>
-#include <mongocxx/instance.hpp>
+#include <QDomNode>
 #include <mongocxx/collection.hpp>
-#include <mongocxx/stdx.hpp>
-#include <mongocxx/uri.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 namespace pt = boost::property_tree;
 
+struct fieldDef
+{
+  QString name; //Field Name
+  QString type; //Variable type in MySQL
+  QString desc; //Variable description
+  int size; //Variable size
+  int decSize; //Variable decimal size
+  bool isMultiSelect = false;
+  bool isKey = false;
+  bool isLookUp = false;
+  QString multiSelectTable;
+  QString multiSelectField;
+  QStringList multiSelectKeys;
+  QString multiSelectRelTable;
+  QString multiSelectRelField;
+  QString lookupRelTable;
+  QString lookupRelField;
+  QString replace_value;
+  QString value;
+  bool sensitive;
+  QString protection;
+};
+typedef fieldDef TfieldDef;
+
 struct tableDef
 {
-    QString name;
-    QString parent;
+  QString name;
+  QString desc;
+  QList<TfieldDef> fields; //List of fields
+  bool islookup; //Whether the table is a lookup table
 };
 typedef tableDef TtableDef;
 
-struct fieldDef
+struct UUIDFieldDef
 {
     QString name;
     QString value;
 };
-typedef fieldDef TfieldDef;
+typedef UUIDFieldDef TUUIDFieldDef;
 
 struct UUIDDef
 {
-    QString table;
     QString UUID;
-    QList<TfieldDef> fields;
+    QList<TUUIDFieldDef> fields;
 };
 typedef UUIDDef TUUIDDef;
+
+struct linkedTable
+{
+    QString field;
+    QString related_table;
+    QString related_field;
+};
+typedef linkedTable TlinkedTable;
+
+struct multiSelectTable
+{
+    QString field;
+    QString multiSelectTable;
+    QString multiSelectField;
+    QString multiSelectRelTable;
+    QString multiSelectRelField;
+    QStringList multiSelectKeys;
+};
+typedef multiSelectTable TmultiSelectTable;
 
 class mainClass : public QObject
 {
     Q_OBJECT
 public:
     explicit mainClass(QObject *parent = nullptr);
-    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString table, QString mapDir, QString output, bool separate, QString tempDir, QString createFileName);
+    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, bool protectSensitive, QString tempDir, QString encryption_key, QString mapDir, QString outputDir, QString mainTable, QString resolve_type, QString primaryKey);
     int returnCode;
 signals:
     void finished();
@@ -72,37 +87,33 @@ public slots:
     void run();
 private:
     void log(QString message);
-    int generateJSONs(QSqlDatabase db);
-    void processChilds(QDomDocument doc, QDomElement &parent, QString table, QList <TtableDef> tables, QStringList &tablesUsed);
-    //QList<TfieldDef> getDataByRowUUID(QString tableToSearch, QString UUIDToSearch);
-    void processMapFile(mongocxx::collection collection, QString fileName);
-    //void parseMapFile(QList<TUUIDDef> dataList, QDomNode node, QJsonObject &json, QString currentTable, QJsonObject &parent);
-    void parseMapFileWithBoost(QList <TUUIDDef> dataList, QDomNode node, pt::ptree &json, QString currentTable, pt::ptree &parent);
-    void parseDataToMongo(mongocxx::collection collection, QString table, QString fileName);
-    QList<TfieldDef> getDataByRowUUID2(mongocxx::collection collection, QString tableToSearch, QString UUIDToSearch);
-    //QList<TfieldDef> getDataByRowUUID3(QSqlDatabase db, QString tableToSearch, QString UUIDToSearch);
-    QList<TfieldDef> getDataByRowUUID4(QList<TUUIDDef> dataList, QString tableToSearch, QString UUIDToSearch, QDomNode current_node);
-    void getAllUUIDs(QDomNode node, QStringList &UUIDs);
-    void remove_msels(QDomNode node);
-    bool isFieldMultiSelect(QString table, QString field, QString &msel_table, QString &lookup_field, bool &isSensitive);
-    QString getMultiSelectValuesAsString(QList<TUUIDDef> dataList, QString msel_table, QString lookup_field, QDomNode current_node);
-    QStringList getMultiSelectValuesAsArray(QList<TUUIDDef> dataList, QString msel_table, QString lookup_field, QDomNode current_node, QString field_name);
-
+    int generateXLSX();            
+    void loadTable(QDomNode node);
+    void getMultiSelectInfo(QDomNode table, QString table_name, QString &multiSelect_field, QStringList &keys, QString &rel_table, QString &rel_field);
     QString host;
     QString port;
     QString user;
     QString pass;
-    QString schema;
-    QString table;
-    QString mapDir;
-    QString output;
-    QString nullValue;
+    QString schema;    
     QString tempDir;
-    QString createFile;
-    bool separateSelects;
-    QDomNodeList tables_in_create;
-    QStringList alreadyPulled;
-    QStringList alreadyPulled2;
+    QString createXML;
+    QString encryption_key;
+    bool protectSensitive;
+    QList<TtableDef> tables;
+    QList<TtableDef> mainTables;
+    QStringList tableNames;           
+    QStringList protectedKeys;
+    void processMapFile(QString fileName);
+    QString mapDir;
+    QString outputDir;
+    QString mainTable;
+    int resolve_type;
+    QString primaryKey;
+    mongocxx::collection mongo_collection;
+    void getAllUUIDs(QDomNode node,QStringList &UUIDs);
+    void parseMapFileWithBoost(QVector <TUUIDDef> dataList, QDomNode node, pt::ptree &json, pt::ptree &parent);
+    QList<TUUIDFieldDef> getDataByRowUUID4(QVector<TUUIDDef> dataList, QString UUIDToSearch);
+    void processSection(QStringList section);
 };
 
 #endif // MAINCLASS_H

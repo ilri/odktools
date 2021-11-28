@@ -61,7 +61,8 @@ int numColumnsInData;
 QStringList duplicatedTables;
 bool justCheck;
 QStringList requiredFiles;
-
+QStringList ODKLanguages;
+bool hasSelects;
 
 //********************************************Global structures****************************************
 
@@ -1350,6 +1351,7 @@ QString getLanguageCode(QString languageName)
 
 int getMaxDescLength(QList<TlkpValue> values)
 {
+    hasSelects = true;
     int res;
     res = 0;
     int pos;
@@ -2216,7 +2218,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
         }
         clm = sql.lastIndexOf(",");
         sql = sql.left(clm);
-        sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8 COMMENT = \"" + fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))) + "\"; \n";
+        sql = sql + ")" + "\n ENGINE = InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT = \"" + fixString(getDescForLanguage(tables[pos].desc,getLanguageCode(getDefLanguage()))) + "\"; \n";
         idx++;
         sql = sql + "CREATE UNIQUE INDEX rowuuid" + QString::number(idx) + " ON " + prefix + tables[pos].name.toLower() + "(rowuuid);\n";
 
@@ -3175,7 +3177,7 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
                         else
                         {
                             report_file_error(fileName);
-                        }
+                        }                        
                         exit(15);
                     }
                 }
@@ -3206,7 +3208,7 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
                 else
                 {
                     report_file_error(fileName);
-                }
+                }                
                 exit(15);
             }
         }
@@ -3326,14 +3328,11 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
                 }
                 else
                 {
-                    if (!justCheck)
+                    if (outputType == "h")
+                        log("Unable to retreive data for search \"" + file + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
+                    else
                     {
-                        if (outputType == "h")
-                            log("Unable to retreive data for search \"" + file + "\". Reason: " + query.lastError().databaseText() + ". Maybe the \"name column\" or any of the \"labels columns\" do not exist in the CSV?");
-                        else
-                        {
-                            report_file_error(file);
-                        }
+                        report_file_error(file);
                     }
                     exit(15);
                 }
@@ -3586,6 +3585,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
             }
             else
             {
+                hasSelects = true;
                 aField.rName = getUUIDCode();
                 aField.rTable = lkpTable.name;
                 aField.rField = getKeyField(lkpTable.name);
@@ -3847,13 +3847,22 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 select_type = 5;
                 external_file = "itemsets.csv";
                 if (result != 0)
+                {
+                    if (outputType == "h")
+                        log("The file itemsets.csv is not a valid ODK resource file");
+                    else
+                    {
+                        report_file_error("itemsets.csv");
+                    }
                     exit(15);
+                }
             }
         }
 
         //Creating a select one field
         if ((isSelect(variableType) == 1) || (isSelect(variableType) == 2))
         {
+            hasSelects = true;
             TfieldDef aField;
             aField.selectSource = "NONE";
             aField.name = fixField(variableName.toLower());
@@ -4036,6 +4045,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
         else
         {
             //Creating a multiSelect
+            hasSelects = true;
             TfieldDef aField;
             aField.name = fixField(variableName.toLower());
             aField.selectType = select_type;
@@ -4428,6 +4438,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
     }
     if (tableType == "loop")
     {
+        hasSelects = true;
         aTable.isLoop = true;
         QList<TlkpValue> values;
         values.append(getSelectValues(aTable.name,tableObject.value("columns").toArray(),false));
@@ -4761,11 +4772,43 @@ void parseJSONObject(QJsonObject JSONObject, QString mainTable, QString mainFiel
     }
 }
 
-void getLanguages(QJsonObject JSONObject, QStringList &languageList)
+void getLanguages(QJsonObject JSONObject, QStringList &languageList, int &num_labels)
 {
     for (int nkey = 0; nkey < JSONObject.keys().count(); nkey++)
-    {
+    {        
         QString key = JSONObject.keys()[nkey];
+        if (key.indexOf(":") >= 0)
+        {
+            QStringList parts = key.split(":");
+            if (parts[0] == "label")
+            {
+                exit(7);
+            }
+        }
+
+        if (key == "choices")
+        {
+            QJsonValue value;
+            value = JSONObject.value(key);
+            if (value.isArray())
+            {
+                QJsonArray JSONArray = value.toArray();
+                for (int nitem = 0; nitem < JSONArray.count(); nitem++)
+                {
+                    QJsonValue value = JSONArray.at(nitem);
+                    if (value.isObject())
+                    {
+                        QJsonObject valueObj = value.toObject();
+                        for (int a_choice = 0; a_choice < valueObj.keys().count(); a_choice++)
+                        {
+                            if (valueObj.keys()[a_choice] == "label")
+                                num_labels++;
+                        }
+                    }
+                }
+            }
+        }
+
         if (key != "label")
         {
             QJsonValue value;
@@ -4773,7 +4816,7 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList)
             if (!value.isArray())
             {
                 if (value.isObject())
-                    getLanguages(value.toObject(), languageList);
+                    getLanguages(value.toObject(), languageList, num_labels);
             }
             else
             {
@@ -4783,7 +4826,7 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList)
                     QJsonValue value = JSONArray.at(nitem);
                     if (value.isObject())
                     {
-                        getLanguages(value.toObject(), languageList);
+                        getLanguages(value.toObject(), languageList, num_labels);
                     }
                 }
             }
@@ -4797,15 +4840,8 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList)
                 QJsonObject labelObject = value.toObject();
                 for (int nitem = 0; nitem < labelObject.keys().count(); nitem++)
                 {
-                    QString language;                    
+                    QString language;
                     language = labelObject.keys()[nitem];
-//                    if (language == "default")
-//                    {
-//                        if (default_language == "default")
-//                            language = "english";
-//                        else
-//                            language = default_language;
-//                    }
                     if (languageList.indexOf(language) < 0)
                         languageList.append(language);
                 }
@@ -5078,9 +5114,9 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                 exit(17);
             }
         }
+        int num_labels = 0;
+        getLanguages(firstObject, ODKLanguages, num_labels);
 
-        QStringList ODKLanguages;
-        getLanguages(firstObject, ODKLanguages);
         QStringList uncoded_languages;
         //Process the internal languages to see if they are coded like English (en)
         if (ODKLanguages.length() > 0)
@@ -5169,6 +5205,9 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
             }
         }
 
+//        qDebug() << ODKLanguages.count();
+//        qDebug() << languages.count();
+
         //Check if we have indicated the proper amount of languages
         if ((ODKLanguages.count() > 1) && (languages.count() == 1))
         {
@@ -5189,9 +5228,15 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                         eLanguages = XMLResult.createElement("languages");
                         for (int pos = 0; pos <= ODKLanguages.count()-1;pos++)
                         {
+                            QString language_desc = ODKLanguages[pos];
+                            if (language_desc.indexOf("(") >= 0)
+                            {
+                                QStringList parts = language_desc.split("(");
+                                language_desc = parts[0].simplified();
+                            }
                             QDomElement eLanguage;
                             eLanguage = XMLResult.createElement("language");
-                            eLanguage.setAttribute("name",ODKLanguages[pos]);
+                            eLanguage.setAttribute("name",language_desc);
                             eLanguages.appendChild(eLanguage);
                         }
                         XMLRoot.appendChild(eLanguages);
@@ -5565,6 +5610,11 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
 
         primaryKeyAdded = true;        
         parseJSONObject(firstObject, mainTable, mainField, dir, database);       
+
+        getLanguages(firstObject, ODKLanguages, num_labels);
+        if (num_labels == 0 && hasSelects)
+            exit(8);
+
         if (duplicatedTables.count() > 0)
         {
             reportDuplicatedTables();
@@ -5617,27 +5667,24 @@ bool checkTables2()
     int pos2;
     int tmax;
     tmax = tables.count();
-    int rfcount;
-    int select_count;
+    int rfcount;    
     QList <Ttblwitherror > tables_with_error;
     for (pos = 0; pos <= tmax-1;pos++)
     {
-        rfcount = 0;
-        select_count = 0;
+        rfcount = 0;        
         for (pos2 = 0; pos2 <= tables[pos].fields.count()-1;pos2++)
         {
             if (!tables[pos].fields[pos2].rTable.isEmpty())
-            {
-                if (isRelatedTableLookUp(tables[pos].fields[pos2].rTable))
-                    select_count = select_count + 1;
+            {                
                 rfcount++;
             }
         }
-        if (rfcount > 64)
+
+        if (rfcount >= 60)
         {
             Ttblwitherror aTable;
             aTable.name = tables[pos].name;
-            aTable.num_selects = select_count + (rfcount - select_count);
+            aTable.num_selects = rfcount;
             tables_with_error.append(aTable);
         }
     }
@@ -5645,7 +5692,7 @@ bool checkTables2()
     {
         if (outputType == "h")
         {
-            log("The following tables have more than 64 selects:");
+            log("The following tables more than 60 selects:");
             for (pos = 0; pos < tables_with_error.count(); pos++)
             {
                 log(tables_with_error[pos].name + " with " + QString::number(tables_with_error[pos].num_selects) + " selects.");
@@ -5654,7 +5701,7 @@ bool checkTables2()
             log("Some notes on this restriction and how to correct it:");
             log("We tent to organize our ODK forms in sections with questions around a topic. For example: \"livestock inputs\" or \"crops sales\".\n");
             log("These sections have type = \"begin/end group\". We also organize questions that must be repeated in sections with type = \"begin/end repeat.\"\n");
-            log("ODK Tools store repeats as separate tables (like different Excel sheets) however groups are not. ODK tools store all items (questions, notes, calculations, etc.) outside repeats into a table called \"maintable\". Thus \"maintable\" usually end up with several items and if your ODK form have many selects then the \"maintable\" could potentially have more than 64 selects. ODK Tools can only handle 64 selects per table.\n");
+            log("ODK Tools store repeats as separate tables (like different Excel sheets) however groups are not. ODK tools store all items (questions, notes, calculations, etc.) outside repeats into a table called \"maintable\". Thus \"maintable\" usually end up with several items and if your ODK form have many selects then the \"maintable\" could potentially have more than 60 selects. ODK Tools can only handle 60 selects per table.\n");
             log("You can bypass this restriction by creating groups of items inside repeats BUT WITH repeat_count = 1. A repeat with repeat_count = 1 will behave in the same way as a group but ODKTools will create a new table for it to store all its items. Eventually if you export the data to Excel your items will be organized in different sheets each representing a table.\n");
             log("Please edit your ODK XLS/XLSX file, group several items inside repeats with repeat_count = 1 and run this process again.");
             return true;
@@ -5723,34 +5770,34 @@ int main(int argc, char *argv[])
 {
     QString title;
     title = title + "********************************************************************* \n";
-    title = title + " * JSON XForm To MySQL                                               * \n";
-    title = title + " * This tool generates a MySQL schema from a PyXForm JSON file.      * \n";
-    title = title + " * JXFormToMySQL generates full relational MySQL databases.          * \n";
-    title = title + " *                                                                   * \n";
-    title = title + " * Exit codes:                                                       * \n";
-    title = title + " * 1: General processing error.                                      * \n";
-    title = title + " * 2: Tables with more than 64 relationhips. (XML)                   * \n";
-    title = title + " * 3: otherlanguages option is empty (XML).                          * \n";
-    title = title + " * 4: Language not found. (XML)                                      * \n";
-    title = title + " * 5: Malformed deflanguage option.                                  * \n";
-    title = title + " * 6: Malformed otherlanguages option.                               * \n";
-    title = title + " * 7: Not used.                                                      * \n";
-    title = title + " * 8: Not used.                                                      * \n";
-    title = title + " * 9: The ODK has duplicated choice options (XML).                   * \n";
-    title = title + " * 10: Primary key not found.                                        * \n";
-    title = title + " * 11: Resource XML file was not attached (XML).                     * \n";
-    title = title + " * 12: Error parsing resource XML file (XML).                        * \n";
-    title = title + " * 13: Resource CSV file was not attached (XML).                     * \n";
-    title = title + " * 14: Resource CSV file has invalid characters (XML).               * \n";
-    title = title + " * 15: Error parsing CSV file (XML).                                 * \n";
-    title = title + " * 16: Error parsing search expression (XML).                        * \n";
-    title = title + " * 17: Primary key is invalid.                                       * \n";
-    title = title + " * 18: Duplicated tables (XML).                                      * \n";
-    title = title + " * 19: Duplicated field (XML).                                       * \n";
-    title = title + " * 20: Invalid fields (XML).                                         * \n";
-    title = title + " * 21: Duplicated lookups (XML).                                     * \n";
-    title = title + " *                                                                   * \n";
-    title = title + " * XML = XML oputput is available.                                   * \n";
+    title = title + " * JSON XForm To MySQL                                                 * \n";
+    title = title + " * This tool generates a MySQL schema from a PyXForm JSON file.        * \n";
+    title = title + " * JXFormToMySQL generates full relational MySQL databases.            * \n";
+    title = title + " *                                                                     * \n";
+    title = title + " * Exit codes:                                                         * \n";
+    title = title + " * 1: General processing error.                                        * \n";
+    title = title + " * 2: Tables with more than 64 relationhips. (XML)                     * \n";
+    title = title + " * 3: otherlanguages option is empty (XML).                            * \n";
+    title = title + " * 4: Language not found. (XML)                                        * \n";
+    title = title + " * 5: Malformed deflanguage option.                                    * \n";
+    title = title + " * 6: Malformed otherlanguages option.                                 * \n";
+    title = title + " * 7: Malformed language in the ODK. You have label:X when is label::X * \n";
+    title = title + " * 8: There have choices without labels. Maybe you missed the ::       * \n";
+    title = title + " * 9: The ODK has duplicated choice options (XML).                     * \n";
+    title = title + " * 10: Primary key not found.                                          * \n";
+    title = title + " * 11: Resource XML file was not attached (XML).                       * \n";
+    title = title + " * 12: Error parsing resource XML file (XML).                          * \n";
+    title = title + " * 13: Resource CSV file was not attached (XML).                       * \n";
+    title = title + " * 14: Resource CSV file has invalid characters (XML).                 * \n";
+    title = title + " * 15: Error parsing CSV file (XML).                                   * \n";
+    title = title + " * 16: Error parsing search expression (XML).                          * \n";
+    title = title + " * 17: Primary key is invalid.                                         * \n";
+    title = title + " * 18: Duplicated tables (XML).                                        * \n";
+    title = title + " * 19: Duplicated field (XML).                                         * \n";
+    title = title + " * 20: Invalid fields (XML).                                           * \n";
+    title = title + " * 21: Duplicated lookups (XML).                                       * \n";
+    title = title + " *                                                                     * \n";
+    title = title + " * XML = XML oputput is available.                                     * \n";
     title = title + " ********************************************************************* \n";
 
     TCLAP::CmdLine cmd(title.toUtf8().constData(), ' ', "2.0");
@@ -5772,7 +5819,9 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> tempDirArg("e","tempdirectory","Temporary directory. ./tmp by default",false,"./tmp","string");
     TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");    
     TCLAP::SwitchArg justCheckSwitch("K","justCheck","Just check of main inconsistencies and report back", cmd, false);    
+    TCLAP::SwitchArg displayLanguages("L","displayLanguages","Display languages", cmd, false);
     TCLAP::UnlabeledMultiArg<std::string> suppFiles("supportFile", "support files", false, "string");
+
 
     debug = false;
 
@@ -5801,7 +5850,7 @@ int main(int argc, char *argv[])
 
     //Parsing the command lines
     cmd.parse( argc, argv );
-
+    hasSelects = false;
     //Get the support files
     std::vector<std::string> v = suppFiles.getValue();
     for (int i = 0; static_cast<unsigned int>(i) < v.size(); i++)
@@ -6100,5 +6149,40 @@ int main(int argc, char *argv[])
     }    
     if (outputType == "h")
         log("Done without errors");
+
+    if (displayLanguages.getValue() == true)
+    {
+        QDomDocument XMLResult;
+        XMLResult = QDomDocument("ODKLanguages");
+        QDomElement XMLRoot;
+        XMLRoot = XMLResult.createElement("ODKLanguages");
+        XMLResult.appendChild(XMLRoot);
+        for (int item = 0; item < ODKLanguages.count(); item++)
+        {
+            QString languaje = ODKLanguages[item];
+            languaje = languaje.replace("(","|");
+            languaje = languaje.replace(")","");
+            if (languaje.indexOf("|") >= 0)
+            {
+
+                QStringList parts = languaje.split("|");
+                QDomElement eLanguageItem;
+                eLanguageItem = XMLResult.createElement("language");
+                eLanguageItem.setAttribute("code",parts[1].simplified());
+                eLanguageItem.setAttribute("description",parts[0].simplified());
+                XMLRoot.appendChild(eLanguageItem);
+            }
+            else
+            {
+                QDomElement eLanguageItem;
+                eLanguageItem = XMLResult.createElement("language");
+                eLanguageItem.setAttribute("code",languaje.simplified());
+                eLanguageItem.setAttribute("description",languaje.simplified());
+                XMLRoot.appendChild(eLanguageItem);
+            }
+        }
+        log(XMLResult.toString());
+    }
+
     return 0;
 }

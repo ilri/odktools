@@ -78,28 +78,23 @@ void compareInsert::setAsParsed(QString table)
 
 int compareInsert::createCFile()
 {
-    if (!fatalError)
+    //Create the insert XML file. If exist it get overwriten
+    if (QFile::exists(outputC))
+        QFile::remove(outputC);
+    QFile file(outputC);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text))
     {
-        //Create the insert XML file. If exist it get overwriten
-        if (QFile::exists(outputC))
-            QFile::remove(outputC);
-        QFile file(outputC);
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text))
-        {
-            QTextStream out(&file);
-            out.setCodec("UTF-8");
-            docB.save(out,1,QDomNode::EncodingFromTextStream);
-            file.close();
-        }
-        else
-        {
-            log("Error: Cannot create XML combined file");
-            return 1;
-        }
-        return 0;
+        QTextStream out(&file);
+        out.setCodec("UTF-8");
+        docB.save(out,1,QDomNode::EncodingFromTextStream);
+        file.close();
     }
     else
+    {
+        log("Error: Cannot create XML combined file");
         return 1;
+    }
+    return 0;
 }
 
 int compareInsert::createDiffFile()
@@ -259,7 +254,7 @@ QDomNode compareInsert::findValue(QDomNode table,QString code)
     node = table.firstChild();
     while (!node.isNull())
     {
-        if (node.toElement().attribute("code","") == code)
+        if (node.toElement().attribute("code","").toUpper() == code.toUpper())
             return node;
         node = node.nextSibling();
     }

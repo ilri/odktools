@@ -9,4 +9,5 @@ SUBDIRS = createFromXML \
     createAuditTriggers \
     createDummyJSON \
     MySQLToSQLite \
-    mergeVersions
+    mergeVersions \
+    createTemporaryTable

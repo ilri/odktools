@@ -65,12 +65,23 @@ void mainClass::run()
             anError.setAttribute("from",errorList[pos].from);
             anError.setAttribute("to",errorList[pos].to);
             eErrors.appendChild(anError);
+            if (errorList[pos].code == "RNS")
+                returnCode = 1;
         }
     }
-    if (returnCode == 0)
-    {
-        returnCode = insert.createCFile();
-        if (returnCode == 0)
+//    qDebug() << "------------------------";
+//    qDebug() << returnCode;
+//    qDebug() << "------------------------";
+    //if (returnCode == 0)
+    //{
+
+        int loaded = insert.createCFile();
+
+//        qDebug() << "------------------------0";
+//        qDebug() << loaded;
+//        qDebug() << "------------------------0";
+
+        if (loaded == 0)
         {
             mergeCreate create;
             create.setFiles(a_createXML,b_createXML,c_createXML,d_createSQL,output_type);
@@ -90,6 +101,8 @@ void mainClass::run()
                     anError.setAttribute("from",errorList[pos].from);
                     anError.setAttribute("to",errorList[pos].to);
                     eErrors.appendChild(anError);
+                    if (errorList[pos].code == "TNS" || errorList[pos].code == "TWP" || errorList[pos].code == "FNS")
+                        returnCode = 1;
                 }
             }
             if (returnCode == 0)
@@ -101,7 +114,7 @@ void mainClass::run()
                 }
             }
         }
-    }
+    //}
     if (returnCode == 0)
     {
         returnCode = insert.createDiffFile();
