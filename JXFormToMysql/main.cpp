@@ -5669,6 +5669,48 @@ bool checkTables2()
     tmax = tables.count();
     int rfcount;    
     QList <Ttblwitherror > tables_with_error;
+    QStringList table_with_name_error;
+    for (pos = 0; pos <= tmax-1;pos++)
+    {
+        if (tables[pos].name.length() > 64)
+        {
+            table_with_name_error.append(tables[pos].name);
+        }
+    }
+    if (table_with_name_error.length() > 0)
+    {
+        if (outputType == "h")
+        {
+            log("The following tables have a name longer than 64 characters:");
+            for (pos = 0; pos < table_with_name_error.count(); pos++)
+            {
+                log(table_with_name_error[pos]);
+            }
+            exit(24);
+        }
+        else
+        {
+            QDomDocument XMLResult;
+            XMLResult = QDomDocument("XMLResult");
+            QDomElement XMLRoot;
+            XMLRoot = XMLResult.createElement("XMLResult");
+            XMLResult.appendChild(XMLRoot);
+            for (pos = 0; pos < table_with_name_error.count(); pos++)
+            {
+                QDomElement eTable;
+                eTable = XMLResult.createElement("table");
+                eTable.setAttribute("name",table_with_name_error[pos]);
+                if (table_with_name_error[pos].indexOf("_msel_") >= 0)
+                    eTable.setAttribute("msel","true");
+                else
+                    eTable.setAttribute("msel","false");
+                XMLRoot.appendChild(eTable);
+            }
+            log(XMLResult.toString());
+            exit(24);
+        }
+    }
+
     for (pos = 0; pos <= tmax-1;pos++)
     {
         rfcount = 0;        
@@ -5796,6 +5838,7 @@ int main(int argc, char *argv[])
     title = title + " * 19: Duplicated field (XML).                                         * \n";
     title = title + " * 20: Invalid fields (XML).                                           * \n";
     title = title + " * 21: Duplicated lookups (XML).                                       * \n";
+    title = title + " * 24: The name of a table is longer than 64 characters.               * \n";
     title = title + " *                                                                     * \n";
     title = title + " * XML = XML oputput is available.                                     * \n";
     title = title + " ********************************************************************* \n";
