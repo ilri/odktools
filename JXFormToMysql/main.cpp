@@ -3263,7 +3263,10 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
         file = file.left(pos);
         QString sqliteFile;
         //There should be an sqlite version of such file in the temporary directory
-        addRequiredFile(file + ".csv");
+        if (file.indexOf(".csv") < 0)
+            addRequiredFile(file + ".csv");
+        else
+            addRequiredFile(file);
         sqliteFile = dir.absolutePath() + dir.separator() + file + ".sqlite";
         if (QFile::exists(sqliteFile))
         {
@@ -3701,8 +3704,13 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         temp = calculation.indexOf("(");
                         calculation = calculation.right(calculation.length()-temp-1);
                         calculation.replace("'","");
-                        calculation = calculation + ".csv";
-                        addRequiredFile(calculation);
+                        if (calculation.indexOf(".csv") < 0)
+                        {
+                            calculation = calculation + ".csv";
+                            addRequiredFile(calculation);
+                        }
+                        else
+                            addRequiredFile(calculation);
                     }
                 }
 
