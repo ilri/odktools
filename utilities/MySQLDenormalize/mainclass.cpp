@@ -13,7 +13,7 @@
 #include <QFileInfo>
 #include <QSqlDatabase>
 #include <QSqlQuery>
-
+#ifndef Q_MOC_RUN
 #include <boost/foreach.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <mongocxx/client.hpp>
@@ -21,6 +21,7 @@
 #include <mongocxx/uri.hpp>
 #include <bsoncxx/json.hpp>
 #include <mongocxx/options/find.hpp>
+#endif
 
 
 mainClass::mainClass(QObject *parent) : QObject(parent)

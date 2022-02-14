@@ -3,8 +3,10 @@
 
 #include <QObject>
 #include <QDomNode>
+#ifndef Q_MOC_RUN
 #include <mongocxx/collection.hpp>
 #include <boost/property_tree/ptree.hpp>
+#endif
 
 namespace pt = boost::property_tree;
 
