@@ -41,9 +41,10 @@ int main(int argc, char *argv[])
     QCoreApplication app(argc, argv);
     QString title;
     title = title + " *********************************************************************** \n";
-    title = title + " * MySQLToCSV                                                          * \n";
-    title = title + " * This tool extracts data from a MySQL Database into CSV files.       * \n";
-    title = title + " * Each table will create a new CSV file.                              * \n";
+    title = title + " * MySQLToSTATA                                                        * \n";
+    title = title + " * This tool extracts data from a MySQL Database into tab files with   * \n";
+    title = title + " * a companion STATA dictionary file.                                  * \n";
+    title = title + " * Each table will create a new TAB file and a DCF file.               * \n";
     title = title + " * The tool requires the create.xml file created by JXFormToMySQL to   * \n";
     title = title + " * determine the type of data and whether a field or a table should be * \n";
     title = title + " * exported due to the sensitivity of its information.                 * \n";
@@ -57,7 +58,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> passArg("p","password","Password to connect to MySQL",true,"","string");
     TCLAP::ValueArg<std::string> schemaArg("s","schema","Schema in MySQL",true,"","string");
     TCLAP::ValueArg<std::string> createArg("x","createxml","Input create XML file",true,"","string");
-    TCLAP::ValueArg<std::string> outArg("o","output","Output directory for the CSV files",true,"","string");
+    TCLAP::ValueArg<std::string> outArg("o","output","Output directory for the STATA files",true,"","string");
     TCLAP::ValueArg<std::string> tmpArg("T","tempdir","Temporary directory (./tmp by default)",false,"./tmp","string");
     TCLAP::ValueArg<std::string> firstArg("f","firstsheetname","Name for the first sheet",false,"","string");
     TCLAP::ValueArg<std::string> encryptArg("e","encrypt","32 char hex encryption key. Auto generate if empty",false,"","string");

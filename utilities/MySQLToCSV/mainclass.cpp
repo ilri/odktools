@@ -433,7 +433,7 @@ int mainClass::generateXLSX()
 
             QStringList sqls;
             qDebug() << "Performing Alters on temp table";
-
+            sqls.append("START TRANSACTION;\n");
             for (int fld = 0; fld < tables[pos].fields.count(); fld++)
             {
                 if (tables[pos].fields[fld].isKey)
@@ -538,7 +538,7 @@ int mainClass::generateXLSX()
             }
 //            for (int p=0; p < sqls.count(); p++)
 //                qDebug() << sqls[p];
-
+            sqls.append( "COMMIT;\n");
             if (sqls.count() > 0)
             {
                 QFile modfile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".sql");
@@ -663,7 +663,10 @@ int mainClass::generateXLSX()
 
         for (int pos = 0; pos < csvs.count(); pos++)
         {
-            if (QFile::copy(csvs[pos], outputDirectory))
+            QString newpath;
+            newpath = csvs[pos];
+            newpath.replace(currDir.absolutePath() + currDir.separator(), outputDirectory + currDir.separator());
+            if (QFile::copy(csvs[pos], newpath))
                 QFile::remove(csvs[pos]);
         }
 
