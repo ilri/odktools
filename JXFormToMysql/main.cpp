@@ -5136,7 +5136,23 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
             bool found_en;
             found_en = false;
             bool found_default;
-            found_default = false;                        
+            found_default = false;
+
+            int num_coded_languages = 0;
+            for (int l=0; l < ODKLanguages.count(); l++)
+            {
+                if (ODKLanguages[l].indexOf("(") > 0 && ODKLanguages[l].indexOf(")") > 0)
+                    num_coded_languages ++;
+            }
+            if (num_coded_languages > 0)
+            {
+                if (num_coded_languages != ODKLanguages.count())
+                {
+                    exit(25);
+                }
+            }
+
+
             for (int l=0; l < ODKLanguages.count(); l++)
             {
                 language_in_odk = ODKLanguages[l];
@@ -5847,6 +5863,7 @@ int main(int argc, char *argv[])
     title = title + " * 20: Invalid fields (XML).                                           * \n";
     title = title + " * 21: Duplicated lookups (XML).                                       * \n";
     title = title + " * 24: The name of a table is longer than 64 characters.               * \n";
+    title = title + " * 25: Mixing coded and not coded languages.                           * \n";
     title = title + " *                                                                     * \n";
     title = title + " * XML = XML oputput is available.                                     * \n";
     title = title + " ********************************************************************* \n";
