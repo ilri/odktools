@@ -21,6 +21,7 @@
 #include <mongocxx/uri.hpp>
 #include <bsoncxx/json.hpp>
 #include <mongocxx/options/find.hpp>
+#include <bsoncxx/builder/stream/document.hpp>
 #endif
 
 

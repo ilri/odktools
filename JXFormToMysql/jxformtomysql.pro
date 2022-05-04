@@ -15,6 +15,6 @@ CONFIG   -= app_bundle
 TEMPLATE = app
 
 INCLUDEPATH += ../3rdparty
-LIBS += -lquazip5 -lcsv
+LIBS += -lquazip1-qt5 -lcsv
 
 SOURCES += main.cpp
