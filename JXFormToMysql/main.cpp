@@ -25,8 +25,8 @@ License along with JXFormToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl
 #include <QDebug>
 #include <QDomComment>
 #include <QDirIterator>
-#include <quazip5/quazip.h>
-#include <quazip5/quazipfile.h>
+#include <QuaZip-Qt5-1.3/quazip/quazip.h>
+#include <QuaZip-Qt5-1.3/quazip/quazipfile.h>
 #include <QDomDocument>
 #include <csv.h>
 #include <QSqlDatabase>
@@ -3263,7 +3263,10 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
         file = file.left(pos);
         QString sqliteFile;
         //There should be an sqlite version of such file in the temporary directory
-        addRequiredFile(file + ".csv");
+        if (file.indexOf(".csv") < 0)
+            addRequiredFile(file + ".csv");
+        else
+            addRequiredFile(file);
         sqliteFile = dir.absolutePath() + dir.separator() + file + ".sqlite";
         if (QFile::exists(sqliteFile))
         {
@@ -3701,8 +3704,13 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         temp = calculation.indexOf("(");
                         calculation = calculation.right(calculation.length()-temp-1);
                         calculation.replace("'","");
-                        calculation = calculation + ".csv";
-                        addRequiredFile(calculation);
+                        if (calculation.indexOf(".csv") < 0)
+                        {
+                            calculation = calculation + ".csv";
+                            addRequiredFile(calculation);
+                        }
+                        else
+                            addRequiredFile(calculation);
                     }
                 }
 
@@ -5128,7 +5136,23 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
             bool found_en;
             found_en = false;
             bool found_default;
-            found_default = false;                        
+            found_default = false;
+
+            int num_coded_languages = 0;
+            for (int l=0; l < ODKLanguages.count(); l++)
+            {
+                if (ODKLanguages[l].indexOf("(") > 0 && ODKLanguages[l].indexOf(")") > 0)
+                    num_coded_languages ++;
+            }
+            if (num_coded_languages > 0)
+            {
+                if (num_coded_languages != ODKLanguages.count())
+                {
+                    exit(25);
+                }
+            }
+
+
             for (int l=0; l < ODKLanguages.count(); l++)
             {
                 language_in_odk = ODKLanguages[l];
@@ -5669,6 +5693,48 @@ bool checkTables2()
     tmax = tables.count();
     int rfcount;    
     QList <Ttblwitherror > tables_with_error;
+    QStringList table_with_name_error;
+    for (pos = 0; pos <= tmax-1;pos++)
+    {
+        if (tables[pos].name.length() > 64)
+        {
+            table_with_name_error.append(tables[pos].name);
+        }
+    }
+    if (table_with_name_error.length() > 0)
+    {
+        if (outputType == "h")
+        {
+            log("The following tables have a name longer than 64 characters:");
+            for (pos = 0; pos < table_with_name_error.count(); pos++)
+            {
+                log(table_with_name_error[pos]);
+            }
+            exit(24);
+        }
+        else
+        {
+            QDomDocument XMLResult;
+            XMLResult = QDomDocument("XMLResult");
+            QDomElement XMLRoot;
+            XMLRoot = XMLResult.createElement("XMLResult");
+            XMLResult.appendChild(XMLRoot);
+            for (pos = 0; pos < table_with_name_error.count(); pos++)
+            {
+                QDomElement eTable;
+                eTable = XMLResult.createElement("table");
+                eTable.setAttribute("name",table_with_name_error[pos]);
+                if (table_with_name_error[pos].indexOf("_msel_") >= 0)
+                    eTable.setAttribute("msel","true");
+                else
+                    eTable.setAttribute("msel","false");
+                XMLRoot.appendChild(eTable);
+            }
+            log(XMLResult.toString());
+            exit(24);
+        }
+    }
+
     for (pos = 0; pos <= tmax-1;pos++)
     {
         rfcount = 0;        
@@ -5796,6 +5862,8 @@ int main(int argc, char *argv[])
     title = title + " * 19: Duplicated field (XML).                                         * \n";
     title = title + " * 20: Invalid fields (XML).                                           * \n";
     title = title + " * 21: Duplicated lookups (XML).                                       * \n";
+    title = title + " * 24: The name of a table is longer than 64 characters.               * \n";
+    title = title + " * 25: Mixing coded and not coded languages.                           * \n";
     title = title + " *                                                                     * \n";
     title = title + " * XML = XML oputput is available.                                     * \n";
     title = title + " ********************************************************************* \n";

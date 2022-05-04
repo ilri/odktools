@@ -29,14 +29,14 @@ void mainClass::log(QString message)
     printf("%s", temp.toUtf8().data());
 }
 
-void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString encryption_key, QString resolve_type)
+void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputDir, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString encryption_key, QString resolve_type)
 {
     this->host = host;
     this->port = port;
     this->user = user;
     this->pass = pass;
     this->schema = schema;
-    this->outputFile = outputFile;
+    this->outputDirectory = outputDir;
     this->protectSensitive = protectSensitive;
     this->tempDir = tempDir;
     this->createXML = createXML;
@@ -660,42 +660,15 @@ int mainClass::generateXLSX()
             csvs.append(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".csv");
         }
 
-        qDebug() << "Creating Excel";
-        // Finally create the Excel file using the CSVs
-        arguments.clear();
-        for (int pos = 0; pos < sheets.count(); pos++)
-        {
-            arguments.append("-s");
-            arguments.append(sheets[pos]);
-        }
-        arguments.append("--output");
-        arguments.append(outputFile);
+
         for (int pos = 0; pos < csvs.count(); pos++)
         {
-            arguments.append(csvs[pos]);
+            QString newpath;
+            newpath = csvs[pos];
+            newpath.replace(currDir.absolutePath() + currDir.separator(), outputDirectory + currDir.separator());
+            if (QFile::copy(csvs[pos], newpath))
+                QFile::remove(csvs[pos]);
         }
-        mySQLDumpProcess->setStandardInputFile(QProcess::nullDevice());
-        mySQLDumpProcess->setStandardOutputFile(QProcess::nullDevice());        
-        mySQLDumpProcess->start("csv2xlsx", arguments);
-
-        mySQLDumpProcess->waitForFinished(-1);
-        if ((mySQLDumpProcess->exitCode() > 0) || (mySQLDumpProcess->error() == QProcess::FailedToStart))
-        {
-            if (mySQLDumpProcess->error() == QProcess::FailedToStart)
-            {
-                log("Error: Command csv2xlsx not found");
-            }
-            else
-            {
-                log("Running csv2xlsx returned error");
-                QString serror = mySQLDumpProcess->readAllStandardError();
-                log(serror);
-                log("Running paremeters:" + arguments.join(" "));
-            }
-            delete mySQLDumpProcess;
-            return 1;
-        }
-
 
         delete mySQLDumpProcess;
 

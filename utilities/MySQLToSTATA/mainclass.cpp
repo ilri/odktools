@@ -13,6 +13,10 @@
 #include <xlsxwriter.h>
 #include <QDebug>
 #include <QUuid>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QRegExp>
 
 namespace pt = boost::property_tree;
 
@@ -29,14 +33,14 @@ void mainClass::log(QString message)
     printf("%s", temp.toUtf8().data());
 }
 
-void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputFile, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString encryption_key, QString resolve_type)
+void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputDir, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString encryption_key, QString resolve_type)
 {
     this->host = host;
     this->port = port;
     this->user = user;
     this->pass = pass;
     this->schema = schema;
-    this->outputFile = outputFile;
+    this->outputDirectory = outputDir;
     this->protectSensitive = protectSensitive;
     this->tempDir = tempDir;
     this->createXML = createXML;
@@ -395,11 +399,11 @@ int mainClass::generateXLSX()
                 }
             }
             QString temp_table;
-            sql = "SET SQL_MODE = '';\n";
+            sql = "SET SQL_MODE = '';\nSTART TRANSACTION;\n";
 
             QUuid recordUUID=QUuid::createUuid();
             temp_table = "TMP_" + recordUUID.toString().replace("{","").replace("}","").replace("-","_");
-            sql = sql + "CREATE TABLE " + temp_table + " ENGINE=MyISAM DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_unicode_ci AS SELECT " + fields.join(",") + " FROM " + tables[pos].name + ";";
+            sql = sql + "CREATE TABLE " + temp_table + " ENGINE=MyISAM DEFAULT CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_unicode_ci AS SELECT " + fields.join(",") + " FROM " + tables[pos].name + ";\nCOMMIT;\n";
 
             arguments.clear();
             arguments.append("--host=" + this->host);
@@ -434,6 +438,7 @@ int mainClass::generateXLSX()
             QStringList sqls;
             qDebug() << "Performing Alters on temp table";
             sqls.append("START TRANSACTION;\n");
+
             for (int fld = 0; fld < tables[pos].fields.count(); fld++)
             {
                 if (tables[pos].fields[fld].isKey)
@@ -538,7 +543,7 @@ int mainClass::generateXLSX()
             }
 //            for (int p=0; p < sqls.count(); p++)
 //                qDebug() << sqls[p];
-            sqls.append( "COMMIT;\n");
+            sqls.append("COMMIT;\n");
             if (sqls.count() > 0)
             {
                 QFile modfile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".sql");
@@ -571,26 +576,16 @@ int mainClass::generateXLSX()
                     return 1;
                 }
             }
-            linked_tables.clear();
-            multiSelectTables.clear();
-            qDebug() << "Quering table " + tables[pos].name;
-            sql = "SELECT * FROM " + temp_table + ";";
 
+            // Export the structure of the temporary table JSON format
             arguments.clear();
             arguments << "--sql";
-            arguments << "--result-format=tabbed";
+            arguments << "--result-format=json/array";
             arguments << "--uri=" + uri;
-            QFile sqlfile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".sql");
-            if (!sqlfile.open(QIODevice::WriteOnly | QIODevice::Text))
-            {
-                delete mySQLDumpProcess;
-                return 1;
-            }
-            QTextStream out(&sqlfile);
-            out << sql;
-            sqlfile.close();
-            mySQLDumpProcess->setStandardInputFile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".sql");
-            mySQLDumpProcess->setStandardOutputFile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".txt");
+            arguments << "--execute=desc " + temp_table;
+            mySQLDumpProcess->setStandardInputFile(QProcess::nullDevice());
+            mySQLDumpProcess->setStandardOutputFile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".json");
+
             mySQLDumpProcess->start("mysqlsh", arguments);
             mySQLDumpProcess->waitForFinished(-1);
             if ((mySQLDumpProcess->exitCode() > 0) || (mySQLDumpProcess->error() == QProcess::FailedToStart))
@@ -609,6 +604,108 @@ int mainClass::generateXLSX()
                 delete mySQLDumpProcess;
                 return 1;
             }
+
+            QFile loadFile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".json");
+
+            if (!loadFile.open(QIODevice::ReadOnly)) {
+                log("Couldn't open json structure file.");
+                delete mySQLDumpProcess;
+                return 1;
+            }
+            QByteArray jsonData = loadFile.readAll();
+            QJsonDocument loadDoc(QJsonDocument::fromJson(jsonData));
+            QJsonArray fields = loadDoc.array();
+            QStringList fields_to_select;
+            for (auto a_field : fields)
+            {
+                QJsonObject element = a_field.toObject();
+                fields_to_select << "ifnull(`" + element["Field"].toString() + "`,'') as `" + element["Field"].toString() + "`";
+            }
+
+
+            linked_tables.clear();
+            multiSelectTables.clear();
+            qDebug() << "Parsing table " + tables[pos].name + " to TAB format";
+            sql = "SELECT " + fields_to_select.join(",") + " FROM " + temp_table + ";";
+
+            arguments.clear();
+            arguments << "--sql";
+            arguments << "--result-format=tabbed";
+            arguments << "--uri=" + uri;
+            QFile sqlfile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".sql");
+            if (!sqlfile.open(QIODevice::WriteOnly | QIODevice::Text))
+            {
+                delete mySQLDumpProcess;
+                return 1;
+            }
+            QTextStream out(&sqlfile);
+            out << sql;
+            sqlfile.close();
+            mySQLDumpProcess->setStandardInputFile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".sql");
+            mySQLDumpProcess->setStandardOutputFile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".raw");
+            mySQLDumpProcess->start("mysqlsh", arguments);
+            mySQLDumpProcess->waitForFinished(-1);
+            if ((mySQLDumpProcess->exitCode() > 0) || (mySQLDumpProcess->error() == QProcess::FailedToStart))
+            {
+                if (mySQLDumpProcess->error() == QProcess::FailedToStart)
+                {
+                    log("Error: Command mysqlsh not found");
+                }
+                else
+                {
+                    log("Running mysqlsh returned error");
+                    QString serror = mySQLDumpProcess->readAllStandardError();
+                    log(serror);
+                    log("Running paremeters:" + arguments.join(" "));
+                }
+                delete mySQLDumpProcess;
+                return 1;
+            }
+
+
+            QString do_file = currDir.absolutePath() + currDir.separator() + tables[pos].name + ".do";
+
+            QFile dofile(do_file);
+            if (!dofile.open(QIODevice::WriteOnly | QIODevice::Text))
+            {
+                log("Cannot open DCF file for writing");
+                delete mySQLDumpProcess;
+                return 1;
+            }
+            QTextStream do_out(&dofile);
+            do_out << "/* This script will generate a STATA " + tables[pos].name + ".dta file from a " + tables[pos].name + ".raw tab delimited file*/\n";
+            do_out << "/* You only need to run this once.*/\n";
+            do_out << "/* Change c:\\my_working_dir to the directory holding this file.*/\n";
+            do_out << "cd \"c:\\my_working_dir\"\n";
+            do_out << "import delimited \"" + tables[pos].name + ".raw\", delimiter(tab) varnames(1) encoding(UTF-8) stringcols(_all)\n";
+
+
+
+            for (auto a_field : fields)
+            {
+                QString line_data;
+                QJsonObject element = a_field.toObject();
+                if (element["Type"].toString() == "double")
+                    line_data = "destring " + element["Field"].toString() + ", replace float force\n";
+                if (element["Type"].toString().indexOf("decimal") >= 0)
+                    line_data = "destring " + element["Field"].toString() + ", replace float force\n";
+                if (element["Type"].toString().indexOf("int") >= 0)
+                    line_data =  "destring " + element["Field"].toString() + ", replace force\n";
+                if (element["Type"].toString().indexOf("varchar") >= 0)
+                {
+                    QRegExp exp("\\(([^()]*)\\)");
+                    exp.indexIn(element["Type"].toString());
+                    QString zize = exp.cap(1);
+                    line_data =  "recast str"+ zize + " " + element["Field"].toString() + ", force\n";
+                }
+                if (line_data != "")
+                    do_out << line_data;
+
+            }
+            do_out << "save " + tables[pos].name + "\n";
+            do_out << "clear";
+            dofile.close();
+            loadFile.close();
 
             arguments.clear();
             arguments.append("--host=" + this->host);
@@ -630,72 +727,21 @@ int mainClass::generateXLSX()
                 return 1;
             }
 
-            qDebug() << "Creating CSV for table" + tables[pos].name;
-            // Convert the tab delimited file to CSV
-            arguments.clear();
-            arguments << "input";
-            arguments << "-d";
-            arguments << "\\t";
-            arguments << currDir.absolutePath() + currDir.separator() + tables[pos].name + ".txt";
-            mySQLDumpProcess->setStandardInputFile(QProcess::nullDevice());
-            mySQLDumpProcess->setStandardOutputFile(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".csv");
-            mySQLDumpProcess->start("xsv", arguments);
-            mySQLDumpProcess->waitForFinished(-1);
-            if ((mySQLDumpProcess->exitCode() > 0) || (mySQLDumpProcess->error() == QProcess::FailedToStart))
-            {
-                if (mySQLDumpProcess->error() == QProcess::FailedToStart)
-                {
-                    log("Error: Command xsv not found");
-                }
-                else
-                {
-                    log("Running xsv returned error");
-                    QString serror = mySQLDumpProcess->readAllStandardError();
-                    log(serror);
-                    log("Running paremeters:" + arguments.join(" "));
-                }
-                delete mySQLDumpProcess;
-                return 1;
-            }
-            csvs.append(currDir.absolutePath() + currDir.separator() + tables[pos].name + ".csv");
+            QString tab_file = currDir.absolutePath() + currDir.separator() + tables[pos].name + ".raw";
+
+            csvs.append(tab_file);
+            csvs.append(do_file);
         }
 
-        qDebug() << "Creating Excel";
-        // Finally create the Excel file using the CSVs
-        arguments.clear();
-        for (int pos = 0; pos < sheets.count(); pos++)
-        {
-            arguments.append("-s");
-            arguments.append(sheets[pos]);
-        }
-        arguments.append("--output");
-        arguments.append(outputFile);
+
         for (int pos = 0; pos < csvs.count(); pos++)
         {
-            arguments.append(csvs[pos]);
+            QString newpath;
+            newpath = csvs[pos];
+            newpath.replace(currDir.absolutePath() + currDir.separator(), outputDirectory + currDir.separator());
+            if (QFile::copy(csvs[pos], newpath))
+                QFile::remove(csvs[pos]);
         }
-        mySQLDumpProcess->setStandardInputFile(QProcess::nullDevice());
-        mySQLDumpProcess->setStandardOutputFile(QProcess::nullDevice());        
-        mySQLDumpProcess->start("csv2xlsx", arguments);
-
-        mySQLDumpProcess->waitForFinished(-1);
-        if ((mySQLDumpProcess->exitCode() > 0) || (mySQLDumpProcess->error() == QProcess::FailedToStart))
-        {
-            if (mySQLDumpProcess->error() == QProcess::FailedToStart)
-            {
-                log("Error: Command csv2xlsx not found");
-            }
-            else
-            {
-                log("Running csv2xlsx returned error");
-                QString serror = mySQLDumpProcess->readAllStandardError();
-                log(serror);
-                log("Running paremeters:" + arguments.join(" "));
-            }
-            delete mySQLDumpProcess;
-            return 1;
-        }
-
 
         delete mySQLDumpProcess;
 

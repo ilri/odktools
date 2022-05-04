@@ -3,12 +3,6 @@
 
 #include <QObject>
 #include <QDomNode>
-#ifndef Q_MOC_RUN
-#include <mongocxx/collection.hpp>
-#include <boost/property_tree/ptree.hpp>
-#endif
-
-namespace pt = boost::property_tree;
 
 struct fieldDef
 {
@@ -43,20 +37,6 @@ struct tableDef
 };
 typedef tableDef TtableDef;
 
-struct UUIDFieldDef
-{
-    QString name;
-    QString value;
-};
-typedef UUIDFieldDef TUUIDFieldDef;
-
-struct UUIDDef
-{
-    QString UUID;
-    QList<TUUIDFieldDef> fields;
-};
-typedef UUIDDef TUUIDDef;
-
 struct linkedTable
 {
     QString field;
@@ -81,7 +61,7 @@ class mainClass : public QObject
     Q_OBJECT
 public:
     explicit mainClass(QObject *parent = nullptr);
-    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, bool protectSensitive, QString tempDir, QString encryption_key, QString mapDir, QString outputDir, QString mainTable, QString resolve_type, QString primaryKey);
+    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputDir, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString encryption_key, QString resolve_type);
     int returnCode;
 signals:
     void finished();
@@ -89,33 +69,29 @@ public slots:
     void run();
 private:
     void log(QString message);
-    int generateXLSX();            
+    int generateXLSX();        
+    QString getSheetDescription(QString name);
     void loadTable(QDomNode node);
     void getMultiSelectInfo(QDomNode table, QString table_name, QString &multiSelect_field, QStringList &keys, QString &rel_table, QString &rel_field);
     QString host;
     QString port;
     QString user;
     QString pass;
-    QString schema;    
+    QString schema;
+    QString outputDirectory;
     QString tempDir;
     QString createXML;
     QString encryption_key;
+    int resolve_type = 1;
     bool protectSensitive;
     QList<TtableDef> tables;
     QList<TtableDef> mainTables;
-    QStringList tableNames;           
+    QStringList tableNames;
+    int letterIndex;
+    bool incLookups;
+    bool incmsels;
+    QString firstSheetName;
     QStringList protectedKeys;
-    void processMapFile(QString fileName);
-    QString mapDir;
-    QString outputDir;
-    QString mainTable;
-    int resolve_type;
-    QString primaryKey;
-    mongocxx::collection mongo_collection;
-    void getAllUUIDs(QDomNode node,QStringList &UUIDs);
-    void parseMapFileWithBoost(QVector <TUUIDDef> dataList, QDomNode node, pt::ptree &json, pt::ptree &parent);
-    QList<TUUIDFieldDef> getDataByRowUUID4(QVector<TUUIDDef> dataList, QString UUIDToSearch);
-    void processSection(QStringList section);
 };
 
 #endif // MAINCLASS_H
