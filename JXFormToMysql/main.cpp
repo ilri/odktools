@@ -2763,11 +2763,18 @@ void addToStack(QString groupOrRepeat, QString type)
 QString fixField(QString source)
 {
     QString res;
-    res = source;    
-    res = res.replace("-","_");
-    QRegularExpression re("[^.a-zA-Z0-9\\$\\_]");
+    source = source.trimmed().simplified().toLower();
+    res = source;
+    QRegularExpression re("[^a-zA-Z0-9\\_]");
     res = res.replace(re,"");
     res = res.trimmed().simplified().toLower();
+    if (res != source)
+    {
+        if (invalidFields.indexOf(source) < 0)
+        {
+            invalidFields.append(source);
+        }
+    }
     isFieldValid(res);
     return res;
 }
