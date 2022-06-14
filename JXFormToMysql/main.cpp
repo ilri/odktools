@@ -5121,14 +5121,13 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         invalidKeyTypes << "video";
         invalidKeyTypes << "Xml-external";
 
-        if (!justCheck)
+
+        if (invalidKeyTypes.indexOf(surveyVariables[mainFieldIndex].object.value("type").toString()) >= 0)
         {
-            if (invalidKeyTypes.indexOf(surveyVariables[mainFieldIndex].object.value("type").toString()) >= 0)
-            {
-                log("The type of the primary key field is invalid");
-                exit(17);
-            }
+            log("The type of the primary key field is invalid");
+            exit(17);
         }
+
         int num_labels = 0;
         getLanguages(firstObject, ODKLanguages, num_labels);
 
