@@ -667,7 +667,7 @@ int mainClass::generateXLSX()
         db.setDatabaseName(schema);
         db.setUserName(user);
         db.setPassword(pass);
-        db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
+        //db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
         if (db.open())
         {
             mongo_collection = coll;

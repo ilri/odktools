@@ -22,6 +22,7 @@ License along with JSONToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl-3
 #include <QUuid>
 #include <QFileInfo>
 #include <QDomText>
+#include <QThread>
 
 mainClass::mainClass(QObject *parent) : QObject(parent)
 {
@@ -102,7 +103,7 @@ void mainClass::run()
         db.setDatabaseName(schema);
         db.setUserName(user);
         db.setPassword(password);
-        db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
+        //db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
         if (db.open())
         {            
             QFile UUIDFile(UUIDsFile);
@@ -289,22 +290,41 @@ void mainClass::run()
                 QFileInfo fi(json);
                 // Inserting into the submission database
                 QString sql;
-                QSqlQuery query(imported_db);
-                sql = "INSERT INTO submissions VALUES ('" + fi.baseName() + "')";
-                if (!query.exec(sql))
+                QSqlQuery query(imported_db);                                
+                bool inserted = false;
+                int try_count = 0;
+                while (!inserted)
                 {
-                    log("Error: Cannot store the submission in the submission database. Rolling back");
-                    if (!db.rollback())
+                    sql =  "INSERT INTO submissions VALUES ('" + fi.baseName() + "')";
+                    if (!query.exec(sql))
                     {
-                        log("Error: Cannot store the submission in the submission database. Rolling back was not possible. Please check the database");
-                        db.close();
-                        imported_db.close();
-                        returnCode = 1;
-                        emit finished();
+                        if (try_count > 3)
+                        {
+                            log("Error: Cannot store the submission in the submission database. Rolling back");
+                            log(query.lastError().databaseText());
+                            if (!db.rollback())
+                            {
+                                log("Error: Cannot store the submission in the submission database. Rolling back was not possible. Please check the database");
+                                db.close();
+                                imported_db.close();
+                                returnCode = 1;
+                                inserted = true;
+                                emit finished();
+                            }
+                            db.close();
+                            imported_db.close();
+                            inserted = true;
+                        }
+                        else
+                        {
+                            try_count++;
+                            QThread::sleep(2);
+                        }
                     }
-                    db.close();
-                    imported_db.close();
+                    else
+                        inserted = true;
                 }
+
 
                 if (outputType == "h")
                 {
