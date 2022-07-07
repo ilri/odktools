@@ -127,10 +127,36 @@ void mainClass::run()
                 {
                     if (query.lastError().databaseText().indexOf("already exists") < 0)
                     {
-                        log("Cannot create processing table: " + query.lastError().databaseText());
-                        returnCode = 1;
-                        db.close();
-                        emit finished();
+                        int num_try = 0;
+                        bool failed = true;
+                        while (num_try <= 3)
+                        {
+                            if (!query.exec(sql))
+                            {
+                                if (query.lastError().databaseText().indexOf("already exists") < 0)
+                                {
+                                    num_try++;
+                                    QThread::sleep(2);
+                                }
+                                else
+                                {
+                                    num_try = 4;
+                                    failed = false;
+                                }
+                            }
+                            else
+                            {
+                                num_try = 4;
+                                failed = false;
+                            }
+                        }
+                        if (failed)
+                        {
+                            log("Cannot create processing table after 4 intents: " + query.lastError().databaseText());
+                            returnCode = 1;
+                            db.close();
+                            emit finished();
+                        }
                     }
                 }
             }
@@ -300,7 +326,7 @@ void mainClass::run()
                     {
                         if (try_count > 3)
                         {
-                            log("Error: Cannot store the submission in the submission database. Rolling back");
+                            log("Error: Cannot store the submission in the submission database after 4 intents. Rolling back");
                             log(query.lastError().databaseText());
                             if (!db.rollback())
                             {
