@@ -7,6 +7,7 @@ SUBDIRS = createFromXML \
     MySQLDenormalize \
     MySQLToXLSX \
     MySQLToCSV \
+    MySQLToJSON \
     MySQLToSTATA \
     createAuditTriggers \
     createDummyJSON \
