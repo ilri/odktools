@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QDomNode>
 #include <QDir>
+#include <QSqlDatabase>
 
 struct fieldDef
 {
@@ -35,6 +36,7 @@ struct tableDef
   QString desc;
   QList<TfieldDef> fields; //List of fields
   bool islookup; //Whether the table is a lookup table
+  bool ismultiselect; //Whether the table is a lookup table
 };
 typedef tableDef TtableDef;
 
@@ -60,10 +62,11 @@ typedef multiSelectTable TmultiSelectTable;
 struct taskItem
 {
     QString table;
-    QString create_sql;
-    QString alter_sql;
-    QString query_sql;
+    int task_type;
+    QString sql_file;
     QString json_file;
+    QStringList json_files;
+    QString final_file;
 };
 typedef taskItem TtaskItem;
 
@@ -81,10 +84,11 @@ public slots:
 private:
     void log(QString message);
     int generateXLSX();
-    void processTasks(QDir currDir);
+    int processTasks(QDir currDir);
     QString getSheetDescription(QString name);
     void loadTable(QDomNode node);
     void getMultiSelectInfo(QDomNode table, QString table_name, QString &multiSelect_field, QStringList &keys, QString &rel_table, QString &rel_field);
+    QStringList get_parts(int total, int parts);
     QString host;
     QString port;
     QString user;
@@ -98,14 +102,19 @@ private:
     bool protectSensitive;
     QList<TtableDef> tables;
     QList<TtableDef> mainTables;
+    QList<TtableDef> lookupTables;
     QStringList tableNames;
     int num_workers;
     int letterIndex;
     bool incLookups;
     bool incmsels;
     QString firstSheetName;
-    QStringList protectedKeys;
-    QList< TtaskItem> task_list;
+    QStringList protectedKeys;    
+    QList< TtaskItem> separate_task_list;
+    QList< TtaskItem> update_task_list;
+    QList< TtaskItem> json_task_list;
+    QList< TtaskItem> merge_task_list;
+    QSqlDatabase db;
 };
 
 #endif // MAINCLASS_H

@@ -36,6 +36,13 @@ QString getRandomHex(const int &length)
     return randomHex;
 }
 
+void log_out(QString message)
+{
+    QString temp;
+    temp = message + "\n";
+    printf("%s", temp.toUtf8().data());
+}
+
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
@@ -105,6 +112,16 @@ int main(int argc, char *argv[])
     QString encryption_key = QString::fromUtf8(encryptArg.getValue().c_str());
     QString resolve_type = QString::fromUtf8(resolveArg.getValue().c_str());
     bool ok;
+
+    if (resolve_type.toInt() > 1)
+    {
+        if (includeMSels || includeLookUps)
+        {
+            log_out("Resolving codes cannot include multiselect or lookup tables");
+            exit(1);
+        }
+    }
+
     int workers = QString::fromUtf8(numWorkers.getValue().c_str()).toInt(&ok);
     if (!ok)
         workers = 1;
