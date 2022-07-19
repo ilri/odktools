@@ -3,6 +3,7 @@
 #include <QTimer>
 #include "mainclass.h"
 #include <QTime>
+#include <QRandomGenerator>
 
 /*
 MySQLToJSON
@@ -27,9 +28,11 @@ License along with MySQLToXLSX.  If not, see <http://www.gnu.org/licenses/lgpl-3
 QString getRandomHex(const int &length)
 {
     QString randomHex;
-
+    QRandomGenerator gen;
+    QTime time = QTime::currentTime();
+    gen.seed((uint)time.msec());
     for(int i = 0; i < length; i++) {
-        int n = qrand() % 16;
+        int n = gen.generate() % 16;
         randomHex.append(QString::number(n,16));
     }
 
@@ -65,12 +68,11 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> schemaArg("s","schema","Schema in MySQL",true,"","string");
     TCLAP::ValueArg<std::string> createArg("x","createxml","Input create XML file",true,"","string");
     TCLAP::ValueArg<std::string> outArg("o","output","Output directory for the JSON files",true,"","string");
-    TCLAP::ValueArg<std::string> tmpArg("T","tempdir","Temporary directory (./tmp by default)",false,"./tmp","string");
-    TCLAP::ValueArg<std::string> firstArg("f","firstsheetname","Name for the first sheet",false,"","string");
+    TCLAP::ValueArg<std::string> tmpArg("T","tempdir","Temporary directory (./tmp by default)",false,"./tmp","string");    
     TCLAP::ValueArg<std::string> encryptArg("e","encrypt","32 char hex encryption key. Auto generate if empty",false,"","string");
     TCLAP::ValueArg<std::string> resolveArg("r","resolve","Resolve lookup values: 1=Codes only (default), 2=Descriptions, 3=Codes and descriptions",false,"1","string");
     TCLAP::SwitchArg lookupSwitch("l","includelookups","Include lookup tables. False by default", cmd, false);
-    TCLAP::SwitchArg mselSwitch("m","includemultiselects","Include multi-select tables as sheets. False by default", cmd, false);    
+    TCLAP::SwitchArg mselSwitch("m","includemultiselects","Include multi-select tables as files. False by default", cmd, false);
     TCLAP::SwitchArg protectSwitch("c","protect","Protect sensitive fields. False by default", cmd, false);
     TCLAP::ValueArg<std::string> numWorkers("w","workers","Number of workers. 1 by default",false,"1","string");
 
@@ -82,8 +84,7 @@ int main(int argc, char *argv[])
     cmd.add(schemaArg);
     cmd.add(outArg);
     cmd.add(tmpArg);
-    cmd.add(createArg);    
-    cmd.add(firstArg);
+    cmd.add(createArg);        
     cmd.add(encryptArg);
     cmd.add(resolveArg);
     //Parsing the command lines
@@ -107,8 +108,7 @@ int main(int argc, char *argv[])
     QString schema = QString::fromUtf8(schemaArg.getValue().c_str());
     QString outputFile = QString::fromUtf8(outArg.getValue().c_str());
     QString tmpDir = QString::fromUtf8(tmpArg.getValue().c_str());
-    QString createXML = QString::fromUtf8(createArg.getValue().c_str());    
-    QString firstSheetName = QString::fromUtf8(firstArg.getValue().c_str());
+    QString createXML = QString::fromUtf8(createArg.getValue().c_str());        
     QString encryption_key = QString::fromUtf8(encryptArg.getValue().c_str());
     QString resolve_type = QString::fromUtf8(resolveArg.getValue().c_str());
     bool ok;
@@ -127,13 +127,11 @@ int main(int argc, char *argv[])
         workers = 1;
     if (encryption_key == "")
     {
-        QTime time = QTime::currentTime();
-        qsrand((uint)time.msec());
         encryption_key = getRandomHex(32);
     }
 
     mainClass *task = new mainClass(&app);
-    task->setParameters(host,port,user,pass,schema,createXML,outputFile,protectSensitive,tmpDir, includeLookUps, includeMSels, firstSheetName, encryption_key, resolve_type, workers);
+    task->setParameters(host,port,user,pass,schema,createXML,outputFile,protectSensitive,tmpDir, includeLookUps, includeMSels, encryption_key, resolve_type, workers);
     QObject::connect(task, SIGNAL(finished()), &app, SLOT(quit()));
     QTimer::singleShot(0, task, SLOT(run()));
     app.exec();

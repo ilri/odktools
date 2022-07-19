@@ -32,7 +32,7 @@ void mainClass::log(QString message)
     printf("%s", temp.toUtf8().data());
 }
 
-void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputDir, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString encryption_key, QString resolve_type, int num_workers)
+void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputDir, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString encryption_key, QString resolve_type, int num_workers)
 {
     this->host = host;
     this->port = port;
@@ -45,8 +45,7 @@ void mainClass::setParameters(QString host, QString port, QString user, QString 
     this->tempDir = tempDir;
     this->createXML = createXML;
     this->incLookups = incLookups;
-    this->incmsels = incmsels;
-    this->firstSheetName = firstSheetName;    
+    this->incmsels = incmsels;    
     this->encryption_key = encryption_key;
     this->resolve_type = resolve_type.toInt();
     this->db = QSqlDatabase::addDatabase("QMYSQL","repository");
@@ -376,9 +375,6 @@ int mainClass::generateXLSX()
                 tables.append(mainTables[nt]);
         }
     }
-    if (firstSheetName != "")
-        tables[0].desc = firstSheetName;
-
 
     if (rootA.tagName() == "XMLSchemaStructure")
     {
@@ -822,7 +818,7 @@ int mainClass::generateXLSX()
                 {
                     if (this->protectSensitive)
                     {
-                        if (lookupTables[fld].fields[fld].sensitive == false)
+                        if (lookupTables[lkp].fields[fld].sensitive == false)
                         {
                             fields.append(lookupTables[lkp].fields[fld].name);
                         }
@@ -877,7 +873,7 @@ int mainClass::generateXLSX()
                 {
                     if (this->protectSensitive)
                     {
-                        if (lookupTables[fld].fields[fld].sensitive == false)
+                        if (tables[pos].fields[fld].sensitive == false)
                         {
                             fields.append(tables[pos].fields[fld].name);
                         }

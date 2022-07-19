@@ -75,7 +75,7 @@ class mainClass : public QObject
     Q_OBJECT
 public:
     explicit mainClass(QObject *parent = nullptr);
-    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputDir, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString firstSheetName, QString encryption_key, QString resolve_type, int num_workers);
+    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, QString outputDir, bool protectSensitive, QString tempDir, bool incLookups, bool incmsels, QString encryption_key, QString resolve_type, int num_workers);
     int returnCode;
 signals:
     void finished();
@@ -107,8 +107,7 @@ private:
     int num_workers;
     int letterIndex;
     bool incLookups;
-    bool incmsels;
-    QString firstSheetName;
+    bool incmsels;    
     QStringList protectedKeys;    
     QList< TtaskItem> separate_task_list;
     QList< TtaskItem> update_task_list;
