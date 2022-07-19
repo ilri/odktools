@@ -774,7 +774,16 @@ int mainClass::generateXLSX()
 
                     a_merge_task.json_files.append(currDir.absolutePath() + currDir.separator() + tables[pos].name + "_" + QString::number(p+1) + ".json");
 
-                    sql = "SELECT * FROM " + temp_table + "_" + QString::number(p+1) + ";";
+                    QStringList fields_to_select;
+                    for (int fld =0; fld < fields.count(); fld++)
+                    {
+                        if (fields[fld].indexOf(" as ") < 0)
+                            fields_to_select.append("ifnull(`" + fields[fld] + "`,'') as `" + fields[fld] + "`");
+                        else
+                            fields_to_select.append(fields[fld]);
+                    }
+
+                    sql = "SELECT " + fields_to_select.join(",") + " FROM " + temp_table + "_" + QString::number(p+1) + ";";
                     QFile sqlfile(currDir.absolutePath() + currDir.separator() + tables[pos].name + "_" + QString::number(p+1) + "_query.sql");
                     if (!sqlfile.open(QIODevice::WriteOnly | QIODevice::Text))
                     {
@@ -795,7 +804,7 @@ int mainClass::generateXLSX()
 
             }
             QDir finalDir(outputDirectory);
-            for (int lkp = 0; lkp <= lookupTables.count()-1; lkp++)
+            for (int lkp = 0; lkp < lookupTables.count(); lkp++)
             {
                 TtaskItem a_merge_task;
                 a_merge_task.task_type = 4;
@@ -832,7 +841,16 @@ int mainClass::generateXLSX()
                         fields.append(lookupTables[lkp].fields[fld].name);
                 }
 
-                sql = "SELECT " + fields.join(",") + " FROM " + lookupTables[lkp].name + ";\n";
+                QStringList fields_to_select;
+                for (int fld =0; fld < fields.count(); fld++)
+                {
+                    if (fields[fld].indexOf(" as ") < 0)
+                        fields_to_select.append("ifnull(`" + fields[fld] + "`,'') as `" + fields[fld] + "`");
+                    else
+                        fields_to_select.append(fields[fld]);
+                }
+
+                sql = "SELECT " + fields_to_select.join(",") + " FROM " + lookupTables[lkp].name + ";\n";
                 QFile sqlfile(currDir.absolutePath() + currDir.separator() + lookupTables[lkp].name + "_query.sql");
                 if (!sqlfile.open(QIODevice::WriteOnly | QIODevice::Text))
                 {
@@ -848,8 +866,11 @@ int mainClass::generateXLSX()
         }
         else
         {
+            for (int pos = 0; pos < lookupTables.count(); pos++)
+                tables.append(lookupTables[pos]);
+
             QDir finalDir(outputDirectory);
-            for (int pos = 0; pos <= tables.count()-1; pos++)
+            for (int pos = 0; pos < tables.count(); pos++)
             {
                 TtaskItem a_merge_task;
                 a_merge_task.task_type = 4;
@@ -887,7 +908,16 @@ int mainClass::generateXLSX()
                         fields.append(tables[pos].fields[fld].name);
                 }
 
-                sql = "SELECT * FROM " + tables[pos].name + ";\n";
+                QStringList fields_to_select;
+                for (int fld =0; fld < fields.count(); fld++)
+                {
+                    if (fields[fld].indexOf(" as ") < 0)
+                        fields_to_select.append("ifnull(`" + fields[fld] + "`,'') as `" + fields[fld] + "`");
+                    else
+                        fields_to_select.append(fields[fld]);
+                }
+
+                sql = "SELECT " + fields_to_select.join(",") + " FROM " + tables[pos].name + ";\n";
                 QFile sqlfile(currDir.absolutePath() + currDir.separator() + tables[pos].name + "_query.sql");
                 if (!sqlfile.open(QIODevice::WriteOnly | QIODevice::Text))
                 {
