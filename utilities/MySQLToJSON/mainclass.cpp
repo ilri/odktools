@@ -427,6 +427,7 @@ int mainClass::generateXLSX()
         procTime.start();
         QString sql;
         QStringList fields;
+        QStringList fields_for_select;
         QStringList descfields;        
 
 
@@ -440,6 +441,7 @@ int mainClass::generateXLSX()
             {
                 linked_tables.clear();
                 fields.clear();
+                fields_for_select.clear();
                 descfields.clear();
                 for (int fld = 0; fld < tables[pos].fields.count(); fld++)
                 {
@@ -452,7 +454,10 @@ int mainClass::generateXLSX()
                                 if (tables[pos].fields[fld].isKey == false)
                                 {
                                     if (tables[pos].fields[fld].isLookUp == false)
+                                    {
                                         fields.append(tables[pos].fields[fld].name);
+                                        fields_for_select.append(tables[pos].fields[fld].name);
+                                    }
                                     else
                                     {
                                         if (this->resolve_type != 1)
@@ -465,7 +470,9 @@ int mainClass::generateXLSX()
                                         }
 
                                         fields.append(tables[pos].fields[fld].name);
+                                        fields_for_select.append(tables[pos].fields[fld].name);
                                         fields.append("'' as '" + tables[pos].fields[fld].name + "-desc'");
+                                        fields_for_select.append(tables[pos].fields[fld].name + "-desc");
                                         descfields.append(tables[pos].fields[fld].name + "-desc");
 
                                     }
@@ -476,14 +483,20 @@ int mainClass::generateXLSX()
                                     {
 
                                         fields.append(tables[pos].fields[fld].name);
+                                        fields_for_select.append(tables[pos].fields[fld].name);
                                     }
                                     else
+                                    {
                                         fields.append("HEX(AES_ENCRYPT(" + tables[pos].name + "." + tables[pos].fields[fld].name + ",UNHEX('" + this->encryption_key + "'))) as " + tables[pos].fields[fld].name);
+                                        fields_for_select.append("HEX(AES_ENCRYPT(" + tables[pos].name + "." + tables[pos].fields[fld].name + ",UNHEX('" + this->encryption_key + "'))) as " + tables[pos].fields[fld].name);
+
+                                    }
                                 }
                             }
                             else
                             {
                                 fields.append(tables[pos].fields[fld].name);
+                                fields_for_select.append(tables[pos].fields[fld].name);
                                 if (this->incmsels == false)
                                 {
                                     TmultiSelectTable a_multiSelectTable;
@@ -496,13 +509,17 @@ int mainClass::generateXLSX()
                                     multiSelectTables.append(a_multiSelectTable);
                                 }
                                 fields.append("'' as '" + tables[pos].fields[fld].name + "-desc'");
+                                fields_for_select.append(tables[pos].fields[fld].name + "-desc");
                                 descfields.append(tables[pos].fields[fld].name + "-desc");
                             }
                         }
                         else
                         {
                             if (tables[pos].fields[fld].protection != "exclude")
+                            {
                                 fields.append("HEX(AES_ENCRYPT(" + tables[pos].name + "." + tables[pos].fields[fld].name + ",UNHEX('" + this->encryption_key + "'))) as " + tables[pos].fields[fld].name);
+                                fields_for_select.append("HEX(AES_ENCRYPT(" + tables[pos].name + "." + tables[pos].fields[fld].name + ",UNHEX('" + this->encryption_key + "'))) as " + tables[pos].fields[fld].name);
+                            }
                         }
                     }
                     else
@@ -510,7 +527,10 @@ int mainClass::generateXLSX()
                         if (tables[pos].fields[fld].isMultiSelect == false)
                         {
                             if (tables[pos].fields[fld].isLookUp == false)
+                            {
                                 fields.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                                fields_for_select.append(tables[pos].name + "." + tables[pos].fields[fld].name);
+                            }
                             else
                             {
                                 if (this->resolve_type != 1)
@@ -523,7 +543,9 @@ int mainClass::generateXLSX()
                                 }
 
                                 fields.append(tables[pos].fields[fld].name);
+                                fields_for_select.append(tables[pos].fields[fld].name);
                                 fields.append("'' as '" + tables[pos].fields[fld].name + "-desc'");
+                                fields_for_select.append(tables[pos].fields[fld].name + "-desc");
                                 descfields.append(tables[pos].fields[fld].name + "-desc'");
 
                             }
@@ -531,6 +553,7 @@ int mainClass::generateXLSX()
                         else
                         {
                             fields.append(tables[pos].fields[fld].name);
+                            fields_for_select.append(tables[pos].fields[fld].name);
                             if (this->incmsels == false)
                             {
                                 TmultiSelectTable a_multiSelectTable;
@@ -543,12 +566,11 @@ int mainClass::generateXLSX()
                                 multiSelectTables.append(a_multiSelectTable);
                             }
                             fields.append("'' as '" + tables[pos].fields[fld].name + "-desc'");
+                            fields_for_select.append(tables[pos].fields[fld].name + "-desc");
                             descfields.append(tables[pos].fields[fld].name + "-desc'");
                         }
                     }
                 }
-
-
 
                 QString temp_table;
 
@@ -775,12 +797,12 @@ int mainClass::generateXLSX()
                     a_merge_task.json_files.append(currDir.absolutePath() + currDir.separator() + tables[pos].name + "_" + QString::number(p+1) + ".json");
 
                     QStringList fields_to_select;
-                    for (int fld =0; fld < fields.count(); fld++)
+                    for (int fld =0; fld < fields_for_select.count(); fld++)
                     {
-                        if (fields[fld].indexOf(" as ") < 0)
-                            fields_to_select.append("ifnull(`" + fields[fld] + "`,'') as `" + fields[fld] + "`");
+                        if (fields_for_select[fld].indexOf(" as ") < 0)
+                            fields_to_select.append("ifnull(`" + fields_for_select[fld] + "`,'') as `" + fields_for_select[fld] + "`");
                         else
-                            fields_to_select.append(fields[fld]);
+                            fields_to_select.append(fields_for_select[fld]);
                     }
 
                     sql = "SELECT " + fields_to_select.join(",") + " FROM " + temp_table + "_" + QString::number(p+1) + ";";
@@ -933,7 +955,7 @@ int mainClass::generateXLSX()
             }
         }
 
-        //Sexit(1);
+        //exit(1);
 
         int result = processTasks(currDir);
         QSqlQuery drop(db);
