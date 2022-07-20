@@ -105,35 +105,42 @@ void JSONWorker::run()
         }
         if (task_list[index].task_type == 3)
         {
-            //qDebug() << name + " - Creating final file: " + task_list[index].final_file;
-            arguments.clear();
-            arguments << "-s";
-            arguments << "reduce .[] as $x ([]; . + $x)";
-            for (int f=0; f < task_list[index].json_files.count(); f++)
+            if (task_list[index].json_files.count() > 1)
             {
-                arguments << task_list[index].json_files[f];
-            }
-            mySQLDumpProcess->setStandardInputFile(QProcess::nullDevice());
-            mySQLDumpProcess->setStandardOutputFile(task_list[index].final_file);
+                //qDebug() << name + " - Creating final file: " + task_list[index].final_file;
+                arguments.clear();
+                arguments << "-s";
+                arguments << "reduce .[] as $x ([]; . + $x)";
+                for (int f=0; f < task_list[index].json_files.count(); f++)
+                {
+                    arguments << task_list[index].json_files[f];
+                }
+                mySQLDumpProcess->setStandardInputFile(QProcess::nullDevice());
+                mySQLDumpProcess->setStandardOutputFile(task_list[index].final_file);
 
-            mySQLDumpProcess->start("jq", arguments);
-            mySQLDumpProcess->waitForFinished(-1);
-            if ((mySQLDumpProcess->exitCode() > 0) || (mySQLDumpProcess->error() == QProcess::FailedToStart))
+                mySQLDumpProcess->start("jq", arguments);
+                mySQLDumpProcess->waitForFinished(-1);
+                if ((mySQLDumpProcess->exitCode() > 0) || (mySQLDumpProcess->error() == QProcess::FailedToStart))
+                {
+                    if (mySQLDumpProcess->error() == QProcess::FailedToStart)
+                    {
+                        log("Error: Command jq not found");
+                    }
+                    else
+                    {
+                        log("Running jq returned error");
+                        QString serror = mySQLDumpProcess->readAllStandardError();
+                        log(serror);
+                        log("Running paremeters:" + arguments.join(" "));
+                    }
+                    delete mySQLDumpProcess;
+                    this->status = 1;
+                    return;
+                }
+            }
+            else
             {
-                if (mySQLDumpProcess->error() == QProcess::FailedToStart)
-                {
-                    log("Error: Command jq not found");
-                }
-                else
-                {
-                    log("Running jq returned error");
-                    QString serror = mySQLDumpProcess->readAllStandardError();
-                    log(serror);
-                    log("Running paremeters:" + arguments.join(" "));
-                }
-                delete mySQLDumpProcess;
-                this->status = 1;
-                return;
+                QFile::copy(task_list[index].json_files[0],task_list[index].final_file);
             }
 
             QFileInfo info(task_list[index].final_file);
