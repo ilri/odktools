@@ -74,9 +74,12 @@ void JSONWorker::run()
             // Extract the data as json
             //qDebug() << name + " - Exporting file: " + task_list[index].sql_file;
             arguments.clear();
+            QString config_file = task_list[index].sql_file;
+            config_file = config_file.replace(".sql",".cnf");
             arguments << "--sql";
             arguments << "--result-format=json/array";
             arguments << "--uri=" + uri;
+            arguments << "--ssh-config-file=" + config_file;
             mySQLDumpProcess->setStandardInputFile(task_list[index].sql_file);
             mySQLDumpProcess->setStandardOutputFile(task_list[index].json_file);
             mySQLDumpProcess->start("mysqlsh", arguments);
