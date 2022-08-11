@@ -975,6 +975,60 @@ void loadInvalidFieldNames()
     invalidFieldNames << "VAR_POP";
     invalidFieldNames << "VAR_SAMP";
     invalidFieldNames << "VARIANCE";
+
+    invalidFieldNames << "ABSTRACT";
+    invalidFieldNames << "CATCH";
+    invalidFieldNames << "DOUBLE";
+    invalidFieldNames << "FINAL";
+    invalidFieldNames << "IMPLEMENTS";
+    invalidFieldNames << "NATIVE";
+    invalidFieldNames << "PUBLIC";
+    invalidFieldNames << "SWITCH";
+    invalidFieldNames << "TRUE";
+    invalidFieldNames << "ASSERT";
+    invalidFieldNames << "CHAR";
+    invalidFieldNames << "DO";
+    invalidFieldNames << "FINALLY";
+    invalidFieldNames << "IMPORT";
+    invalidFieldNames << "NEW";
+    invalidFieldNames << "RETURN";
+    invalidFieldNames << "SYNCHRONIZED";
+    invalidFieldNames << "TRY";
+    invalidFieldNames << "BOOLEAN";
+    invalidFieldNames << "CLASS";
+    invalidFieldNames << "ELSE";
+    invalidFieldNames << "FLOAT";
+    invalidFieldNames << "INSTANCEOF";
+    invalidFieldNames << "NULL";
+    invalidFieldNames << "SHORT";
+    invalidFieldNames << "THIS";
+    invalidFieldNames << "VOID";
+    invalidFieldNames << "BREAK";
+    invalidFieldNames << "CONST";
+    invalidFieldNames << "ENUM";
+    invalidFieldNames << "FOR";
+    invalidFieldNames << "INT";
+    invalidFieldNames << "PACKAGE";
+    invalidFieldNames << "STATIC";
+    invalidFieldNames << "THROW";
+    invalidFieldNames << "VOLATILE";
+    invalidFieldNames << "BYTE";
+    invalidFieldNames << "CONTINUE";
+    invalidFieldNames << "EXTENDS";
+    invalidFieldNames << "GOTO";
+    invalidFieldNames << "INTERFACE";
+    invalidFieldNames << "PRIVATE";
+    invalidFieldNames << "STRICTFP";
+    invalidFieldNames << "THROWS";
+    invalidFieldNames << "WHILE";
+    invalidFieldNames << "CASE";
+    invalidFieldNames << "DEFAULT";
+    invalidFieldNames << "FALSE";
+    invalidFieldNames << "IF";
+    invalidFieldNames << "LONG";
+    invalidFieldNames << "PROTECTED";
+    invalidFieldNames << "SUPER";
+    invalidFieldNames << "TRANSIENT";
 }
 
 void addRequiredFile(QString fileName)
@@ -2763,11 +2817,18 @@ void addToStack(QString groupOrRepeat, QString type)
 QString fixField(QString source)
 {
     QString res;
-    res = source;    
-    res = res.replace("-","_");
-    QRegularExpression re("[^.a-zA-Z0-9\\$\\_]");
+    source = source.trimmed().simplified().toLower();
+    res = source;
+    QRegularExpression re("[^a-zA-Z0-9\\_]");
     res = res.replace(re,"");
     res = res.trimmed().simplified().toLower();
+    if (res != source)
+    {
+        if (invalidFields.indexOf(source) < 0)
+        {
+            invalidFields.append(source);
+        }
+    }
     isFieldValid(res);
     return res;
 }
@@ -5114,14 +5175,13 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         invalidKeyTypes << "video";
         invalidKeyTypes << "Xml-external";
 
-        if (!justCheck)
+
+        if (invalidKeyTypes.indexOf(surveyVariables[mainFieldIndex].object.value("type").toString()) >= 0)
         {
-            if (invalidKeyTypes.indexOf(surveyVariables[mainFieldIndex].object.value("type").toString()) >= 0)
-            {
-                log("The type of the primary key field is invalid");
-                exit(17);
-            }
+            log("The type of the primary key field is invalid");
+            exit(17);
         }
+
         int num_labels = 0;
         getLanguages(firstObject, ODKLanguages, num_labels);
 

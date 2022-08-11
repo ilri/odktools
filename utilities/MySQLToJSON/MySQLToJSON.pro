@@ -3,7 +3,7 @@ QT += core xml sql
 
 CONFIG += c++11 console
 CONFIG -= app_bundle
-TARGET = mysqltocsv
+TARGET = mysqltojson
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings

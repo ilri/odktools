@@ -6,7 +6,7 @@
 #include <QRandomGenerator>
 
 /*
-MySQLToXLSX
+MySQLToJSON
 
 Copyright (C) 2022 QLands Technology Consultants.
 Author: Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
@@ -51,8 +51,9 @@ int main(int argc, char *argv[])
     QCoreApplication app(argc, argv);
     QString title;
     title = title + " *********************************************************************** \n";
-    title = title + " * MySQLToXLSX                                                         * \n";
-    title = title + " * This tool extracts data from a MySQL Database into a XLSX file.     * \n";
+    title = title + " * MySQLToJSON                                                         * \n";
+    title = title + " * This tool extracts data from a MySQL Database into JSON files.      * \n";
+    title = title + " * Each table will create a new JSON file.                             * \n";
     title = title + " * The tool requires the create.xml file created by JXFormToMySQL to   * \n";
     title = title + " * determine the type of data and whether a field or a table should be * \n";
     title = title + " * exported due to the sensitivity of its information.                 * \n";
@@ -66,7 +67,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> passArg("p","password","Password to connect to MySQL",true,"","string");
     TCLAP::ValueArg<std::string> schemaArg("s","schema","Schema in MySQL",true,"","string");
     TCLAP::ValueArg<std::string> createArg("x","createxml","Input create XML file",true,"","string");
-    TCLAP::ValueArg<std::string> outArg("o","output","Output XLSX file",true,"","string");
+    TCLAP::ValueArg<std::string> outArg("o","output","Output directory for the JSON files",true,"","string");
     TCLAP::ValueArg<std::string> tmpArg("T","tempdir","Temporary directory (./tmp by default)",false,"./tmp","string");    
     TCLAP::ValueArg<std::string> encryptArg("e","encrypt","32 char hex encryption key. Auto generate if empty",false,"","string");
     TCLAP::ValueArg<std::string> resolveArg("r","resolve","Resolve lookup values: 1=Codes only (default), 2=Descriptions, 3=Codes and descriptions",false,"1","string");
@@ -112,13 +113,6 @@ int main(int argc, char *argv[])
     QString resolve_type = QString::fromUtf8(resolveArg.getValue().c_str());
     bool ok;
 
-    if (resolve_type <= 0 && resolve_type > 3)
-    {
-        log_out("Resolving code must be 1, 2, or 3");
-        exit(1);
-    }
-
-
     if (resolve_type.toInt() > 1)
     {
         if (includeMSels || includeLookUps)
@@ -134,7 +128,6 @@ int main(int argc, char *argv[])
     if (encryption_key == "")
     {
         encryption_key = getRandomHex(32);
-        log_out(encryption_key);
     }
 
     mainClass *task = new mainClass(&app);

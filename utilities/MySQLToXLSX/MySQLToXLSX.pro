@@ -1,5 +1,5 @@
 QT -= gui
-QT += core xml
+QT += core xml sql
 
 CONFIG += c++11 console
 CONFIG -= app_bundle
@@ -18,10 +18,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 unix:INCLUDEPATH += ../../3rdparty
 
-unix:LIBS += -L/lib64 -L/usr/lib64 -L/usr/local/lib -lxlsxwriter -lz
-
 SOURCES += main.cpp \
+    jsonworker.cpp \
+    listmutex.cpp \
     mainclass.cpp
 
 HEADERS += \
+    jsonworker.h \
+    listmutex.h \
     mainclass.h

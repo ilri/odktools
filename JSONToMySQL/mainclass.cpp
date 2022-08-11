@@ -22,6 +22,7 @@ License along with JSONToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl-3
 #include <QUuid>
 #include <QFileInfo>
 #include <QDomText>
+#include <QThread>
 
 mainClass::mainClass(QObject *parent) : QObject(parent)
 {
@@ -102,7 +103,7 @@ void mainClass::run()
         db.setDatabaseName(schema);
         db.setUserName(user);
         db.setPassword(password);
-        db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
+        //db.setConnectOptions("MYSQL_OPT_SSL_MODE=SSL_MODE_DISABLED");
         if (db.open())
         {            
             QFile UUIDFile(UUIDsFile);
@@ -126,10 +127,36 @@ void mainClass::run()
                 {
                     if (query.lastError().databaseText().indexOf("already exists") < 0)
                     {
-                        log("Cannot create processing table: " + query.lastError().databaseText());
-                        returnCode = 1;
-                        db.close();
-                        emit finished();
+                        int num_try = 0;
+                        bool failed = true;
+                        while (num_try <= 3)
+                        {
+                            if (!query.exec(sql))
+                            {
+                                if (query.lastError().databaseText().indexOf("already exists") < 0)
+                                {
+                                    num_try++;
+                                    QThread::sleep(2);
+                                }
+                                else
+                                {
+                                    num_try = 4;
+                                    failed = false;
+                                }
+                            }
+                            else
+                            {
+                                num_try = 4;
+                                failed = false;
+                            }
+                        }
+                        if (failed)
+                        {
+                            log("Cannot create processing table after 4 intents: " + query.lastError().databaseText());
+                            returnCode = 1;
+                            db.close();
+                            emit finished();
+                        }
                     }
                 }
             }
@@ -289,22 +316,41 @@ void mainClass::run()
                 QFileInfo fi(json);
                 // Inserting into the submission database
                 QString sql;
-                QSqlQuery query(imported_db);
-                sql = "INSERT INTO submissions VALUES ('" + fi.baseName() + "')";
-                if (!query.exec(sql))
+                QSqlQuery query(imported_db);                                
+                bool inserted = false;
+                int try_count = 0;
+                while (!inserted)
                 {
-                    log("Error: Cannot store the submission in the submission database. Rolling back");
-                    if (!db.rollback())
+                    sql =  "INSERT INTO submissions VALUES ('" + fi.baseName() + "')";
+                    if (!query.exec(sql))
                     {
-                        log("Error: Cannot store the submission in the submission database. Rolling back was not possible. Please check the database");
-                        db.close();
-                        imported_db.close();
-                        returnCode = 1;
-                        emit finished();
+                        if (try_count > 3)
+                        {
+                            log("Error: Cannot store the submission in the submission database after 4 intents. Rolling back");
+                            log(query.lastError().databaseText());
+                            if (!db.rollback())
+                            {
+                                log("Error: Cannot store the submission in the submission database. Rolling back was not possible. Please check the database");
+                                db.close();
+                                imported_db.close();
+                                returnCode = 1;
+                                inserted = true;
+                                emit finished();
+                            }
+                            db.close();
+                            imported_db.close();
+                            inserted = true;
+                        }
+                        else
+                        {
+                            try_count++;
+                            QThread::sleep(2);
+                        }
                     }
-                    db.close();
-                    imported_db.close();
+                    else
+                        inserted = true;
                 }
+
 
                 if (outputType == "h")
                 {
@@ -525,6 +571,8 @@ QString mainClass::fixString(QString source)
     res = res.replace("'","`");
     res = res.replace(";","|");
     res = res.replace("\n"," ");
+    res = res.replace("\t"," ");
+    res = res.replace("\"","`");
     res = res.simplified();
     return res;
 }
@@ -650,7 +698,7 @@ QList<TfieldDef > mainClass::createSQL(QSqlDatabase db, QVariantMap jsonData, QS
             key.multiSelectTable = fields[pos].multiSelectTable;
             key.value = jsonData[fields[pos].xmlCode].toString();
             key.value = key.value.simplified();
-            key.value = key.value.replace("'","`");
+            key.value = fixString(key.value);
             if (fields[pos].type == "datetime")
             {
                 if (key.value.indexOf(".") >= 0)

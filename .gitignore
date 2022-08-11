@@ -99,6 +99,7 @@ doc/api/html/*
 doc/pluginhowto/html/*
 .rcc
 .pch
+*.qtc_clangd/*
 
 # Binaries
 # --------
@@ -122,6 +123,7 @@ createdummyjson
 mysqltosqlite
 mergeversions
 createtemporarytable
+mysqltojson
 
 #Other directories
 old
