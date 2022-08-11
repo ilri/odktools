@@ -4,6 +4,8 @@
 #include <QFileInfo>
 #include <QProcess>
 #include <QDebug>
+#include <QProcessEnvironment>
+#include <QUuid>
 
 JSONWorker::JSONWorker(QObject *parent)
     : QThread{parent}
@@ -71,15 +73,25 @@ void JSONWorker::run()
         }
         if (task_list[index].task_type == 2)
         {
-            // Extract the data as json
-            //qDebug() << name + " - Exporting file: " + task_list[index].sql_file;
+            QUuid home_id=QUuid::createUuid();
+            QString user_home_id=home_id.toString().replace("{","").replace("}","");
+            QFileInfo finfo(task_list[index].sql_file);
+            QString user_home = finfo.canonicalPath() + "/" + user_home_id;
+            QDir().mkdir(user_home);
+
+//            QFile options_file(user_home + "/options.json");
+//            options_file.open(QIODevice::WriteOnly);
+//            options_file.close();
+
+            QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+            env.insert("MYSQLSH_USER_CONFIG_HOME", user_home);
+
             arguments.clear();
-            QString config_file = task_list[index].sql_file;
-            config_file = config_file.replace(".sql",".cnf");
             arguments << "--sql";
             arguments << "--result-format=json/array";
             arguments << "--uri=" + uri;
-            arguments << "--ssh-config-file=" + config_file;
+
+            mySQLDumpProcess->setProcessEnvironment(env);
             mySQLDumpProcess->setStandardInputFile(task_list[index].sql_file);
             mySQLDumpProcess->setStandardOutputFile(task_list[index].json_file);
             mySQLDumpProcess->start("mysqlsh", arguments);
