@@ -803,6 +803,7 @@ int mainClass::generateXLSX()
                 a_merge_task.task_type = 3;
                 a_merge_task.table = temp_table;
                 a_merge_task.final_file = finalDir.absolutePath() + currDir.separator() + tables[pos].name + ".json";
+                finalCSVS.append(finalDir.absolutePath() + currDir.separator() + tables[pos].name + ".csv");
 
 
                 for (int p = 0; p < parts.count(); p++)
@@ -852,6 +853,7 @@ int mainClass::generateXLSX()
                 a_merge_task.task_type = 4;
                 a_merge_task.table = lookupTables[lkp].name;
                 a_merge_task.final_file = finalDir.absolutePath() + currDir.separator() + lookupTables[lkp].name + ".json";
+                finalCSVS.append(finalDir.absolutePath() + currDir.separator() + lookupTables[lkp].name + ".csv");
 
 
                 TtaskItem a_json_task;
