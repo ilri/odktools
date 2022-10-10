@@ -44,7 +44,7 @@ void JSONWorker::run()
     QStringList arguments;
     QString fixed_pass(QUrl::toPercentEncoding(pass));
     QString fixed_user(QUrl::toPercentEncoding(user));
-    QString uri = fixed_user + ":" + fixed_pass + "@" + host + "/" + schema;
+    QString uri = fixed_user + ":" + fixed_pass + "@" + host + ":" + port +  "/" + schema;
 
     int index = mutex->get_index();
     //qDebug() << name + " - Processing index: " + QString::number(index);
