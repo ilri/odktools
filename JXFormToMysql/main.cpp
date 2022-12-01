@@ -131,6 +131,8 @@ struct fieldDef
   bool sensitive;
   int selectType=0;
   QString externalFileName;
+  QString codeColumn;
+  QString descColumn;
 };
 typedef fieldDef TfieldDef;
 
@@ -1403,7 +1405,7 @@ QString getLanguageCode(QString languageName)
     return "";
 }
 
-int getMaxDescLength(QList<TlkpValue> values)
+int getMaxDescLength(QList<TlkpValue> values, int minimum=256)
 {
     hasSelects = true;
     int res;
@@ -1418,11 +1420,14 @@ int getMaxDescLength(QList<TlkpValue> values)
                 res = values[pos].desc[lng].desc.length();
         }
     }
-    return res;
+    if (res > minimum)
+        return res;
+    else
+        return minimum;
 }
 
 //Return the maximum lenght of the values in a lookup table so the size is not excesive for primary keys
-int getMaxValueLength(QList<TlkpValue> values)
+int getMaxValueLength(QList<TlkpValue> values, int minimum=128)
 {
     int res;
     res = 0;
@@ -1432,7 +1437,10 @@ int getMaxValueLength(QList<TlkpValue> values)
         if (values[pos].code.length() >= res)
             res = values[pos].code.length();
     }
-    return res;
+    if (res > minimum)
+        return res;
+    else
+        return minimum;
 }
 
 //Return whether the values of a lookup table are numbers or strings. Used to determine the type of variables in the lookup tables
@@ -1958,6 +1966,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         fieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
                         fieldNode.setAttribute("selecttype",tables[pos].fields[clm].selectType);
                         fieldNode.setAttribute("externalfilename",tables[pos].fields[clm].externalFileName);
+                        fieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
+                        fieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                         if (tables[pos].fields[clm].sensitive == true)
                         {
                             fieldNode.setAttribute("sensitive","true");
@@ -1994,6 +2004,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
                         createFieldNode.setAttribute("selecttype",tables[pos].fields[clm].selectType);
                         createFieldNode.setAttribute("externalfilename",tables[pos].fields[clm].externalFileName);
+                        createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
+                        createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                         createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                         if (tables[pos].fields[clm].sensitive == true)
                         {
@@ -2034,6 +2046,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
                         createFieldNode.setAttribute("selecttype",tables[pos].fields[clm].selectType);
                         createFieldNode.setAttribute("externalfilename",tables[pos].fields[clm].externalFileName);
+                        createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
+                        createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                         createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                         if (tables[pos].fields[clm].sensitive == true)
                         {
@@ -2067,6 +2081,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                     createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
                     createFieldNode.setAttribute("selecttype",tables[pos].fields[clm].selectType);
                     createFieldNode.setAttribute("externalfilename",tables[pos].fields[clm].externalFileName);
+                    createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
+                    createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                     createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                     if (tables[pos].fields[clm].sensitive == true)
                     {
@@ -2100,6 +2116,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 createFieldNode.setAttribute("odktype",tables[pos].fields[clm].odktype);
                 createFieldNode.setAttribute("selecttype",tables[pos].fields[clm].selectType);
                 createFieldNode.setAttribute("externalfilename",tables[pos].fields[clm].externalFileName);
+                createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
+                createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                 createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
                 if (tables[pos].fields[clm].sensitive == true)
                 {
@@ -2972,16 +2990,26 @@ bool checkSelectValue(QString variableName, QList<TlkpValue> values, QString val
     return false;
 }
 
+
 // This return the values of a select that uses an external xml file.
 // e.g., "select one from file a_file.xml" and "select multiple from file a_file.xml"
-QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, bool hasOrOther, int &result, QDir dir)
+QList<TlkpValue> getSelectValuesFromGeoJSON(QString variableName, QString fileName, bool hasOrOther, int &result, QDir dir)
 {
     QList<TlkpValue> res;
-    QString codeColumn;
-    codeColumn = "name";
+
+    result = 0;
+    return res;
+}
+
+
+// This return the values of a select that uses an external xml file.
+// e.g., "select one from file a_file.xml" and "select multiple from file a_file.xml"
+QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, bool hasOrOther, int &result, QDir dir, QString codeColumn="name", QString descColumn="label")
+{
+    QList<TlkpValue> res;    
     QStringList descColumns;
     result = 0;
-    descColumns << "label";
+    descColumns << descColumn;
     descColumns << "label::" + getDefLanguage().toLower().trimmed();
     for (int lng = 0; lng < languages.count(); lng++)
     {
@@ -3132,14 +3160,12 @@ QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, 
 
 // This return the values of a select that uses an external CSV file.
 // e.g., "select one from file a_file.csv","select multiple from file a_file.csv","select one external"
-QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName, bool hasOrOther, int &result, QDir dir, QSqlDatabase database, QString queryValue)
+QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName, bool hasOrOther, int &result, QDir dir, QSqlDatabase database, QString queryValue, QString codeColumn="name", QString descColumn="label")
 {
     QList<TlkpValue> res;
-    QString codeColumn;
-    codeColumn = "name";
     QStringList descColumns;
     result = 0;
-    descColumns << "label";
+    descColumns << descColumn;
     descColumns << "label::" + getDefLanguage().toLower().trimmed();
     for (int lng = 0; lng < languages.count(); lng++)
     {
@@ -3638,8 +3664,8 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
                 }
                 lkpDesc.key = false;
                 lkpDesc.sensitive = false;
-                lkpDesc.type = "varchar";
-                lkpDesc.size = getMaxDescLength(values);
+                lkpDesc.type = "text"; //varchar
+                lkpDesc.size = 0; //getMaxDescLength(values);
                 lkpDesc.decSize = 0;
                 lkpTable.fields.append(lkpDesc);
                 aField.rTable = lkpTable.name;
@@ -3836,6 +3862,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
         QList<TlkpValue> values;
         int select_type=0;
         QString external_file;
+        QString codeColumn="name";
+        QString descColumn="label";
         if ((isSelect(variableType) == 1) || (isSelect(variableType) == 3) || (isSelect(variableType) == 4))
         {
             bool fromSearchCSV;
@@ -3855,11 +3883,17 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 if (fieldObject.value("itemset").toString("").toLower().trimmed().indexOf(".csv") > 0)
                 {
                     QString fileName;
-                    fileName = fieldObject.value("itemset").toString("").toLower().trimmed();
+                    fileName = fieldObject.value("itemset").toString("").toLower().trimmed();                    
+                    if (!fieldObject.value("parameters").isUndefined())
+                    {
+                        QJsonObject parameters = fieldObject.value("parameters").toObject();
+                        codeColumn = parameters.value("value").toString("name").toLower().trimmed();
+                        descColumn = parameters.value("label").toString("label").toLower().trimmed();
+                    }
                     int result;
                     select_type = 3;
                     external_file = fileName;
-                    values.append(getSelectValuesFromCSV2(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir,database,""));
+                    values.append(getSelectValuesFromCSV2(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir,database,"",codeColumn,descColumn));
                     if (result != 0)
                     {                        
                         if (!justCheck)
@@ -3870,14 +3904,35 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 {
                     QString fileName;
                     fileName = fieldObject.value("itemset").toString("").toLower().trimmed();
-                    int result;
-                    select_type = 4;
-                    external_file = fileName;
-                    values.append(getSelectValuesFromXML(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir));
-                    if (result != 0)
+                    if (fileName.toLower().trimmed().indexOf(".xml") >= 0)
                     {
-                        if (!justCheck)
-                            exit(result);
+                        if (!fieldObject.value("parameters").isUndefined())
+                        {
+                            QJsonObject parameters = fieldObject.value("parameters").toObject();
+                            codeColumn = parameters.value("value").toString("name").toLower().trimmed();
+                            descColumn = parameters.value("label").toString("label").toLower().trimmed();
+                        }
+                        int result;
+                        select_type = 4;
+                        external_file = fileName;
+                        values.append(getSelectValuesFromXML(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir,codeColumn,descColumn));
+                        if (result != 0)
+                        {
+                            if (!justCheck)
+                                exit(result);
+                        }
+                    }
+                    else
+                    {
+                        int result;
+                        select_type = 6;
+                        external_file = fileName;
+                        values.append(getSelectValuesFromGeoJSON(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir));
+                        if (result != 0)
+                        {
+                            if (!justCheck)
+                                exit(result);
+                        }
                     }
                 }
             }
@@ -3937,6 +3992,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             aField.name = fixField(variableName.toLower());
             aField.selectType = select_type;
             aField.externalFileName = external_file;
+            aField.codeColumn = codeColumn;
+            aField.descColumn = descColumn;
 
             aField.odktype = variableType;
             aField.selectListName = "NONE";
@@ -4058,8 +4115,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     }
                     lkpDesc.key = false;
                     lkpDesc.sensitive = false;
-                    lkpDesc.type = "varchar";
-                    lkpDesc.size = getMaxDescLength(values);
+                    lkpDesc.type = "text"; //varchar
+                    lkpDesc.size = 0;//getMaxDescLength(values);
                     lkpDesc.decSize = 0;
                     lkpTable.fields.append(lkpDesc);
                     aField.rTable = lkpTable.name;
@@ -4119,6 +4176,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             aField.name = fixField(variableName.toLower());
             aField.selectType = select_type;
             aField.externalFileName = external_file;
+            aField.codeColumn = codeColumn;
+            aField.descColumn = descColumn;
             checkFieldName(tables[tblIndex],aField.name);
             aField.selectSource = "NONE";
             aField.selectListName = "NONE";
@@ -4289,8 +4348,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
 
                     lkpDesc.key = false;
                     lkpDesc.sensitive = false;
-                    lkpDesc.type = "varchar";
-                    lkpDesc.size = getMaxDescLength(values);
+                    lkpDesc.type = "text"; //varchar
+                    lkpDesc.size = 0; //getMaxDescLength(values);
                     lkpDesc.decSize = 0;
                     lkpTable.fields.append(lkpDesc);
                     //Linking the multiselect field to this lookup table
@@ -4612,8 +4671,8 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
                 }
                 lkpDesc.key = false;
                 lkpDesc.sensitive = false;
-                lkpDesc.type = "varchar";
-                lkpDesc.size = getMaxDescLength(values);
+                lkpDesc.type = "text"; //varchar
+                lkpDesc.size = 0; //getMaxDescLength(values);
                 lkpDesc.decSize = 0;
                 lkpTable.fields.append(lkpDesc);
                 aField.rTable = lkpTable.name;
