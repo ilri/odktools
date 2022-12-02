@@ -1427,7 +1427,7 @@ int getMaxDescLength(QList<TlkpValue> values, int minimum=256)
 }
 
 //Return the maximum lenght of the values in a lookup table so the size is not excesive for primary keys
-int getMaxValueLength(QList<TlkpValue> values, int minimum=128)
+int getMaxValueLength(QList<TlkpValue> values, QString fieldType, int minimum=128)
 {
     int res;
     res = 0;
@@ -1437,10 +1437,15 @@ int getMaxValueLength(QList<TlkpValue> values, int minimum=128)
         if (values[pos].code.length() >= res)
             res = values[pos].code.length();
     }
-    if (res > minimum)
-        return res;
+    if (fieldType == "varchar")
+    {
+        if (res > minimum)
+            return res;
+        else
+            return minimum;
+    }
     else
-        return minimum;
+        return res;
 }
 
 //Return whether the values of a lookup table are numbers or strings. Used to determine the type of variables in the lookup tables
@@ -2727,16 +2732,19 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
     return result;
 }
 
-int getMaxMSelValueLength(QList<TlkpValue> values)
-{
-    QString res;
-    for (int pos = 0; pos <= values.count()-1;pos++)
-    {
-        res = res + values[pos].code.trimmed() + " ";
-    }
-    res = res.left(res.length()-1);
-    return res.length();
-}
+//int getMaxMSelValueLength(QList<TlkpValue> values, int minimum = 128)
+//{
+//    QString res;
+//    for (int pos = 0; pos <= values.count()-1;pos++)
+//    {
+//        res = res + values[pos].code.trimmed() + " ";
+//    }
+//    res = res.left(res.length()-1);
+//    if (res.length() < minimum)
+//        return minimum;
+//    else
+//        return res.length();
+//}
 
 //Return the index of table in the list using its name
 int getTableIndex(QString name)
@@ -3598,7 +3606,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
         aField.calculateWithSelect = false;
         aField.formula = "";
         aField.type = "varchar";
-        aField.size = getMaxValueLength(values);
+        aField.size = getMaxValueLength(values, "varchar");
         aField.decSize = 0;
         aField.key = false;
         aField.sensitive = false;
@@ -4008,7 +4016,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             }
             else
                 aField.type = "varchar";
-            aField.size = getMaxValueLength(values);
+            aField.size = getMaxValueLength(values, aField.type);
             aField.decSize = 0;
             if (fixField(variableName) == fixField(mainField.toLower()))
             {
@@ -4181,8 +4189,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             checkFieldName(tables[tblIndex],aField.name);
             aField.selectSource = "NONE";
             aField.selectListName = "NONE";
-            aField.type = "varchar";
-            aField.size = getMaxMSelValueLength(values);
+            aField.type = "text";
+            aField.size = 0;
             aField.decSize = 0;
             aField.odktype = variableType;
             aField.key = false;
@@ -4280,7 +4288,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 else
                     mselKeyField.type = "varchar";
 
-                mselKeyField.size = getMaxValueLength(values);
+                mselKeyField.size = getMaxValueLength(values, mselKeyField.type);
                 mselKeyField.decSize = 0;
                 //Processing the lookup table if neccesary
                 QString listName;
@@ -4587,7 +4595,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
             aField.type = "varchar";
         else
             aField.type = "int";
-        aField.size = getMaxValueLength(values);
+        aField.size = getMaxValueLength(values, aField.type);
         aField.decSize = 0;
         aField.key = true;
         aField.sensitive = false;
