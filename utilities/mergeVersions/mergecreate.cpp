@@ -91,8 +91,11 @@ int mergeCreate::compare()
                 diff.append("\n");
                 for (int pos = 0; pos < create_lookup_rels.count(); pos++)
                 {                                            
-                    diff.append("ALTER TABLE " + create_lookup_rels[pos].table_name + " ADD INDEX " + create_lookup_rels[pos].rel_name + " (" + create_lookup_rels[pos].field_name + ");\n");
-                    diff.append("ALTER TABLE " + create_lookup_rels[pos].table_name + " ADD CONSTRAINT " + create_lookup_rels[pos].rel_name + " FOREIGN KEY (" + create_lookup_rels[pos].field_name + ") REFERENCES " + create_lookup_rels[pos].rel_table + " (" + create_lookup_rels[pos].rel_field + ") ON DELETE RESTRICT  ON UPDATE NO ACTION;\n\n");
+                    if (newFields.indexOf(create_lookup_rels[pos].table_name + "|" + create_lookup_rels[pos].field_name) == -1)
+                    {
+                        diff.append("ALTER TABLE " + create_lookup_rels[pos].table_name + " ADD INDEX " + create_lookup_rels[pos].rel_name + " (" + create_lookup_rels[pos].field_name + ");\n");
+                        diff.append("ALTER TABLE " + create_lookup_rels[pos].table_name + " ADD CONSTRAINT " + create_lookup_rels[pos].rel_name + " FOREIGN KEY (" + create_lookup_rels[pos].field_name + ") REFERENCES " + create_lookup_rels[pos].rel_table + " (" + create_lookup_rels[pos].rel_field + ") ON DELETE RESTRICT  ON UPDATE NO ACTION;\n\n");
+                    }
                 }
 
                 //Process drops
@@ -364,6 +367,7 @@ void mergeCreate::addTableToDrop(QString name)
 //This adds the modifications to a table to the diff list
 void mergeCreate::addFieldToDiff(QString table, QDomElement eField)
 {
+    newFields.append(table + "|" + eField.attribute("name",""));
     QString sql;
     sql = "ALTER TABLE " + table + " ADD COLUMN " + eField.attribute("name","");
 
