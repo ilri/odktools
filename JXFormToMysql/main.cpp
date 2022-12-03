@@ -3333,10 +3333,9 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
 // e.g.:
 //       type: select one canton
 //       appearance: search('cantones', 'matches', 'a_column', ${a_variable})
-QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choices,QString variableName, bool hasOrOther, int &result, QDir dir, QSqlDatabase database, QString &file)
+QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choices,QString variableName, bool hasOrOther, int &result, QDir dir, QSqlDatabase database, QString &file, QString &codeColumn, QString &descColumn)
 {    
     QList<TlkpValue> res;
-    QString codeColumn;
     codeColumn = "";
     result = 0;
     QList<TlngLkpDesc> descColumns;    
@@ -3346,6 +3345,15 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
         codeColumn = JSONValue.toObject().value("name").toString();
         QJsonValue JSONlabel = JSONValue.toObject().value("label");
         descColumns.append(getLabels(JSONlabel));
+    }
+    QString defLag = getDefLanguageCode();
+    for (int n=0; n < descColumns.count(); n++)
+    {
+        if (descColumns[n].langCode == defLag)
+        {
+            descColumn = descColumns[n].desc;
+            break;
+        }
     }
 
     if ((codeColumn != "") && (descColumns.count() > 0))
@@ -3955,7 +3963,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 {
                     int result;
                     QString fileName;
-                    values.append(getSelectValuesFromCSV(variableApperance,fieldObject.value("choices").toArray(),fixField(variableName),selectHasOrOther(variableType),result,dir,database,fileName));
+                    values.append(getSelectValuesFromCSV(variableApperance,fieldObject.value("choices").toArray(),fixField(variableName),selectHasOrOther(variableType),result,dir,database,fileName,codeColumn,descColumn));
                     select_type = 2;
                     external_file = fileName;
                     if (result != 0)
