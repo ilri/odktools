@@ -133,6 +133,7 @@ struct fieldDef
   QString externalFileName;
   QString codeColumn;
   QString descColumn;
+  bool autoincrement = false;
 };
 typedef fieldDef TfieldDef;
 
@@ -154,6 +155,14 @@ struct langDef
 };
 typedef langDef TlangDef;
 
+
+struct otherLkpValue
+{
+  QString column_name;
+  QVariant column_value;
+};
+typedef otherLkpValue TotherLkpValue;
+
 //List of languages
 QList <TlangDef> languages;
 
@@ -172,6 +181,8 @@ struct lkpValue
 {
   QString code;
   QList<TlngLkpDesc > desc; //List of lookup values in different languages
+  QStringList other_cols;
+  QList<TotherLkpValue > other_values;
 };
 typedef lkpValue TlkpValue;
 
@@ -183,6 +194,8 @@ struct tableDef
   QList<TlngLkpDesc > desc; //List of table descriptions in different languages
   QList<TfieldDef> fields; //List of fields
   QList<TlkpValue> lkpValues; //List of lookup values
+  QStringList propertyList;
+  QStringList propertyTypes;
   int pos; //Global position of the table
   bool islookup; //Whether the table is a lookup table
   bool isOneToOne; //Whether the table has been separated
@@ -1726,6 +1739,7 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
     int idx;
     idx = 0;
 
+    //This is the manifest file
     QDomDocument outputdoc;
     outputdoc = QDomDocument("ODKImportFile");
     QDomElement root;
@@ -1915,11 +1929,18 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
             lkptable.setAttribute("name",prefix + tables[pos].name.toLower());
             lkptable.setAttribute("clmcode",tables[pos].fields[0].name);
             lkptable.setAttribute("clmdesc",tables[pos].fields[1].name);
+            lkptable.setAttribute("properties",tables[pos].propertyList.join(","));
+
             for (int nlkp = 0; nlkp < tables[pos].lkpValues.count();nlkp++)
             {
                 QDomElement aLKPValue = insertValuesXML.createElement("value");
                 aLKPValue.setAttribute("code",tables[pos].lkpValues[nlkp].code);
                 aLKPValue.setAttribute("description",fixString(getDescForLanguage(tables[pos].lkpValues[nlkp].desc,defLangCode)));
+                // Add other values
+                for (int oth = 0; oth < tables[pos].lkpValues[nlkp].other_values.count(); oth++)
+                {
+                    aLKPValue.setAttribute(tables[pos].lkpValues[nlkp].other_values[oth].column_name, tables[pos].lkpValues[nlkp].other_values[oth].column_value.toString());
+                }                
                 lkptable.appendChild(aLKPValue);
             }
             XMLInsertRoot.appendChild(lkptable);
@@ -2124,6 +2145,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
                 createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                 createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
+                if (tables[pos].fields[clm].autoincrement == true)
+                    createFieldNode.setAttribute("autoincrement","true");
                 if (tables[pos].fields[clm].sensitive == true)
                 {
                     createFieldNode.setAttribute("sensitive","true");
@@ -2161,7 +2184,12 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
             //Work out the mySQL column types
             field = "";
             if ((tables[pos].fields[clm].type == "varchar") || (tables[pos].fields[clm].type == "int"))
-                field = tables[pos].fields[clm].name.toLower() + " " + tables[pos].fields[clm].type + "(" + QString::number(tables[pos].fields[clm].size) + ")";
+            {
+                if (tables[pos].fields[clm].autoincrement == false)
+                    field = tables[pos].fields[clm].name.toLower() + " " + tables[pos].fields[clm].type + "(" + QString::number(tables[pos].fields[clm].size) + ")";
+                else
+                    field = tables[pos].fields[clm].name.toLower() + " " + tables[pos].fields[clm].type + "(" + QString::number(tables[pos].fields[clm].size) + ") UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE";
+            }
             else
                 if (tables[pos].fields[clm].type == "decimal")
                     field = tables[pos].fields[clm].name.toLower() + " " + tables[pos].fields[clm].type + "(" + QString::number(tables[pos].fields[clm].size) + "," + QString::number(tables[pos].fields[clm].decSize) + ")";
@@ -2317,10 +2345,15 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 {
                     insertSQL = insertSQL + tables[pos].fields[pos2].name + ",";
                 }
-                insertSQL = insertSQL.left(insertSQL.length()-1) + ")  VALUES ('";
+                insertSQL = insertSQL.left(insertSQL.length()-1) + ") VALUES ('";
 
                 insertSQL = insertSQL + tables[pos].lkpValues[clm].code.replace("'","`") + "',\"";
-                insertSQL = insertSQL + fixString(getDescForLanguage(tables[pos].lkpValues[clm].desc,defLangCode)) + "\");";
+                insertSQL = insertSQL + fixString(getDescForLanguage(tables[pos].lkpValues[clm].desc,defLangCode)) + "\",";
+                for (int p = 0; p < tables[pos].propertyList.count(); p++)
+                {
+                    insertSQL = insertSQL + "\"" + tables[pos].lkpValues[clm].other_values[p].column_value.toString() + "\",";
+                }
+                insertSQL = insertSQL.left(insertSQL.length()-1) + ");";
                 sqlInsertStrm << insertSQL << "\n";
 
                 for (lng = 0; lng <= tables[pos].lkpValues[clm].desc.count() -1; lng++)
@@ -2767,6 +2800,34 @@ void appendUUIDs()
     int lang;
     for (pos = 0; pos <= tables.count()-1;pos++)
     {
+        if (tables[pos].name.indexOf("_msel_") >= 0)
+        {
+            TfieldDef IndexField;
+            IndexField.name = "rowindex";
+
+            for (lang = 0; lang <= languages.count()-1;lang++)
+            {
+                TlngLkpDesc langDesc;
+                langDesc.langCode = languages[lang].code;
+                langDesc.desc = "Row Index";
+                IndexField.desc.append(langDesc);
+            }
+            IndexField.key = false;
+            IndexField.type = "int";
+            IndexField.size = 12;
+            IndexField.decSize = 0;
+            IndexField.rTable = "";
+            IndexField.rField = "";
+            IndexField.xmlCode = "NONE";
+            IndexField.isMultiSelect = false;
+            IndexField.formula = "";
+            IndexField.calculateWithSelect = false;
+            IndexField.selectSource = "NONE";
+            IndexField.selectListName = "NONE";
+            IndexField.sensitive = false;
+            IndexField.autoincrement = true;
+            tables[pos].fields.append(IndexField);
+        }
         TfieldDef UUIDField;
         UUIDField.name = "rowuuid";        
 
@@ -2790,7 +2851,7 @@ void appendUUIDs()
         UUIDField.selectSource = "NONE";
         UUIDField.selectListName = "NONE";
         UUIDField.sensitive = false;
-        tables[pos].fields.append(UUIDField);
+        tables[pos].fields.append(UUIDField);        
     }
 }
 
@@ -3001,11 +3062,210 @@ bool checkSelectValue(QString variableName, QList<TlkpValue> values, QString val
 
 // This return the values of a select that uses an external xml file.
 // e.g., "select one from file a_file.xml" and "select multiple from file a_file.xml"
-QList<TlkpValue> getSelectValuesFromGeoJSON(QString variableName, QString fileName, bool hasOrOther, int &result, QDir dir)
+QList<TlkpValue> getSelectValuesFromGeoJSON(QString variableName, QString fileName, int &result, QDir dir, QString codeColumn, QString descColumn, QStringList &propertyList, QStringList &propertyTypes)
 {
     QList<TlkpValue> res;
-
     result = 0;
+    QString jsonFile;
+    jsonFile = dir.absolutePath() + dir.separator() + fileName;
+    addRequiredFile(fileName);
+    if (QFile::exists(jsonFile) && (fileName.indexOf(".geojson") >=0 ))
+    {
+        QFile loadFile(jsonFile);
+        if (!loadFile.open(QIODevice::ReadOnly))
+        {
+            if (outputType == "h")
+                log("The GeoJSON file \"" + fileName + "\" cannot be openned");
+            else
+            {
+                report_file_error(fileName);
+            }
+            exit(26);
+        }
+        QByteArray jsonData = loadFile.readAll();
+        QJsonDocument jsonDoc(QJsonDocument::fromJson(jsonData));
+        if (jsonDoc.isNull())
+        {
+            if (outputType == "h")
+                log("The GeoJSON file \"" + fileName + "\" cannot be openned");
+            else
+            {
+                report_file_error(fileName);
+            }
+            exit(26);
+        }
+        QJsonObject mainObject = jsonDoc.object();
+        if (mainObject.value("type").toString("") == "FeatureCollection")
+        {
+            QJsonArray features = mainObject.value("features").toArray();
+            if (features.size() > 0)
+            {
+                for (int i = 0; i < features.size(); i++)
+                {
+
+                    QJsonObject feature = features[i].toObject();
+                    if (feature.keys().indexOf("properties") >= 0)
+                    {
+                        QJsonObject properties = feature.value("properties").toObject();
+                        QStringList propKeys = properties.keys();
+                        for (int k = 0; k < propKeys.size(); k++)
+                        {
+                            if (propertyList.indexOf(propKeys[k]) < 0)
+                            {
+                                propertyList.append(propKeys[k]);
+                                propertyTypes.append("text");
+                            }
+                        }
+                    }
+                }
+                if (propertyList.size() > 0)
+                {
+                    if (propertyList.indexOf(codeColumn) >= 0 && propertyList.indexOf(descColumn) >= 0)
+                    {
+                        for (int i = 0; i < features.size(); i++)
+                        {
+                            QJsonObject feature = features[i].toObject();
+                            if (feature.keys().indexOf("geometry") >= 0)
+                            {
+                                QJsonObject geometry = feature.value("geometry").toObject();
+                                QJsonObject properties = feature.value("properties").toObject();
+                                if (geometry.value("type").toString("") == "Point")
+                                {
+                                    QJsonArray coordinates = geometry.value("coordinates").toArray();
+                                    TlkpValue value;
+                                    value.code = properties.value(codeColumn).toString();
+                                    QString coordinates_string = QString::number(coordinates[0].toDouble()) + " " + QString::number(coordinates[1].toDouble());
+                                    for (int lng = 0; lng < languages.count(); lng++)
+                                    {
+                                        TlngLkpDesc desc;
+                                        desc.langCode = languages[lng].code;
+                                        desc.desc = properties.value(descColumn).toString();
+                                        value.desc.append(desc);
+                                    }
+                                    for (int p = 0; p < propertyList.count() ;p++)
+                                    {
+                                        if (propertyList[p] != codeColumn && propertyList[p] != descColumn)
+                                        {
+                                            TotherLkpValue other_value;
+                                            other_value.column_name = propertyList[p];
+                                            other_value.column_value = properties.value(propertyList[p]).toVariant();
+                                            QVariant oth_value = properties.value(propertyList[p]).toVariant();
+                                            bool isInt;
+                                            bool isDouble;
+                                            oth_value.toInt(&isInt);
+                                            if (isInt)
+                                                propertyTypes[p] = "integer";
+                                            else
+                                            {
+                                                oth_value.toDouble(&isDouble);
+                                                if (isDouble)
+                                                    propertyTypes[p] = "double";
+                                            }
+                                            value.other_values.append(other_value);
+                                        }
+                                    }
+                                    TotherLkpValue coor_column;
+                                    coor_column.column_name = "coordinates";
+                                    coor_column.column_value = coordinates_string;
+                                    value.other_values.append(coor_column);
+                                    checkSelectValue(variableName,res,value.code);
+                                    res.append(value);
+                                }
+                                else
+                                {
+                                    if (outputType == "h")
+                                        log("The GeoJSON file \"" + fileName + "\" has a feature that is not point");
+                                    else
+                                    {
+                                        report_file_error(fileName);
+                                    }
+                                    exit(32);
+                                }
+                            }
+                            else
+                            {
+                                if (outputType == "h")
+                                    log("The GeoJSON file \"" + fileName + "\" has a feature witout geometry");
+                                else
+                                {
+                                    report_file_error(fileName);
+                                }
+                                exit(31);
+                            }
+
+                        }
+                    }
+                    else
+                    {
+                        if (outputType == "h")
+                            log("The GeoJSON file \"" + fileName + "\" does not have " + codeColumn  + " or " + descColumn);
+                        else
+                        {
+                            report_file_error(fileName);
+                        }
+                        exit(30);
+                    }
+                }
+                else
+                {
+                    if (outputType == "h")
+                        log("The GeoJSON file \"" + fileName + "\" does not have any properties");
+                    else
+                    {
+                        report_file_error(fileName);
+                    }
+                    exit(29);
+                }
+            }
+            else
+            {
+                if (outputType == "h")
+                    log("The GeoJSON file \"" + fileName + "\" does not have any features");
+                else
+                {
+                    report_file_error(fileName);
+                }
+                exit(28);
+            }
+        }
+        else
+        {
+            if (outputType == "h")
+                log("The GeoJSON file \"" + fileName + "\" is not a FeatureCollection");
+            else
+            {
+                report_file_error(fileName);
+            }
+            exit(27);
+        }
+    }
+    else
+    {
+        if (!justCheck)
+        {
+            if (outputType == "h")
+                log("There is no GeoJSON file for \"" + fileName + "\". The file mist be .geojson. Did you add it when you ran JXFormToMySQL?");
+            else
+            {
+                report_file_error(fileName);
+            }
+            exit(26);
+        }
+    }
+
+    if (propertyList.count() > 0)
+    {
+        int idx = propertyList.indexOf(codeColumn);
+        propertyList.removeAt(idx);
+        propertyTypes.removeAt(idx);
+        idx = propertyList.indexOf(descColumn);
+        propertyList.removeAt(idx);
+        propertyTypes.removeAt(idx);
+
+        propertyList.append("coordinates");
+        propertyTypes.append("varchar");
+    }
+
     return res;
 }
 
@@ -3880,6 +4140,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
         QString external_file;
         QString codeColumn="name";
         QString descColumn="label";
+        QStringList propertyList;
+        QStringList propertyTypes;        
         if ((isSelect(variableType) == 1) || (isSelect(variableType) == 3) || (isSelect(variableType) == 4))
         {
             bool fromSearchCSV;
@@ -3894,7 +4156,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 }
             }
 
-            if ((fieldObject.value("itemset").toString("").toLower().trimmed().indexOf(".csv") > 0) || (fieldObject.value("itemset").toString("").toLower().trimmed().indexOf(".xml") > 0))
+            if ((fieldObject.value("itemset").toString("").toLower().trimmed().indexOf(".csv") > 0) || (fieldObject.value("itemset").toString("").toLower().trimmed().indexOf(".xml") > 0) || (fieldObject.value("itemset").toString("").toLower().trimmed().indexOf(".geojson") > 0))
             {
                 if (fieldObject.value("itemset").toString("").toLower().trimmed().indexOf(".csv") > 0)
                 {
@@ -3939,15 +4201,28 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         }
                     }
                     else
-                    {
-                        int result;
-                        select_type = 6;
-                        external_file = fileName;
-                        values.append(getSelectValuesFromGeoJSON(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir));
-                        if (result != 0)
+                    {                        
+                        if (fileName.toLower().trimmed().indexOf(".geojson") >= 0)
                         {
-                            if (!justCheck)
-                                exit(result);
+                            codeColumn = "id";
+                            descColumn = "title";
+                            if (!fieldObject.value("parameters").isUndefined())
+                            {
+                                QJsonObject parameters = fieldObject.value("parameters").toObject();
+                                codeColumn = parameters.value("value").toString("id").toLower().trimmed();
+                                descColumn = parameters.value("label").toString("title").toLower().trimmed();
+                            }
+                            int result;
+                            select_type = 6;
+                            external_file = fileName;
+                            //qDebug() << fileName;
+                            values.append(getSelectValuesFromGeoJSON(fixField(variableName),fileName,result,dir,codeColumn,descColumn,propertyList,propertyTypes));
+                            //qDebug() << values.count();
+                            if (result != 0)
+                            {
+                                if (!justCheck)
+                                    exit(result);
+                            }
                         }
                     }
                 }
@@ -4099,6 +4374,8 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.islookup = true;
                     lkpTable.isOneToOne = false;
                     lkpTable.lkpValues.append(values);
+                    lkpTable.propertyList.append(propertyList);
+                    lkpTable.propertyTypes.append(propertyTypes);
                     //Creates the field for code in the lookup
                     TfieldDef lkpCode;
                     lkpCode.name = fixField(listName.toLower()) + "_cod";
@@ -4135,6 +4412,32 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpDesc.size = 0;//getMaxDescLength(values);
                     lkpDesc.decSize = 0;
                     lkpTable.fields.append(lkpDesc);
+
+                    //Add other properties as fields
+                    for (int oth = 0; oth < propertyList.count(); oth++)
+                    {
+                        TfieldDef othField;
+                        othField.name = fixField(propertyList[oth]);
+                        othField.selectSource = "NONE";
+                        othField.selectListName = "NONE";
+                        for (int lang = 0; lang <= languages.count()-1;lang++)
+                        {
+                            TlngLkpDesc langDesc;
+                            langDesc.langCode = languages[lang].code;
+                            langDesc.desc = "Property " + propertyList[oth];
+                            othField.desc.append(langDesc);
+                        }
+                        othField.key = false;
+                        othField.sensitive = false;
+                        othField.type = propertyTypes[oth];
+                        if (othField.name != "coordinates")
+                            othField.size = 0;
+                        else
+                            othField.size = 50;
+                        othField.decSize = 0;
+                        lkpTable.fields.append(othField);
+                    }
+
                     aField.rTable = lkpTable.name;
                     aField.rField = lkpCode.name;
                     aField.rName = getUUIDCode();
@@ -4368,11 +4671,40 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpDesc.size = 0; //getMaxDescLength(values);
                     lkpDesc.decSize = 0;
                     lkpTable.fields.append(lkpDesc);
+
+                    //Add other properties as fields in the lookup table
+                    for (int oth = 0; oth < propertyList.count(); oth++)
+                    {
+                        TfieldDef othField;
+                        othField.name = fixField(propertyList[oth]);
+                        othField.selectSource = "NONE";
+                        othField.selectListName = "NONE";
+                        for (int lang = 0; lang <= languages.count()-1;lang++)
+                        {
+                            TlngLkpDesc langDesc;
+                            langDesc.langCode = languages[lang].code;
+                            langDesc.desc = "Property " + propertyList[oth];
+                            othField.desc.append(langDesc);
+                        }
+                        othField.key = false;
+                        othField.sensitive = false;
+                        othField.type = propertyTypes[oth];
+                        if (othField.name != "coordinates")
+                            othField.size = 0;
+                        else
+                            othField.size = 50;
+                        othField.decSize = 0;
+                        lkpTable.fields.append(othField);
+                    }
+
+
                     //Linking the multiselect field to this lookup table
                     mselKeyField.rTable = lkpTable.name;
                     mselKeyField.rField = lkpCode.name;
                     mselKeyField.rName = getUUIDCode();
                     lkpTable.lkpValues.append(values);
+                    lkpTable.propertyList.append(propertyList);
+                    lkpTable.propertyTypes.append(propertyTypes);
                     tables.append(lkpTable); //Append the lookup table to the list of tables
                     mselTable.fields.append(mselKeyField); //Add the multiselect key now linked to the looktable to the multiselect table
                     tables.append(mselTable); //Append the multiselect to the list of tables
@@ -5999,6 +6331,13 @@ int main(int argc, char *argv[])
     title = title + " * 21: Duplicated lookups (XML).                                       * \n";
     title = title + " * 24: The name of a table is longer than 64 characters.               * \n";
     title = title + " * 25: Mixing coded and not coded languages.                           * \n";
+    title = title + " * 26: Resource GeoJSON file was not attached or cannot open (XML).    * \n";
+    title = title + " * 27: Resource GeoJSON is not a FeatureCollection (XML).              * \n";
+    title = title + " * 28: Resource GeoJSON does not have features (XML).                  * \n";
+    title = title + " * 29: Resource GeoJSON does not have properties (XML).                * \n";
+    title = title + " * 30: Resource GeoJSON does not have the id or title columns (XML).   * \n";
+    title = title + " * 31: Resource GeoJSON does has features without geometry (XML).      * \n";
+    title = title + " * 32: Resource GeoJSON does has features that are not point (XML).    * \n";
     title = title + " *                                                                     * \n";
     title = title + " * XML = XML oputput is available.                                     * \n";
     title = title + " ********************************************************************* \n";
@@ -6200,6 +6539,11 @@ int main(int argc, char *argv[])
                 return CSVError;
         }
         if (supportFiles[pos].right(3).toLower() == "xml")
+        {
+            QFileInfo supportFile(supportFiles[pos]);
+            QFile::copy(supportFiles[pos],dir.absolutePath() + QDir::separator() + supportFile.fileName());
+        }
+        if (supportFiles[pos].right(8).toLower() == ".geojson")
         {
             QFileInfo supportFile(supportFiles[pos]);
             QFile::copy(supportFiles[pos],dir.absolutePath() + QDir::separator() + supportFile.fileName());

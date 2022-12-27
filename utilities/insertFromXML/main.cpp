@@ -83,10 +83,25 @@ void genInsert(QDomNode node, QTextStream &out)
     {
         insertSQL = "INSERT INTO " + node.toElement().attribute("name","") + " (";
         insertSQL = insertSQL + node.toElement().attribute("clmcode","") + ",";
-        insertSQL = insertSQL + node.toElement().attribute("clmdesc","");
-        insertSQL = insertSQL + ")  VALUES ('";
+        insertSQL = insertSQL + node.toElement().attribute("clmdesc","") + ",";
+        QStringList properties;
+        if (node.toElement().attribute("properties","") != "")
+        {
+            properties = node.toElement().attribute("properties","").split(",");
+            for (int p=0; p < properties.count(); p++)
+            {
+                insertSQL = insertSQL + properties[p] + ",";
+            }
+        }
+        insertSQL = insertSQL.left(insertSQL.length()-1) + ") VALUES ('";
+
         insertSQL = insertSQL + value.toElement().attribute("code","").replace("'","`") + "',\"";
-        insertSQL = insertSQL + fixString(value.toElement().attribute("description","")) + "\");";
+        insertSQL = insertSQL + fixString(value.toElement().attribute("description","")) + "\",";
+        for (int p=0; p < properties.count(); p++)
+        {
+            insertSQL = insertSQL + "\"" + fixString(value.toElement().attribute(properties[p],"")) + "\",";
+        }
+        insertSQL = insertSQL.left(insertSQL.length()-1) + ");";
         out << insertSQL << "\n";
 
         value = value.nextSibling();
@@ -164,6 +179,7 @@ int main(int argc, char *argv[])
                 out << "-- Created: " + date.toString("ddd MMMM d yyyy h:m:s ap")  << "\n";
                 out << "-- by: insertFromXML Version 1.0" << "\n";
                 out << "-- WARNING! All changes made in this file might be lost when running insertFromXML again" << "\n\n";
+                out << "START TRANSACTION;\n\n";
 
                 QDomNode table = docA.documentElement().firstChild();
                 while (!table.isNull())
@@ -171,6 +187,7 @@ int main(int argc, char *argv[])
                     genInsert(table,out);
                     table = table.nextSibling();
                 }
+                out << "COMMIT;";
             }
             else
             {

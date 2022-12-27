@@ -110,7 +110,12 @@ void createTable(QString tableName,QList<QDomNode> fields,QTextStream &outstrm, 
 
         field = "";
         if ((efield.attribute("type","") == "varchar") || (efield.attribute("type","") == "int"))
-            field = efield.attribute("name","") + " " + efield.attribute("type","") + "(" + efield.attribute("size","") + ")";
+        {
+            if (efield.attribute("autoincrement","false") == "true")
+                field = efield.attribute("name","") + " " + efield.attribute("type","") + "(" + efield.attribute("size","") + ") UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE";
+            else
+                field = efield.attribute("name","") + " " + efield.attribute("type","") + "(" + efield.attribute("size","") + ")";
+        }
         else
             if (efield.attribute("type","") == "decimal")
                 field = efield.attribute("name","") + " " + efield.attribute("type","") + "(" + efield.attribute("size","") + "," + efield.attribute("decsize","") + ")";
