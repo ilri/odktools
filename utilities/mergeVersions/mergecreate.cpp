@@ -372,7 +372,12 @@ void mergeCreate::addFieldToDiff(QString table, QDomElement eField)
     sql = "ALTER TABLE " + table + " ADD COLUMN " + eField.attribute("name","");
 
     if ((eField.attribute("type","") == "varchar") || (eField.attribute("type","") == "int"))
-        sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + ");\n";
+    {
+        if (eField.attribute("autoincrement","false") == "true")
+            sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + ") UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE;\n";
+        else
+            sql = sql + " " + eField.attribute("type","") + " (" + eField.attribute("size","0") + ");\n";
+    }
     else
     {
         if (eField.attribute("type","") == "decimal")

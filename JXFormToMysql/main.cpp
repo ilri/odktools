@@ -2033,6 +2033,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
                         createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                         createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
+                        if (tables[pos].fields[clm].autoincrement == true)
+                            createFieldNode.setAttribute("autoincrement","true");
                         if (tables[pos].fields[clm].sensitive == true)
                         {
                             createFieldNode.setAttribute("sensitive","true");
@@ -2075,6 +2077,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
                         createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                         createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
+                        if (tables[pos].fields[clm].autoincrement == true)
+                            createFieldNode.setAttribute("autoincrement","true");
                         if (tables[pos].fields[clm].sensitive == true)
                         {
                             createFieldNode.setAttribute("sensitive","true");
@@ -2110,6 +2114,8 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                     createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
                     createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                     createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
+                    if (tables[pos].fields[clm].autoincrement == true)
+                        createFieldNode.setAttribute("autoincrement","true");
                     if (tables[pos].fields[clm].sensitive == true)
                     {
                         createFieldNode.setAttribute("sensitive","true");
