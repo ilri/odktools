@@ -7,6 +7,7 @@
 #include <QDebug>
 #include <QFileInfo>
 #include <QUuid>
+#include <QUrl>
 
 JSONWorker::JSONWorker(QObject *parent)
     : QThread{parent}
@@ -41,7 +42,9 @@ void JSONWorker::run()
 {
     QProcess *mySQLDumpProcess = new QProcess();
     QStringList arguments;
-    QString uri = user + ":" + pass + "@" + host + "/" + schema;
+    QString fixed_pass(QUrl::toPercentEncoding(pass));
+    QString fixed_user(QUrl::toPercentEncoding(user));
+    QString uri = fixed_user + ":" + fixed_pass + "@" + host + ":" + port +  "/" + schema;
 
     int index = mutex->get_index();
     //qDebug() << name + " - Processing index: " + QString::number(index);

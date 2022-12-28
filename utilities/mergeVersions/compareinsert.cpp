@@ -267,9 +267,26 @@ void compareInsert::addValueToDiff(QDomElement table, QDomElement field)
     QString sql;
     sql = "INSERT INTO " + table.attribute("name","") + " (";
     sql = sql + table.attribute("clmcode","") + ",";
-    sql = sql + table.attribute("clmdesc","") + ") VALUES ('";
-    sql = sql + field.attribute("code","") + "','";
-    sql = sql + field.attribute("description","") + "');";
+    sql = sql + table.attribute("clmdesc","") + ",";
+    QStringList properties = table.attribute("properties","").split(",", Qt::SkipEmptyParts);
+    if (properties.length() > 0)
+    {
+        for (int p=0; p < properties.length(); p++)
+        {
+            sql = sql + properties[p] + ",";
+        }
+    }
+    sql = sql.left(sql.length()-1) + ") VALUES (";
+    sql = sql + "'" + field.attribute("code","") + "',";
+    sql = sql + "'" + field.attribute("description","") + "',";
+    if (properties.length() > 0)
+    {
+        for (int p=0; p < properties.length(); p++)
+        {
+            sql = sql + "'" + field.attribute(properties[p],"") + "',";
+        }
+    }
+    sql = sql.left(sql.length()-1) + ");";
     addDiffToTable(table.attribute("name",""),sql);
 }
 
