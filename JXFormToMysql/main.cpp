@@ -277,6 +277,15 @@ void isFieldValid(QString field)
 void loadInvalidFieldNames()
 {
     //This is the list of invalid column or table names. Source: https://dev.mysql.com/doc/refman/8.0/en/keywords.html
+    invalidFieldNames << "_SUBMITTED_BY";
+    invalidFieldNames << "_XFORM_ID_STRING";
+    invalidFieldNames << "_SUBMITTED_DATE";
+    invalidFieldNames << "_GEOPOINT";
+    invalidFieldNames << "_LONGITUDE";
+    invalidFieldNames << "_LATITUDE";
+    invalidFieldNames << "_ELEVATION";
+    invalidFieldNames << "_PRECISION";
+    invalidFieldNames << "_ACTIVE";
     invalidFieldNames << "ACCESSIBLE";
     invalidFieldNames << "ACCOUNT";
     invalidFieldNames << "ACTION";
@@ -688,6 +697,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "ORDER";
     invalidFieldNames << "ORDINALITY";
     invalidFieldNames << "ORGANIZATION";
+    invalidFieldNames << "ORIGINID";
     invalidFieldNames << "OTHERS";
     invalidFieldNames << "OUT";
     invalidFieldNames << "OUTER";
@@ -795,7 +805,9 @@ void loadInvalidFieldNames()
     invalidFieldNames << "ROTATE";
     invalidFieldNames << "ROUTINE";
     invalidFieldNames << "ROW";
+    invalidFieldNames << "ROWINDEX";
     invalidFieldNames << "ROWS";
+    invalidFieldNames << "ROWUUID";
     invalidFieldNames << "ROW_COUNT";
     invalidFieldNames << "ROW_FORMAT";
     invalidFieldNames << "ROW_NUMBER";
@@ -880,6 +892,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "SUBPARTITION";
     invalidFieldNames << "SUBPARTITIONS";
     invalidFieldNames << "SUPER";
+    invalidFieldNames << "SURVEYID";
     invalidFieldNames << "SUSPEND";
     invalidFieldNames << "SWAPS";
     invalidFieldNames << "SWITCHES";
