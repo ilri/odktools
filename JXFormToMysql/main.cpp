@@ -2548,6 +2548,11 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
         result.type = "varchar";
         result.size = 80;
     }
+    if (ODKFieldType == "start-geopoint")
+    {
+        result.type = "varchar";
+        result.size = 80;
+    }
     if (ODKFieldType == "get device id")
     {
         result.type = "text";
