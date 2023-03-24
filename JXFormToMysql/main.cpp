@@ -569,6 +569,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "INSERT_METHOD";
     invalidFieldNames << "INSTALL";
     invalidFieldNames << "INSTANCE";
+    invalidFieldNames << "INSTANCEID";
     invalidFieldNames << "INT";
     invalidFieldNames << "INT1";
     invalidFieldNames << "INT2";
