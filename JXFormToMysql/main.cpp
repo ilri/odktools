@@ -569,7 +569,6 @@ void loadInvalidFieldNames()
     invalidFieldNames << "INSERT_METHOD";
     invalidFieldNames << "INSTALL";
     invalidFieldNames << "INSTANCE";
-    invalidFieldNames << "INSTANCEID";
     invalidFieldNames << "INT";
     invalidFieldNames << "INT1";
     invalidFieldNames << "INT2";
@@ -5590,6 +5589,12 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                 mainFieldIndex = ivar;
                 break;
             }
+        }
+
+        if (mainField.toLower().simplified().trimmed() == "instanceid")
+        {
+            log("The primary key field cannot be instanceid");
+            exit(17);
         }
 
         if (mainFieldIndex == -1)
