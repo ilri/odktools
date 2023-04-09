@@ -3,6 +3,7 @@ TEMPLATE = subdirs
 CONFIG += debug
 
 SUBDIRS = createFromXML \
+    DCFToODK \
     insertFromXML \
     MySQLDenormalize \
     MySQLToXLSX \
@@ -13,4 +14,5 @@ SUBDIRS = createFromXML \
     createDummyJSON \
     MySQLToSQLite \
     mergeVersions \
-    createTemporaryTable
+    createTemporaryTable \
+    DCFToODK
