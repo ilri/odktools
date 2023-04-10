@@ -11,6 +11,13 @@ struct lkpValue
 };
 typedef lkpValue TlkpValue;
 
+struct lkpLink
+{
+    QString code;
+    QString link;
+};
+typedef lkpLink TlkpLink;
+
 class XMLToYML : public QObject
 {
     Q_OBJECT
@@ -22,6 +29,8 @@ private:
     QDomDocument xmlDoc;
     void addValueToList(QList<TlkpValue > &list, QString code, QString desc);
     void log(QString message);
+    QString getListByLink(QString link);
+    QList<TlkpLink > item_link_list;
 };
 
 #endif // XMLTOYML_H

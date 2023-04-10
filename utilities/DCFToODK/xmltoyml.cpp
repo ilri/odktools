@@ -49,6 +49,16 @@ void XMLToYML::addValueToList(QList<TlkpValue > &list, QString code, QString des
     }
 }
 
+QString XMLToYML::getListByLink(QString link)
+{
+    for (int l=0; l < item_link_list.count(); l++)
+    {
+        if (item_link_list[l].link == link)
+            return item_link_list[l].code;
+    }
+    return "";
+}
+
 
 void XMLToYML::generateYML(QString file, QString mainRecord, QString tempDir)
 {
@@ -86,10 +96,20 @@ void XMLToYML::generateYML(QString file, QString mainRecord, QString tempDir)
             QString recordName = records.item(r).firstChild().nextSibling().toElement().text();
             if (recordName == mainRecord)
             {
+                pt::ptree beginGroupObject;
+                beginGroupObject.put("type","begin group");
+                beginGroupObject.put("name","grp_cover");
+                beginGroupObject.put("label","Cover information");
+                beginGroupObject.put("repeat_count","");
+                beginGroupObject.put("appearance","field-list");
+                survey_sheet.push_back(std::make_pair("", beginGroupObject));
+
                 pt::ptree IdItemObject;
                 IdItemObject.put("type","text");
                 IdItemObject.put("name",IdItemName.toStdString());
                 IdItemObject.put("label",IdItemLabel.toStdString());
+                IdItemObject.put("repeat_count","");
+                IdItemObject.put("appearance","");
                 survey_sheet.push_back(std::make_pair("", IdItemObject));
 
                 for (int i=0; i < items.count(); i++)
@@ -105,6 +125,15 @@ void XMLToYML::generateYML(QString file, QString mainRecord, QString tempDir)
                     QDomNodeList itemValues = items.item(i).toElement().elementsByTagName("Value");
                     if (itemValues.count() > 0)
                     {
+                        tmp = items.item(i).toElement().elementsByTagName("Link");
+                        if (tmp.count() > 0)
+                        {
+                            TlkpLink a_link;
+                            a_link.code = itemName;
+                            a_link.link = tmp.item(0).toElement().text();
+                            item_link_list.append(a_link);
+                        }
+
                         itemType = "select_one " +  itemName;
                         QList<TlkpValue > item_value_list;
                         for (int v=0; v < itemValues.count(); v++)
@@ -121,13 +150,36 @@ void XMLToYML::generateYML(QString file, QString mainRecord, QString tempDir)
                             choices_sheet.push_back(std::make_pair("", ValueObject));
                         }
                     }
+                    else
+                    {
+                        tmp = items.item(i).toElement().elementsByTagName("Link");
+                        if (tmp.count() > 0)
+                        {
+                            QString link = tmp.item(0).toElement().text();
+                            QString listCode = getListByLink(link);
+                            if (listCode != "")
+                            {
+                                itemType = "select_one " +  listCode;
+                            }
+                        }
+                    }
 
                     ItemObject.put("type",itemType.toStdString());
                     ItemObject.put("name",itemName.toStdString());
                     ItemObject.put("label",itemLabel.toStdString());
+                    ItemObject.put("repeat_count","");
+                    ItemObject.put("appearance","");
                     survey_sheet.push_back(std::make_pair("", ItemObject));
 
                 }
+
+                pt::ptree endGroupObject;
+                endGroupObject.put("type","end group");
+                endGroupObject.put("name","grp_cover");
+                endGroupObject.put("label","");
+                endGroupObject.put("repeat_count","");
+                endGroupObject.put("appearance","");
+                survey_sheet.push_back(std::make_pair("", endGroupObject));
             }
             else
             {
@@ -135,7 +187,17 @@ void XMLToYML::generateYML(QString file, QString mainRecord, QString tempDir)
                 beginRepeatObject.put("type","begin repeat");
                 beginRepeatObject.put("name",recordName.toStdString());
                 beginRepeatObject.put("label",recordLabel.toStdString());
+                beginRepeatObject.put("repeat_count","");
+                beginRepeatObject.put("appearance","");
                 survey_sheet.push_back(std::make_pair("", beginRepeatObject));
+
+                pt::ptree beginGroupObject;
+                beginGroupObject.put("type","begin group");
+                beginGroupObject.put("name","grp_" + recordName.toStdString());
+                beginGroupObject.put("label",recordLabel.toStdString());
+                beginGroupObject.put("repeat_count","");
+                beginGroupObject.put("appearance","field-list");
+                survey_sheet.push_back(std::make_pair("", beginGroupObject));
 
                 for (int i=0; i < items.count(); i++)
                 {
@@ -150,6 +212,15 @@ void XMLToYML::generateYML(QString file, QString mainRecord, QString tempDir)
                     QDomNodeList itemValues = items.item(i).toElement().elementsByTagName("Value");
                     if (itemValues.count() > 0)
                     {
+                        tmp = items.item(i).toElement().elementsByTagName("Link");
+                        if (tmp.count() > 0)
+                        {
+                            TlkpLink a_link;
+                            a_link.code = itemName;
+                            a_link.link = tmp.item(0).toElement().text();
+                            item_link_list.append(a_link);
+                        }
+
                         itemType = "select_one " +  itemName;
                         QList<TlkpValue > item_value_list;
                         for (int v=0; v < itemValues.count(); v++)
@@ -166,18 +237,43 @@ void XMLToYML::generateYML(QString file, QString mainRecord, QString tempDir)
                             choices_sheet.push_back(std::make_pair("", ValueObject));
                         }
                     }
+                    else
+                    {
+                        tmp = items.item(i).toElement().elementsByTagName("Link");
+                        if (tmp.count() > 0)
+                        {
+                            QString link = tmp.item(0).toElement().text();
+                            QString listCode = getListByLink(link);
+                            if (listCode != "")
+                            {
+                                itemType = "select_one " +  listCode;
+                            }
+                        }
+                    }
 
                     ItemObject.put("type",itemType.toStdString());
                     ItemObject.put("name",itemName.toStdString());
                     ItemObject.put("label",itemLabel.toStdString());
+                    ItemObject.put("repeat_count","");
+                    ItemObject.put("appearance","");
                     survey_sheet.push_back(std::make_pair("", ItemObject));
 
                 }
+
+                pt::ptree endGroupObject;
+                endGroupObject.put("type","end group");
+                endGroupObject.put("name","grp_" + recordName.toStdString());
+                endGroupObject.put("label","");
+                endGroupObject.put("repeat_count","");
+                endGroupObject.put("appearance","");
+                survey_sheet.push_back(std::make_pair("", endGroupObject));
 
                 pt::ptree endRepeatObject;
                 endRepeatObject.put("type","end repeat");
                 endRepeatObject.put("name",recordName.toStdString());
                 endRepeatObject.put("label","");
+                endRepeatObject.put("repeat_count","");
+                endRepeatObject.put("appearance","");
                 survey_sheet.push_back(std::make_pair("", endRepeatObject));
             }
         }
@@ -204,10 +300,12 @@ void XMLToYML::generateYML(QString file, QString mainRecord, QString tempDir)
     pt::ptree choices;
     pt::ptree settings;
 
-    pt::ptree type, name, label, list_name, hash_tag, form_title, form_id;
+    pt::ptree type, name, label, list_name, hash_tag, form_title, form_id, repeat_count, appearance;
     type.put("","type");
     name.put("","name");
     label.put("","label");
+    repeat_count.put("","repeat_count");
+    appearance.put("","appearance");
     list_name.put("","list_name");
     hash_tag.put("","#");
     form_title.put("","form_title");
@@ -217,6 +315,8 @@ void XMLToYML::generateYML(QString file, QString mainRecord, QString tempDir)
     survey.push_back(std::make_pair("", type));
     survey.push_back(std::make_pair("", name));
     survey.push_back(std::make_pair("", label));
+    survey.push_back(std::make_pair("", repeat_count));
+    survey.push_back(std::make_pair("", appearance));
 
     choices.push_back(std::make_pair("", list_name));
     choices.push_back(std::make_pair("", name));
