@@ -5515,14 +5515,29 @@ int genLangIndex(QString langCode)
 //Adds a language to the list and check if the each language structure is ok
 int addLanguage(QString langCode, bool defLang, bool coded)
 {
-    QRegExp reEngLetterOnly("\\(([a-zA-Z]{2})\\)(.*)");
+    QRegExp reEngLetterOnly("^\\((\\w+-?\\w*)\\)([\\w\\s-]+)$");
     if (reEngLetterOnly.indexIn(langCode) == -1)
     {
-        log("Malformed language code " + langCode + ". Indicate a language like (iso639 Code)Language_Name. For example (en)English");
-        return 1;
+        if (justCheck == false)
+        {
+            log("Malformed language code " + langCode + ". Indicate a language like (iso639 Code)Language_Name. For example (en)English");
+            return 1;
+        }
+        else
+        {
+            if (langCode.indexOf("(") >= 0)
+            {
+                log("Malformed language code " + langCode + ". Languages must be defined in ODK with ::Language (Language_code). For example: label::English (en)");
+                exit(7);
+            }
+        }
     }
     QString code = reEngLetterOnly.cap(1);
     QString name = reEngLetterOnly.cap(2);
+
+    //qDebug() << code;
+    //qDebug() << name;
+
     int lang_index = genLangIndex(code);
     if (lang_index == -1)
     {        
@@ -5659,7 +5674,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         //Process the internal languages to see if they are coded like English (en)
         if (ODKLanguages.length() > 0)
         {
-            QRegExp reEngLetterOnly("(.*)\\(([a-zA-Z]{2})+\\)");
+            QRegExp reEngLetterOnly("^([\\w\\s-]+)\\((\\w+-?\\w*)\\)$");
             QString language_in_odk;
             QStringList odk_langs;
             language_in_odk.replace("","");
@@ -5682,6 +5697,9 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                 }
             }
 
+//            qDebug() << "*******************999";
+//            qDebug() << ODKLanguages;
+//            qDebug() << "*******************999";
 
             for (int l=0; l < ODKLanguages.count(); l++)
             {
@@ -5812,6 +5830,9 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         XMLResult.appendChild(XMLRoot);
         QDomElement eLanguages;
         eLanguages = XMLResult.createElement("languages");
+
+        //qDebug() << ODKLanguages;
+
         for (int lng = 0; lng < ODKLanguages.count();lng++)
         {
             if (getCodedLangIndexByName(ODKLanguages[lng]) == -1)
