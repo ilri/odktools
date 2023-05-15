@@ -990,14 +990,18 @@ int mainClass::generateXLSX()
 
             for (int pos = 0; pos < sheets.count(); pos++)
             {
-                arguments.append("-s");
-                arguments.append(sheets[pos]);
+                if (QFile::exists(finalCSVS[pos]))
+                {
+                    arguments.append("-s");
+                    arguments.append(sheets[pos]);
+                }
             }
             arguments.append("--output");
             arguments.append(outputFile);
             for (int pos = 0; pos < finalCSVS.count(); pos++)
             {
-                arguments.append(finalCSVS[pos]);
+                if (QFile::exists(finalCSVS[pos]))
+                    arguments.append(finalCSVS[pos]);
             }
 
             mySQLDumpProcess->setStandardInputFile(QProcess::nullDevice());

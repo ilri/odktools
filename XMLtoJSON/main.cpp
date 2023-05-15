@@ -35,6 +35,7 @@ License along with XMLToJSON.  If not, see <http://www.gnu.org/licenses/lgpl-3.0
 #include <stdio.h>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/stream_translator.hpp>
 #include <boost/foreach.hpp>
 
 namespace pt = boost::property_tree;

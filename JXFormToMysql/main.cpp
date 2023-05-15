@@ -237,7 +237,7 @@ QList <QJsonObject > readOnlyCalculates;
 
 //***************************************Processes********************************************
 
-void isFieldValid(QString field)
+void isFieldValid(QString field, bool select)
 {    
     for (int pos = 0; pos < invalidFieldNames.count(); pos++)
     {        
@@ -272,11 +272,53 @@ void isFieldValid(QString field)
             invalidFields.append(field);
         return;
     }
+    if (select)
+    {
+        if (field.indexOf("_cod") >= 0)
+        {
+            bool found = false;
+            for (int pos2 = 0; pos2 < invalidFields.count(); pos2++)
+            {
+                if (invalidFields[pos2] == field)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                invalidFields.append(field);
+            return;
+        }
+        if (field.indexOf("_des") >= 0)
+        {
+            bool found = false;
+            for (int pos2 = 0; pos2 < invalidFields.count(); pos2++)
+            {
+                if (invalidFields[pos2] == field)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                invalidFields.append(field);
+            return;
+        }
+    }
 }
 
 void loadInvalidFieldNames()
 {
     //This is the list of invalid column or table names. Source: https://dev.mysql.com/doc/refman/8.0/en/keywords.html
+    invalidFieldNames << "_SUBMITTED_BY";
+    invalidFieldNames << "_XFORM_ID_STRING";
+    invalidFieldNames << "_SUBMITTED_DATE";
+    invalidFieldNames << "_GEOPOINT";
+    invalidFieldNames << "_LONGITUDE";
+    invalidFieldNames << "_LATITUDE";
+    invalidFieldNames << "_ELEVATION";
+    invalidFieldNames << "_PRECISION";
+    invalidFieldNames << "_ACTIVE";
     invalidFieldNames << "ACCESSIBLE";
     invalidFieldNames << "ACCOUNT";
     invalidFieldNames << "ACTION";
@@ -688,6 +730,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "ORDER";
     invalidFieldNames << "ORDINALITY";
     invalidFieldNames << "ORGANIZATION";
+    invalidFieldNames << "ORIGINID";
     invalidFieldNames << "OTHERS";
     invalidFieldNames << "OUT";
     invalidFieldNames << "OUTER";
@@ -795,7 +838,9 @@ void loadInvalidFieldNames()
     invalidFieldNames << "ROTATE";
     invalidFieldNames << "ROUTINE";
     invalidFieldNames << "ROW";
+    invalidFieldNames << "ROWINDEX";
     invalidFieldNames << "ROWS";
+    invalidFieldNames << "ROWUUID";
     invalidFieldNames << "ROW_COUNT";
     invalidFieldNames << "ROW_FORMAT";
     invalidFieldNames << "ROW_NUMBER";
@@ -880,6 +925,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "SUBPARTITION";
     invalidFieldNames << "SUBPARTITIONS";
     invalidFieldNames << "SUPER";
+    invalidFieldNames << "SURVEYID";
     invalidFieldNames << "SUSPEND";
     invalidFieldNames << "SWAPS";
     invalidFieldNames << "SWITCHES";
@@ -2535,6 +2581,11 @@ TfieldMap mapODKFieldTypeToMySQL(QString ODKFieldType)
         result.type = "varchar";
         result.size = 80;
     }
+    if (ODKFieldType == "start-geopoint")
+    {
+        result.type = "varchar";
+        result.size = 80;
+    }
     if (ODKFieldType == "get device id")
     {
         result.type = "text";
@@ -2907,7 +2958,7 @@ void addToStack(QString groupOrRepeat, QString type)
 }
 
 //Fixes table and field name by removing invalid MySQL characters
-QString fixField(QString source)
+QString fixField(QString source, bool select=false)
 {
     QString res;
     source = source.trimmed().simplified().toLower();
@@ -2922,7 +2973,7 @@ QString fixField(QString source)
             invalidFields.append(source);
         }
     }
-    isFieldValid(res);
+    isFieldValid(res, select);
     return res;
 }
 
@@ -3808,7 +3859,7 @@ void getReferenceForSelectAt(QString calculateExpresion,QString &fieldType, int 
     QString variable = calculateExpresion.right(calculateExpresion.length()-(pos+1));
     pos = variable.indexOf("}");
     variable = variable.left(pos);
-    variable = fixField(variable);
+    variable = fixField(variable, true);
 
     QString multiSelectTable;
     multiSelectTable = "";
@@ -3895,7 +3946,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
         if (values.count() > 0) //If the lookup table has values
         {
             //Creating the lookp table if its neccesary
-            QString table_name = "lkp" + fixField(variableName.toLower());
+            QString table_name = "lkp" + fixField(variableName.toLower(),true);
             TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
             lkpTable.isLoop = false;
             lkpTable.isOSM = false;
@@ -3934,7 +3985,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
                 lkpTable.fields.append(lkpCode);
                 //Creates the field for description in the lookup
                 TfieldDef lkpDesc;
-                lkpDesc.name = fixField(variableName.toLower()) + "_des";
+                lkpDesc.name = fixField(variableName.toLower(), true) + "_des";
                 lkpDesc.selectSource = "NONE";
                 lkpDesc.selectListName = "NONE";
                 for (int lang = 0; lang <= languages.count()-1;lang++)
@@ -4177,7 +4228,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     int result;
                     select_type = 3;
                     external_file = fileName;
-                    values.append(getSelectValuesFromCSV2(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir,database,"",codeColumn,descColumn));
+                    values.append(getSelectValuesFromCSV2(fixField(variableName, true),fileName,selectHasOrOther(variableType),result,dir,database,"",codeColumn,descColumn));
                     if (result != 0)
                     {                        
                         if (!justCheck)
@@ -4199,7 +4250,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         int result;
                         select_type = 4;
                         external_file = fileName;
-                        values.append(getSelectValuesFromXML(fixField(variableName),fileName,selectHasOrOther(variableType),result,dir,codeColumn,descColumn));
+                        values.append(getSelectValuesFromXML(fixField(variableName, true),fileName,selectHasOrOther(variableType),result,dir,codeColumn,descColumn));
                         if (result != 0)
                         {
                             if (!justCheck)
@@ -4222,7 +4273,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                             select_type = 6;
                             external_file = fileName;
                             //qDebug() << fileName;
-                            values.append(getSelectValuesFromGeoJSON(fixField(variableName),fileName,result,dir,codeColumn,descColumn,propertyList,propertyTypes));
+                            values.append(getSelectValuesFromGeoJSON(fixField(variableName, true),fileName,result,dir,codeColumn,descColumn,propertyList,propertyTypes));
                             //qDebug() << values.count();
                             if (result != 0)
                             {
@@ -4237,14 +4288,14 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             {
                 if (!fromSearchCSV)
                 {
-                    values.append(getSelectValues(fixField(variableName),fieldObject.value("choices").toArray(),selectHasOrOther(variableType)));
+                    values.append(getSelectValues(fixField(variableName, true),fieldObject.value("choices").toArray(),selectHasOrOther(variableType)));
                     select_type = 1;
                 }
                 else
                 {
                     int result;
                     QString fileName;
-                    values.append(getSelectValuesFromCSV(variableApperance,fieldObject.value("choices").toArray(),fixField(variableName),selectHasOrOther(variableType),result,dir,database,fileName,codeColumn,descColumn));
+                    values.append(getSelectValuesFromCSV(variableApperance,fieldObject.value("choices").toArray(),fixField(variableName, true),selectHasOrOther(variableType),result,dir,database,fileName,codeColumn,descColumn));
                     select_type = 2;
                     external_file = fileName;
                     if (result != 0)
@@ -4264,7 +4315,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             if (queryField != "")
             {
                 int result;
-                values.append(getSelectValuesFromCSV2(fixField(variableName),"itemsets.csv",selectHasOrOther(variableType),result,dir,database,queryField));
+                values.append(getSelectValuesFromCSV2(fixField(variableName, true),"itemsets.csv",selectHasOrOther(variableType),result,dir,database,queryField));
                 select_type = 5;
                 external_file = "itemsets.csv";
                 if (result != 0)
@@ -4286,7 +4337,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             hasSelects = true;
             TfieldDef aField;
             aField.selectSource = "NONE";
-            aField.name = fixField(variableName.toLower());
+            aField.name = fixField(variableName.toLower(), true);
             aField.selectType = select_type;
             aField.externalFileName = external_file;
             aField.codeColumn = codeColumn;
@@ -4307,7 +4358,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 aField.type = "varchar";
             aField.size = getMaxValueLength(values, aField.type);
             aField.decSize = 0;
-            if (fixField(variableName) == fixField(mainField.toLower()))
+            if (fixField(variableName, true) == fixField(mainField.toLower(), true))
             {
                 if (!primaryKeyAdded)
                     aField.key = true;
@@ -4352,14 +4403,14 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 QString listName;
                 QJsonValue listValue = fieldObject.value("list_name");
                 if (!listValue.isUndefined())
-                    listName = fixField(listValue.toString().toLower());
+                    listName = fixField(listValue.toString().toLower(), true);
                 else
                 {
                     listValue = fieldObject.value("query");
                     if (!listValue.isUndefined())
-                        listName = fixField(listValue.toString().toLower());
+                        listName = fixField(listValue.toString().toLower(), true);
                     else
-                        listName = fixField(variableName.toLower());
+                        listName = fixField(variableName.toLower(), true);
                 }
                 QString table_name = "lkp" + listName;
                 TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
@@ -4384,7 +4435,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.propertyTypes.append(propertyTypes);
                     //Creates the field for code in the lookup
                     TfieldDef lkpCode;
-                    lkpCode.name = fixField(listName.toLower()) + "_cod";
+                    lkpCode.name = fixField(listName.toLower(),true) + "_cod";
                     lkpCode.selectSource = "NONE";
                     lkpCode.selectListName = "NONE";
                     for (int lang = 0; lang <= languages.count()-1;lang++)
@@ -4402,7 +4453,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.fields.append(lkpCode);
                     //Creates the field for description in the lookup
                     TfieldDef lkpDesc;
-                    lkpDesc.name = fixField(listName.toLower()) + "_des";
+                    lkpDesc.name = fixField(listName.toLower(), true) + "_des";
                     lkpDesc.selectSource = "NONE";
                     lkpDesc.selectListName = "NONE";
                     for (int lang = 0; lang <= languages.count()-1;lang++)
@@ -4498,7 +4549,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             //Creating a multiSelect
             hasSelects = true;
             TfieldDef aField;
-            aField.name = fixField(variableName.toLower());
+            aField.name = fixField(variableName.toLower(), true);
             aField.selectType = select_type;
             aField.externalFileName = external_file;
             aField.codeColumn = codeColumn;
@@ -4515,7 +4566,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             aField.isMultiSelect = true;
             aField.formula = "";
             aField.calculateWithSelect = false;
-            aField.multiSelectTable = fixField(tables[tblIndex].name) + "_msel_" + fixField(variableName.toLower());
+            aField.multiSelectTable = fixField(tables[tblIndex].name, true) + "_msel_" + fixField(variableName.toLower(), true);
             if (getVariableStack(true) != "")
             {
                 if (tableType != "loop")
@@ -4571,7 +4622,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         mselTable.fields.append(relField);
                     }
                 }
-                mselTable.name =  fixField(tables[tblIndex].name) + + "_msel_" + fixField(variableName.toLower());
+                mselTable.name =  fixField(tables[tblIndex].name, true) + + "_msel_" + fixField(variableName.toLower(), true);
 
                 for (int lang = 0; lang < aField.desc.count(); lang++)
                 {
@@ -4611,14 +4662,14 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 QString listName;
                 QJsonValue listValue = fieldObject.value("list_name");
                 if (!listValue.isUndefined())
-                    listName = fixField(listValue.toString().toLower());
+                    listName = fixField(listValue.toString().toLower(), true);
                 else
                 {
                     listValue = fieldObject.value("query");
                     if (!listValue.isUndefined())
-                        listName = fixField(listValue.toString().toLower());
+                        listName = fixField(listValue.toString().toLower(), true);
                     else
-                        listName = fixField(variableName.toLower());
+                        listName = fixField(variableName.toLower(), true);
                 }
                 QString table_name = "lkp" + listName;
 
@@ -4641,7 +4692,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.isOneToOne = false;
                     //Creates the field for code in the lookup
                     TfieldDef lkpCode;
-                    lkpCode.name = fixField(listName.toLower()) + "_cod";
+                    lkpCode.name = fixField(listName.toLower(), true) + "_cod";
                     lkpCode.selectSource = "NONE";
                     lkpCode.selectListName = "NONE";
                     int lang;
@@ -4660,7 +4711,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.fields.append(lkpCode);
                     //Creates the field for description in the lookup
                     TfieldDef lkpDesc;
-                    lkpDesc.name = fixField(listName.toLower()) + "_des";
+                    lkpDesc.name = fixField(listName.toLower(), true) + "_des";
                     lkpDesc.selectSource = "NONE";
                     lkpDesc.selectListName = "NONE";
                     for (lang = 0; lang <= languages.count()-1;lang++)
@@ -4965,14 +5016,14 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
             QString listName;
             QJsonValue listValue = tableObject.value("list_name");
             if (!listValue.isUndefined())
-                listName = fixField(listValue.toString().toLower());
+                listName = fixField(listValue.toString().toLower(), true);
             else
             {
                 listValue = tableObject.value("query");
                 if (!listValue.isUndefined())
-                    listName = fixField(listValue.toString().toLower());
+                    listName = fixField(listValue.toString().toLower(), true);
                 else
-                    listName = fixField(variableName.toLower());
+                    listName = fixField(variableName.toLower(), true);
             }
             QString table_name = "lkp" + listName;
             TtableDef lkpTable = checkDuplicatedLkpTable(table_name,values);
@@ -4995,7 +5046,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
                 lkpTable.lkpValues.append(values);
                 //Creates the field for code in the lookup
                 TfieldDef lkpCode;
-                lkpCode.name = fixField(listName.toLower()) + "_cod";
+                lkpCode.name = fixField(listName.toLower(), true) + "_cod";
                 lkpCode.selectSource = "NONE";
                 lkpCode.selectListName = "NONE";
                 for (int lang = 0; lang <= languages.count()-1;lang++)
@@ -5013,7 +5064,7 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
                 lkpTable.fields.append(lkpCode);
                 //Creates the field for description in the lookup
                 TfieldDef lkpDesc;
-                lkpDesc.name = fixField(listName.toLower()) + "_des";
+                lkpDesc.name = fixField(listName.toLower(), true) + "_des";
                 lkpDesc.selectSource = "NONE";
                 lkpDesc.selectListName = "NONE";
                 for (int lang = 0; lang <= languages.count()-1;lang++)
@@ -5464,14 +5515,29 @@ int genLangIndex(QString langCode)
 //Adds a language to the list and check if the each language structure is ok
 int addLanguage(QString langCode, bool defLang, bool coded)
 {
-    QRegExp reEngLetterOnly("\\(([a-zA-Z]{2})\\)(.*)");
+    QRegExp reEngLetterOnly("^\\((\\w+-?\\w*)\\)([\\w\\s-]+)$");
     if (reEngLetterOnly.indexIn(langCode) == -1)
     {
-        log("Malformed language code " + langCode + ". Indicate a language like (iso639 Code)Language_Name. For example (en)English");
-        return 1;
+        if (justCheck == false)
+        {
+            log("Malformed language code " + langCode + ". Indicate a language like (iso639 Code)Language_Name. For example (en)English");
+            return 1;
+        }
+        else
+        {
+            if (langCode.indexOf("(") >= 0)
+            {
+                log("Malformed language code " + langCode + ". Languages must be defined in ODK with ::Language (Language_code). For example: label::English (en)");
+                exit(7);
+            }
+        }
     }
     QString code = reEngLetterOnly.cap(1);
     QString name = reEngLetterOnly.cap(2);
+
+    //qDebug() << code;
+    //qDebug() << name;
+
     int lang_index = genLangIndex(code);
     if (lang_index == -1)
     {        
@@ -5540,6 +5606,12 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
             }
         }
 
+        if (mainField.toLower().simplified().trimmed() == "instanceid")
+        {
+            log("The primary key field cannot be instanceid");
+            exit(17);
+        }
+
         if (mainFieldIndex == -1)
         {
             log("The primary key field does not exists or is inside a repeat");
@@ -5602,7 +5674,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         //Process the internal languages to see if they are coded like English (en)
         if (ODKLanguages.length() > 0)
         {
-            QRegExp reEngLetterOnly("(.*)\\(([a-zA-Z]{2})+\\)");
+            QRegExp reEngLetterOnly("^([\\w\\s-]+)\\((\\w+-?\\w*)\\)$");
             QString language_in_odk;
             QStringList odk_langs;
             language_in_odk.replace("","");
@@ -5625,6 +5697,9 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                 }
             }
 
+//            qDebug() << "*******************999";
+//            qDebug() << ODKLanguages;
+//            qDebug() << "*******************999";
 
             for (int l=0; l < ODKLanguages.count(); l++)
             {
@@ -5755,6 +5830,9 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         XMLResult.appendChild(XMLRoot);
         QDomElement eLanguages;
         eLanguages = XMLResult.createElement("languages");
+
+        //qDebug() << ODKLanguages;
+
         for (int lng = 0; lng < ODKLanguages.count();lng++)
         {
             if (getCodedLangIndexByName(ODKLanguages[lng]) == -1)
