@@ -63,6 +63,8 @@ bool justCheck;
 QStringList requiredFiles;
 QStringList ODKLanguages;
 bool hasSelects;
+QStringList extra_survey_columns;
+QStringList extra_choices_columns;
 
 //********************************************Global structures****************************************
 
@@ -107,6 +109,14 @@ struct fieldMap
 };
 typedef fieldMap TfieldMap;
 
+//Extra columns in survey
+struct extraSurveyColum
+{
+    QString name;
+    QString value;
+};
+typedef extraSurveyColum TextraSurveyColum;
+
 //Field Definition structure
 struct fieldDef
 {
@@ -134,6 +144,7 @@ struct fieldDef
   QString codeColumn;
   QString descColumn;
   bool autoincrement = false;
+  QList<TextraSurveyColum > extraSurveyColumns; //List of extra columns in survey
 };
 typedef fieldDef TfieldDef;
 
@@ -2079,6 +2090,12 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
                         createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                         createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
+
+                        for (int ex=0; ex < tables[pos].fields[clm].extraSurveyColumns.count(); ex++)
+                        {
+                            createFieldNode.setAttribute(tables[pos].fields[clm].extraSurveyColumns[ex].name, tables[pos].fields[clm].extraSurveyColumns[ex].value);
+                        }
+
                         if (tables[pos].fields[clm].autoincrement == true)
                             createFieldNode.setAttribute("autoincrement","true");
                         if (tables[pos].fields[clm].sensitive == true)
@@ -2123,6 +2140,12 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
                         createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                         createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
+
+                        for (int ex=0; ex < tables[pos].fields[clm].extraSurveyColumns.count(); ex++)
+                        {
+                            createFieldNode.setAttribute(tables[pos].fields[clm].extraSurveyColumns[ex].name, tables[pos].fields[clm].extraSurveyColumns[ex].value);
+                        }
+
                         if (tables[pos].fields[clm].autoincrement == true)
                             createFieldNode.setAttribute("autoincrement","true");
                         if (tables[pos].fields[clm].sensitive == true)
@@ -2160,6 +2183,12 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                     createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
                     createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                     createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
+
+                    for (int ex=0; ex < tables[pos].fields[clm].extraSurveyColumns.count(); ex++)
+                    {
+                        createFieldNode.setAttribute(tables[pos].fields[clm].extraSurveyColumns[ex].name, tables[pos].fields[clm].extraSurveyColumns[ex].value);
+                    }
+
                     if (tables[pos].fields[clm].autoincrement == true)
                         createFieldNode.setAttribute("autoincrement","true");
                     if (tables[pos].fields[clm].sensitive == true)
@@ -2197,6 +2226,12 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
                 createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                 createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
+
+                for (int ex=0; ex < tables[pos].fields[clm].extraSurveyColumns.count(); ex++)
+                {
+                    createFieldNode.setAttribute(tables[pos].fields[clm].extraSurveyColumns[ex].name, tables[pos].fields[clm].extraSurveyColumns[ex].value);
+                }
+
                 if (tables[pos].fields[clm].autoincrement == true)
                     createFieldNode.setAttribute("autoincrement","true");
                 if (tables[pos].fields[clm].sensitive == true)
@@ -2403,7 +2438,9 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 insertSQL = insertSQL + fixString(getDescForLanguage(tables[pos].lkpValues[clm].desc,defLangCode)) + "\",";
                 for (int p = 0; p < tables[pos].propertyList.count(); p++)
                 {
-                    insertSQL = insertSQL + "\"" + tables[pos].lkpValues[clm].other_values[p].column_value.toString() + "\",";
+                    QString sqlString = "\"" + tables[pos].lkpValues[clm].other_values[p].column_value.toString() + "\",";
+                    sqlString = sqlString.replace("\"\"","NULL");
+                    insertSQL = insertSQL + sqlString;
                 }
                 insertSQL = insertSQL.left(insertSQL.length()-1) + ");";
                 sqlInsertStrm << insertSQL << "\n";
@@ -3811,8 +3848,102 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
     return res;
 }
 
+//This return the list of extra columns as a StrinList
+QStringList getExtraColumns(QJsonArray choices)
+{
+    QStringList res;
+    for (int nrow = 0; nrow < choices.count(); nrow++)
+    {
+        QJsonValue JSONValue = choices.at(nrow);
+        QStringList keys = JSONValue.toObject().keys();
+        for (int k=0; k < keys.count(); k++)
+        {
+            if (extra_choices_columns.indexOf(keys[k]) >= 0)
+            {
+                QString column = fixField(keys[k]);
+                if (res.indexOf(column) < 0)
+                    res.append(column);
+            }
+        }
+    }
+    return res;
+}
+
+//This return the list of extra columns as a StrinList
+QStringList getExtraColumnsTypes(QJsonArray choices, QStringList extra_colums)
+{
+    QStringList res;
+    for (int k=0; k < extra_colums.count(); k++)
+    {
+        bool is_int = true;
+        bool is_float = true;
+
+        //Check if all the values are int
+        for (int nrow = 0; nrow < choices.count(); nrow++)
+        {
+            QJsonValue JSONValue = choices.at(nrow);
+            if (JSONValue.toObject().value(extra_colums[k]) != QJsonValue::Undefined)
+            {
+                QString value = JSONValue.toObject().value(extra_colums[k]).toString();
+                bool value_is_int;
+                value.toInt(&value_is_int);
+                if (is_int && !value_is_int)
+                    is_int = false;
+            }
+        }
+        if (!is_int)
+        {
+            //If not int check if all the values are float
+            for (int nrow = 0; nrow < choices.count(); nrow++)
+            {
+                QJsonValue JSONValue = choices.at(nrow);
+                if (JSONValue.toObject().value(extra_colums[k]) != QJsonValue::Undefined)
+                {
+                    QString value = JSONValue.toObject().value(extra_colums[k]).toString();
+                    bool value_is_float;
+                    value.toFloat(&value_is_float);
+                    if (is_float && !value_is_float)
+                        is_float = false;
+                }
+            }
+        }
+        else
+        {
+            is_float = false;
+        }
+
+        bool is_sequence = false;
+        for (int nrow = 0; nrow < choices.count(); nrow++)
+        {
+            QJsonValue JSONValue = choices.at(nrow);
+            if (JSONValue.toObject().value(extra_colums[k]) != QJsonValue::Undefined)
+            {
+                QString value = JSONValue.toObject().value(extra_colums[k]).toString();
+                if (!value.isEmpty())
+                    if (value[0] == '0')
+                        is_sequence = true;
+            }
+        }
+
+
+        if (is_float)
+        {
+            res.append("decimal(17,3)");
+        }
+        if (is_int && !is_sequence)
+        {
+            res.append("int(9)");
+        }
+        if ((!is_float && !is_int) || is_sequence)
+            res.append("text");
+    }
+    return res;
+}
+
+
+
 //This return the values of a simple select or select multiple
-QList<TlkpValue> getSelectValues(QString variableName, QJsonArray choices, bool hasOther)
+QList<TlkpValue> getSelectValues(QString variableName, QJsonArray choices, bool hasOther, QStringList extraColumns)
 {
     QList<TlkpValue> res;
     for (int nrow = 0; nrow < choices.count(); nrow++)
@@ -3823,6 +3954,16 @@ QList<TlkpValue> getSelectValues(QString variableName, QJsonArray choices, bool 
         QJsonValue JSONlabel = JSONValue.toObject().value("label");
         value.desc = getLabels(JSONlabel);
         checkSelectValue(variableName,res,value.code);
+        for (int ex=0; ex < extraColumns.count(); ex++)
+        {
+            TotherLkpValue other_value;
+            other_value.column_name = extraColumns[ex];
+            if (JSONValue.toObject().value(extraColumns[ex]) != QJsonValue::Undefined)
+                other_value.column_value = JSONValue.toObject().value(extraColumns[ex]).toString();
+            else
+                other_value.column_value = "";
+            value.other_values.append(other_value);
+        }
         res.append(value);
     }
     if (hasOther)
@@ -3921,7 +4062,9 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
     if (fieldObject.keys().indexOf("choices") >= 0)
     {
         QList<TlkpValue> values;
-        values.append(getSelectValues(variableName,fieldObject.value("choices").toArray(),false));
+        QStringList extra_columns;
+        extra_columns = getExtraColumns(fieldObject.value("choices").toArray());
+        values.append(getSelectValues(variableName,fieldObject.value("choices").toArray(),false,extra_columns));
         TfieldDef aField;
         aField.selectSource = "NONE";
         aField.name = fixField(variableName.toLower());
@@ -4059,10 +4202,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
     QString variableType;
     variableType = fieldObject.value("type").toString("text");
     QString variableName;
-    variableName = fieldObject.value("name").toString();    
-//    if (variableName == "d233_whotranslvstck")
-//        log("d233_whotranslvstck");
-
+    variableName = fieldObject.value("name").toString();
 
     QString tableType = "NotLoop";
     if (tables[tblIndex].isLoop)
@@ -4074,7 +4214,20 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
     if (isSelect(variableType) == 0)
     {
         TfieldDef aField;
-        aField.name = fixField(variableName.toLower());        
+        aField.name = fixField(variableName.toLower());
+
+        QStringList keys = fieldObject.keys();
+        for (int k=0; k< keys.count(); k++)
+        {
+            if (extra_survey_columns.indexOf(keys[k]) >= 0)
+            {
+                TextraSurveyColum extra_col;
+                extra_col.name = keys[k];
+                extra_col.value = fieldObject.value(keys[k]).toString();
+                aField.extraSurveyColumns.append(extra_col);
+            }
+        }
+
         TfieldMap vartype = mapODKFieldTypeToMySQL(variableType);
         aField.selectSource = "NONE";
         aField.selectListName = "NONE";
@@ -4287,8 +4440,10 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             else
             {
                 if (!fromSearchCSV)
-                {
-                    values.append(getSelectValues(fixField(variableName, true),fieldObject.value("choices").toArray(),selectHasOrOther(variableType)));
+                {                    
+                    propertyList = getExtraColumns(fieldObject.value("choices").toArray());
+                    propertyTypes = getExtraColumnsTypes(fieldObject.value("choices").toArray(), propertyList);
+                    values.append(getSelectValues(fixField(variableName, true),fieldObject.value("choices").toArray(),selectHasOrOther(variableType),propertyList));
                     select_type = 1;
                 }
                 else
@@ -4342,6 +4497,18 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             aField.externalFileName = external_file;
             aField.codeColumn = codeColumn;
             aField.descColumn = descColumn;
+
+            QStringList keys = fieldObject.keys();
+            for (int k=0; k< keys.count(); k++)
+            {
+                if (extra_survey_columns.indexOf(keys[k]) >= 0)
+                {
+                    TextraSurveyColum extra_col;
+                    extra_col.name = keys[k];
+                    extra_col.value = fieldObject.value(keys[k]).toString();
+                    aField.extraSurveyColumns.append(extra_col);
+                }
+            }
 
             aField.odktype = variableType;
             aField.selectListName = "NONE";
@@ -4550,6 +4717,19 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             hasSelects = true;
             TfieldDef aField;
             aField.name = fixField(variableName.toLower(), true);
+
+            QStringList keys = fieldObject.keys();
+            for (int k=0; k< keys.count(); k++)
+            {
+                if (extra_survey_columns.indexOf(keys[k]) >= 0)
+                {
+                    TextraSurveyColum extra_col;
+                    extra_col.name = keys[k];
+                    extra_col.value = fieldObject.value(keys[k]).toString();
+                    aField.extraSurveyColumns.append(extra_col);
+                }
+            }
+
             aField.selectType = select_type;
             aField.externalFileName = external_file;
             aField.codeColumn = codeColumn;
@@ -4974,7 +5154,9 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
         hasSelects = true;
         aTable.isLoop = true;
         QList<TlkpValue> values;
-        values.append(getSelectValues(aTable.name,tableObject.value("columns").toArray(),false));
+        QStringList extra_columns;
+        extra_columns = getExtraColumns(tableObject.value("columns").toArray());
+        values.append(getSelectValues(aTable.name,tableObject.value("columns").toArray(),false,extra_columns));
         for (int litem = 0; litem < values.count(); litem++)
         {
             aTable.loopItems.append(values[litem].code);
@@ -6443,7 +6625,9 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> defLangArg("d","deflanguage","Default language. For example: (en)english. If not indicated then English will be asumed",false,"(en)english","string");
     TCLAP::ValueArg<std::string> transFileArg("T","translationfile","Output translation file",false,"./iso639.sql","string");    
     TCLAP::ValueArg<std::string> tempDirArg("e","tempdirectory","Temporary directory. ./tmp by default",false,"./tmp","string");
-    TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");    
+    TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");
+    TCLAP::ValueArg<std::string> parseSurveyArg("y","surveyextra","Parse extra columns in survey as properties of the XML schema. List separared with pipe (|)",false,"","string");
+    TCLAP::ValueArg<std::string> parseChoicesArg("s","choicesextra","Parse extra columns in choices as lookup columns. List separared with pipe (|)",false,"","string");
     TCLAP::SwitchArg justCheckSwitch("K","justCheck","Just check of main inconsistencies and report back", cmd, false);    
     TCLAP::SwitchArg displayLanguages("L","displayLanguages","Display languages", cmd, false);
     TCLAP::UnlabeledMultiArg<std::string> suppFiles("supportFile", "support files", false, "string");
@@ -6473,6 +6657,8 @@ int main(int argc, char *argv[])
     cmd.add(tempDirArg);
     cmd.add(outputTypeArg);
     cmd.add(suppFiles);
+    cmd.add(parseSurveyArg);
+    cmd.add(parseChoicesArg);
 
     //Parsing the command lines
     cmd.parse( argc, argv );
@@ -6511,6 +6697,12 @@ int main(int argc, char *argv[])
     QString defLang = QString::fromUtf8(defLangArg.getValue().c_str());
     QString transFile = QString::fromUtf8(transFileArg.getValue().c_str());    
     QString tempDirectory = QString::fromUtf8(tempDirArg.getValue().c_str());
+
+    QString parseSurvey = QString::fromUtf8(parseSurveyArg.getValue().c_str());
+    QString parseChoices = QString::fromUtf8(parseChoicesArg.getValue().c_str());
+
+    extra_survey_columns = parseSurvey.split("|",Qt::SkipEmptyParts);
+    extra_choices_columns = parseChoices.split("|",Qt::SkipEmptyParts);
 
     lang = lang.replace("'","");
     defLang = defLang.replace("'","");
