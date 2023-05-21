@@ -3933,6 +3933,17 @@ QStringList getExtraColumnsTypes(QJsonArray choices, QStringList extra_colums)
     return res;
 }
 
+bool checkColumnName(QString name)
+{
+    QRegExp rx("^[a-zA-Z][a-zA-Z0-9_]*$");
+    if (rx.exactMatch(name)) {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 
 
 //This return the values of a simple select or select multiple
@@ -3948,7 +3959,7 @@ QList<TlkpValue> getSelectValues(QString variableName, QJsonArray choices, bool 
         {
             QString key = keys[k];
             key = key.simplified().toUpper();
-            if (key.indexOf(" ") < 0)
+            if (checkColumnName(key))
             {
                 if (invalidFieldNames.indexOf(key) < 0)
                 {
@@ -4231,7 +4242,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
         QString key = keys[k];
         key = key.simplified();
         key = key.toUpper();
-        if (key.indexOf(" ") <= 0)
+        if (checkColumnName(key))
         {
             if (invalidFieldNames.indexOf(key) < 0)
             {
