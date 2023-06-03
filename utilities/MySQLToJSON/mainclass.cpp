@@ -9,9 +9,7 @@
 #include <QElapsedTimer>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include <boost/foreach.hpp>
-#include <xlsxwriter.h>
-#include <QDebug>
+#include <boost/foreach.hpp>#include <QDebug>
 #include <QUuid>
 #include "jsonworker.h"
 #include "listmutex.h"
