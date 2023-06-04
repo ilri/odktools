@@ -3,9 +3,10 @@
 #include <QTimer>
 #include "mainclass.h"
 #include <QTime>
+#include <QRandomGenerator>
 
 /*
-MySQLToXLSX
+MySQLDenormalize
 
 Copyright (C) 2018 QLands Technology Consultants.
 Author: Carlos Quiros (cquiros_at_qlands.com / c.f.quiros_at_cgiar.org)
@@ -27,13 +28,22 @@ License along with MySQLToXLSX.  If not, see <http://www.gnu.org/licenses/lgpl-3
 QString getRandomHex(const int &length)
 {
     QString randomHex;
-
+    QRandomGenerator gen;
+    QTime time = QTime::currentTime();
+    gen.seed((uint)time.msec());
     for(int i = 0; i < length; i++) {
-        int n = qrand() % 16;
+        int n = gen.generate() % 16;
         randomHex.append(QString::number(n,16));
     }
 
     return randomHex;
+}
+
+void log_error(QString message)
+{
+    QString temp;
+    temp = message + "\n";
+    printf("%s", temp.toUtf8().data());
 }
 
 int main(int argc, char *argv[])
@@ -41,12 +51,15 @@ int main(int argc, char *argv[])
     QCoreApplication app(argc, argv);
     QString title;
     title = title + " *********************************************************************** \n";
-    title = title + " * MySQLToXLSX                                                         * \n";
-    title = title + " * This tool extracts data from a MySQL Database into XLSX files.      * \n";
-    title = title + " * Each table will create a new sheet in the excel file.               * \n";
-    title = title + " * The tool requires the create.xml file created by JXFormToMySQL to   * \n";
-    title = title + " * determine the type of data and whether a field or a table should be * \n";
-    title = title + " * exported due to the sensitivity of its information.                 * \n";
+    title = title + " * MySQLDenormalize                                                    * \n";
+    title = title + " * This tool denormalize data from a MySQL Database into JSON          * \n";
+    title = title + " * files starting from the main table. It relies on the Map XML files  * \n";
+    title = title + " * created by JSONToMySQL. It is useful when you need                  * \n";
+    title = title + " * to generate a CSV of the data but where one line is one record      * \n";
+    title = title + " * of the starting table and from there on the columns of the CSV      * \n";
+    title = title + " * are the columns of many different tables in the database thus       * \n";
+    title = title + " * the output is only one CSV file with many columns and not           * \n";
+    title = title + " * many CSVs as tables in the database.                                * \n";
     title = title + " *********************************************************************** \n";
 
     TCLAP::CmdLine cmd(title.toUtf8().data(), ' ', "2.0");
@@ -62,10 +75,13 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> tableArg("t","maintable","Main table name",true,"","string");
     TCLAP::ValueArg<std::string> mapArg("m","mapdirectory","Directory containing the map XML files",true,"","string");
     TCLAP::ValueArg<std::string> outArg("o","output","Output directory to store the JSON result files",true,"","string");
-    TCLAP::ValueArg<std::string> keyArg("k","key","Specific primary key to extract",false,"","string");
+    TCLAP::ValueArg<std::string> keyArg("k","key","Specific primary key to use",false,"","string");
+    TCLAP::ValueArg<std::string> valueArg("v","value","Specific primary key value to use",false,"","string");
+    TCLAP::ValueArg<std::string> separatorArg("S","separator","Separator to use in multi-selects. Pipe (|) is default",false,"|","string");
     TCLAP::ValueArg<std::string> resolveArg("r","resolve","Resolve lookup values: 1=Codes only (default), 2=Descriptions, 3=Codes and descriptions",false,"1","string");
 
     TCLAP::SwitchArg protectSwitch("c","protect","Protect sensitive fields. False by default", cmd, false);
+    TCLAP::SwitchArg ODKFormatSwitch("f","odkformat","Format like ODK Collect. Keys will be the same as if data was collected by ODK Collect", cmd, false);
 
 
     cmd.add(hostArg);
@@ -77,6 +93,8 @@ int main(int argc, char *argv[])
     cmd.add(createArg);        
     cmd.add(encryptArg);
     cmd.add(keyArg);
+    cmd.add(valueArg);
+    cmd.add(separatorArg);
     cmd.add(tableArg);
     cmd.add(mapArg);
     cmd.add(outArg);
@@ -89,6 +107,9 @@ int main(int argc, char *argv[])
     bool protectSensitive;
     protectSensitive = protectSwitch.getValue();
 
+    bool likeODKCollect;
+    likeODKCollect = ODKFormatSwitch.getValue();
+
 
     QString host = QString::fromUtf8(hostArg.getValue().c_str());
     QString port = QString::fromUtf8(portArg.getValue().c_str());
@@ -96,14 +117,14 @@ int main(int argc, char *argv[])
     QString pass = QString::fromUtf8(passArg.getValue().c_str());
     QString schema = QString::fromUtf8(schemaArg.getValue().c_str());
     QString key = QString::fromUtf8(keyArg.getValue().c_str());
+    QString value = QString::fromUtf8(valueArg.getValue().c_str());
+    QString separator = QString::fromUtf8(separatorArg.getValue().c_str());
     QString tmpDir = QString::fromUtf8(tmpArg.getValue().c_str());
     QString createXML = QString::fromUtf8(createArg.getValue().c_str());    
     QString resolve_type = QString::fromUtf8(resolveArg.getValue().c_str());
     QString encryption_key = QString::fromUtf8(encryptArg.getValue().c_str());
     if (encryption_key == "")
-    {
-        QTime time = QTime::currentTime();
-        qsrand((uint)time.msec());
+    {        
         encryption_key = getRandomHex(32);
     }
 
@@ -111,8 +132,32 @@ int main(int argc, char *argv[])
     QString mapDir = QString::fromUtf8(mapArg.getValue().c_str());
     QString outputDir = QString::fromUtf8(outArg.getValue().c_str());
 
+    if (key != "" && value == "")
+    {
+        log_error("You need to specify key and value");
+        exit(1);
+    }
+
+
+    if (key == "" && value != "")
+    {
+        log_error("You need to specify key and value");
+        exit(1);
+    }
+
+    if (likeODKCollect && (key == ""))
+    {
+        log_error("You cannot use ODK format with more than one result. You need to specify key and value");
+        exit(1);
+    }
+    if (likeODKCollect && resolve_type != "1")
+    {
+        log_error("You cannot use ODK format with resolving labels");
+        exit(1);
+    }
+
     mainClass *task = new mainClass(&app);
-    task->setParameters(host,port,user,pass,schema,createXML,protectSensitive,tmpDir,encryption_key,mapDir,outputDir,mainTable, resolve_type, key);
+    task->setParameters(host,port,user,pass,schema,createXML,protectSensitive,tmpDir,encryption_key,mapDir,outputDir,mainTable, resolve_type, key, value, separator, likeODKCollect);
     QObject::connect(task, SIGNAL(finished()), &app, SLOT(quit()));
     QTimer::singleShot(0, task, SLOT(run()));
     app.exec();

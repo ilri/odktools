@@ -37,7 +37,7 @@ void mainClass::log(QString message)
     printf("%s", temp.toUtf8().data());
 }
 
-void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, bool protectSensitive, QString tempDir, QString encryption_key, QString mapDir, QString outputDir, QString mainTable, QString resolve_type, QString primaryKey)
+void mainClass::setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, bool protectSensitive, QString tempDir, QString encryption_key, QString mapDir, QString outputDir, QString mainTable, QString resolve_type, QString primaryKey, QString primaryKeyValue, QString separator, bool useODKFormat)
 {
     this->host = host;
     this->port = port;
@@ -53,6 +53,9 @@ void mainClass::setParameters(QString host, QString port, QString user, QString 
     this->mainTable = mainTable;
     this->resolve_type = resolve_type.toInt();
     this->primaryKey = primaryKey;
+    this->primaryKeyValue = primaryKeyValue;
+    this->separator = separator;
+    this->useODKFormat = useODKFormat;
 }
 
 void mainClass::getMultiSelectInfo(QDomNode table, QString table_name, QString &multiSelect_field, QStringList &keys, QString &rel_table, QString &rel_field)
@@ -96,6 +99,7 @@ void mainClass::loadTable(QDomNode table)
     TtableDef aTable;
     aTable.islookup = false;
     aTable.name = eTable.attribute("name","");
+    aTable.ODKname = eTable.attribute("xmlcode","NONE");
     aTable.desc = eTable.attribute("name","");
 
     QDomNode field = table.firstChild();
@@ -107,6 +111,7 @@ void mainClass::loadTable(QDomNode table)
         {
             TfieldDef aField;
             aField.name = eField.attribute("name","");
+            aField.ODKname = eField.attribute("xmlcode","NONE");
             aField.desc = eField.attribute("desc","");
             aField.type = eField.attribute("type","");
             aField.size = eField.attribute("size","").toInt();
@@ -335,7 +340,15 @@ int mainClass::generateXLSX()
 
             QUuid recordUUID=QUuid::createUuid();
             temp_table = "TMP_" + recordUUID.toString().replace("{","").replace("}","").replace("-","_");
-            sql = sql + "CREATE TABLE " + temp_table + " ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AS SELECT " + fields.join(",") + " FROM " + tables[pos].name + ";";
+            if (primaryKey == "")
+                sql = sql + "CREATE TABLE " + temp_table + " ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AS SELECT " + fields.join(",") + " FROM " + tables[pos].name + ";";
+            else
+            {
+                if (primaryKey != "" && primaryKeyValue != "")
+                    sql = sql + "CREATE TABLE " + temp_table + " ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AS SELECT " + fields.join(",") + " FROM " + tables[pos].name + " WHERE " + primaryKey + " = '" + primaryKeyValue + "';";
+                else
+                    sql = sql + "CREATE TABLE " + temp_table + " ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AS SELECT " + fields.join(",") + " FROM " + tables[pos].name + ";";
+            }
 
             arguments.clear();
             arguments.append("--host=" + this->host);
@@ -423,7 +436,7 @@ int mainClass::generateXLSX()
                 {
                     if (this->resolve_type == 1 || this->resolve_type == 3)
                     {
-                        sql = "UPDATE " + temp_table + " AS TA SET TA." + multiSelectTables[i_table].field + " = (SELECT GROUP_CONCAT(TB." + multiSelectTables[i_table].multiSelectField + " SEPARATOR '|') FROM " + multiSelectTables[i_table].multiSelectTable + " as TB";
+                        sql = "UPDATE " + temp_table + " AS TA SET TA." + multiSelectTables[i_table].field + " = (SELECT GROUP_CONCAT(TB." + multiSelectTables[i_table].multiSelectField + " SEPARATOR '" + separator + "') FROM " + multiSelectTables[i_table].multiSelectTable + " as TB";
                         QStringList wheres;
                         QStringList groups;
                         for (int a_key = 0; a_key < multiSelectTables[i_table].multiSelectKeys.count(); a_key++)
@@ -439,7 +452,7 @@ int mainClass::generateXLSX()
                     {
                         QString desc_field = multiSelectTables[i_table].multiSelectRelField;
                         desc_field = desc_field.replace("_cod","_des");
-                        sql = "UPDATE " + temp_table + " AS TA SET TA." + multiSelectTables[i_table].field + " = (SELECT GROUP_CONCAT(TC." + desc_field + " SEPARATOR '|') FROM " + multiSelectTables[i_table].multiSelectTable + " as TB," +  multiSelectTables[i_table].multiSelectRelTable + " as TC";
+                        sql = "UPDATE " + temp_table + " AS TA SET TA." + multiSelectTables[i_table].field + " = (SELECT GROUP_CONCAT(TC." + desc_field + " SEPARATOR '" + separator + "') FROM " + multiSelectTables[i_table].multiSelectTable + " as TB," +  multiSelectTables[i_table].multiSelectRelTable + " as TC";
                         sql = sql + " WHERE TB." + multiSelectTables[i_table].multiSelectField + " = TC." + multiSelectTables[i_table].multiSelectRelField;
                         QStringList wheres;
                         QStringList groups;
@@ -456,7 +469,7 @@ int mainClass::generateXLSX()
                     {
                         QString desc_field = multiSelectTables[i_table].multiSelectRelField;
                         desc_field = desc_field.replace("_cod","_des");
-                        sql = "UPDATE " + temp_table + " AS TA SET TA.`" + multiSelectTables[i_table].field + "-desc` = (SELECT GROUP_CONCAT(TC." + desc_field + " SEPARATOR '|') FROM " + multiSelectTables[i_table].multiSelectTable + " as TB," +  multiSelectTables[i_table].multiSelectRelTable + " as TC";
+                        sql = "UPDATE " + temp_table + " AS TA SET TA.`" + multiSelectTables[i_table].field + "-desc` = (SELECT GROUP_CONCAT(TC." + desc_field + " SEPARATOR '" + separator + "') FROM " + multiSelectTables[i_table].multiSelectTable + " as TB," +  multiSelectTables[i_table].multiSelectRelTable + " as TC";
                         sql = sql + " WHERE TB." + multiSelectTables[i_table].multiSelectField + " = TC." + multiSelectTables[i_table].multiSelectRelField;
                         QStringList wheres;
                         QStringList groups;
@@ -510,8 +523,18 @@ int mainClass::generateXLSX()
             linked_tables.clear();
             multiSelectTables.clear();
             qDebug() << "Quering table " + tables[pos].name;
-            sql = "SELECT * FROM " + temp_table + ";";
-
+            if (primaryKey == "")
+                sql = "SELECT * FROM " + temp_table + ";";
+            else
+            {
+                if (primaryKey != "" && primaryKeyValue != "")
+                {
+                    sql = "SELECT * FROM " + temp_table + " WHERE " + primaryKey + " = '" + primaryKeyValue + "';";
+                }
+                else
+                    sql = "SELECT * FROM " + temp_table + ";";
+            }
+            qDebug() << sql;
             arguments.clear();
             arguments << "--sql";
             arguments << "--result-format=json/raw";
@@ -671,7 +694,15 @@ int mainClass::generateXLSX()
         if (db.open())
         {
             mongo_collection = coll;
-            sql = "SELECT surveyid FROM " + mainTable;
+            if (primaryKey == "")
+                sql = "SELECT surveyid FROM " + mainTable;
+            else
+            {
+                if (primaryKey != "" && primaryKeyValue != "")
+                    sql = "SELECT surveyid FROM " + mainTable + " WHERE " + primaryKey + " = '" + primaryKeyValue + "'";
+                else
+                    sql = "SELECT surveyid FROM " + mainTable;
+            }
             QStringList lstIds;
             QSqlQuery qryIds(db);
             qryIds.exec(sql);
@@ -1018,5 +1049,67 @@ void mainClass::processMapFile(QString fileName)
     JSONFileBoost = outputPath.absolutePath() + mapPath.separator() + fileName + ".json";
     pt::write_json(JSONFileBoost.toStdString(),JSONRootBoost);
 
+    if (useODKFormat)
+    {
+        QString BKFile;
+        BKFile = outputPath.absolutePath() + mapPath.separator() + fileName + ".bk";
+
+        QProcess *mySQLDumpProcess = new QProcess();
+
+        //Rename the primary key
+        mySQLDumpProcess->start("bash", QStringList() << "-c" << "jq 'with_entries(if .key == \"" + primaryKey + "\" then .key = \"PRIMARY\" else . end)' " + JSONFileBoost + " > " + BKFile + " && mv " + BKFile + " " + JSONFileBoost);
+        mySQLDumpProcess->waitForFinished(-1);
+        for (int t=0; t < tables.count(); t++)
+        {
+            if (tables[t].ODKname != "main" && tables[t].ODKname != "NONE")
+            {
+                mySQLDumpProcess->start("bash", QStringList() << "-c" << "jq '(.. | select(has(\"" + tables[t].name + "\")?)) |= with_entries(if .key == \"" + tables[t].name + "\" then .key = \"" + tables[t].ODKname + "\" else . end)' " + JSONFileBoost + " > " + BKFile + " && mv " + BKFile + " " + JSONFileBoost);
+                mySQLDumpProcess->waitForFinished(-1);
+            }
+            for (int f=0; f < tables[t].fields.count(); f++)
+            {
+                if (tables[t].fields[f].ODKname != "NONE")
+                {
+                    if (tables[t].fields[f].isKey == false)
+                    {
+                        mySQLDumpProcess->start("bash", QStringList() << "-c" << "jq '(.. | select(has(\"" + tables[t].fields[f].name + "\")?)) |= with_entries(if .key == \"" + tables[t].fields[f].name + "\" then .key = \"" + tables[t].fields[f].ODKname + "\" else . end)' " + JSONFileBoost + " > " + BKFile + " && mv " + BKFile + " " + JSONFileBoost);
+                        mySQLDumpProcess->waitForFinished(-1);
+                    }
+                    else
+                    {
+                        // Remove all keys
+                        mySQLDumpProcess->start("bash", QStringList() << "-c" << "jq 'walk(if type == \"object\" then del(." + tables[t].fields[f].name + ") else . end)' " + JSONFileBoost + " > " + BKFile + " && mv " + BKFile + " " + JSONFileBoost);
+                        mySQLDumpProcess->waitForFinished(-1);
+                    }
+                }
+                else
+                {
+                    // Remove all interal columns like rowuuid
+                    mySQLDumpProcess->start("bash", QStringList() << "-c" << "jq 'walk(if type == \"object\" then del(." + tables[t].fields[f].name + ") else . end)' " + JSONFileBoost + " > " + BKFile + " && mv " + BKFile + " " + JSONFileBoost);
+                    mySQLDumpProcess->waitForFinished(-1);
+                }
+            }
+        }
+        // Rename the primary key back
+        mySQLDumpProcess->start("bash", QStringList() << "-c" << "jq 'with_entries(if .key == \"PRIMARY\" then .key = \"" + primaryKey + "\" else . end)' " + JSONFileBoost + " > " + BKFile + " && mv " + BKFile + " " + JSONFileBoost);
+        mySQLDumpProcess->waitForFinished(-1);
+
+        for (int t=0; t < tables.count(); t++)
+        {
+            for (int f=0; f < tables[t].fields.count(); f++)
+            {
+                if (tables[t].fields[f].ODKname != "NONE")
+                {
+                    if (tables[t].fields[f].isKey == true)
+                    {
+                        mySQLDumpProcess->start("bash", QStringList() << "-c" << "jq '(.. | select(has(\"" + tables[t].fields[f].name + "\")?)) |= with_entries(if .key == \"" + tables[t].fields[f].name + "\" then .key = \"" + tables[t].fields[f].ODKname + "\" else . end)' " + JSONFileBoost + " > " + BKFile + " && mv " + BKFile + " " + JSONFileBoost);
+                        mySQLDumpProcess->waitForFinished(-1);
+                    }
+                }
+            }
+        }
+
+        delete mySQLDumpProcess;
+    }
 
 }
