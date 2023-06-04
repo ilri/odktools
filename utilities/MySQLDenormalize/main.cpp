@@ -54,12 +54,8 @@ int main(int argc, char *argv[])
     title = title + " * MySQLDenormalize                                                    * \n";
     title = title + " * This tool denormalize data from a MySQL Database into JSON          * \n";
     title = title + " * files starting from the main table. It relies on the Map XML files  * \n";
-    title = title + " * created by JSONToMySQL. It is useful when you need                  * \n";
-    title = title + " * to generate a CSV of the data but where one line is one record      * \n";
-    title = title + " * of the starting table and from there on the columns of the CSV      * \n";
-    title = title + " * are the columns of many different tables in the database thus       * \n";
-    title = title + " * the output is only one CSV file with many columns and not           * \n";
-    title = title + " * many CSVs as tables in the database.                                * \n";
+    title = title + " * created by JSONToMySQL. It is useful if you need to go back         * \n";
+    title = title + " * to a JSON representation of relational data.                        * \n";
     title = title + " *********************************************************************** \n";
 
     TCLAP::CmdLine cmd(title.toUtf8().data(), ' ', "2.0");
