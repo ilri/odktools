@@ -6,7 +6,7 @@
 #include <QDomNode>
 #include <QProcess>
 #include <QChar>
-#include <QTime>
+#include <QElapsedTimer>
 #include <unistd.h>
 #include <QDebug>
 #include <QUuid>
@@ -213,7 +213,7 @@ int mainClass::generateXLSX()
         QDir currDir(tempDir);        
         QStringList arguments;
         QProcess *mySQLDumpProcess = new QProcess();        
-        QTime procTime;
+        QElapsedTimer procTime;
         procTime.start();
         QString sql;
         QStringList fields;
@@ -227,7 +227,7 @@ int mainClass::generateXLSX()
         QVector <TmultiSelectTable> multiSelectTables;
         for (int pos = 0; pos <= tables.count()-1; pos++)
         {                                                
-            qDebug() << "Creating temp table " + tables[pos].name;
+            //qDebug() << "Creating temp table " + tables[pos].name;
             linked_tables.clear();
 
             fields.clear();
@@ -381,7 +381,7 @@ int mainClass::generateXLSX()
             arguments.clear();
 
             QStringList sqls;
-            qDebug() << "Performing Alters on temp table";
+            //qDebug() << "Performing Alters on temp table";
             for (int fld = 0; fld < tables[pos].fields.count(); fld++)
             {
                 if (tables[pos].fields[fld].isKey)
@@ -522,7 +522,7 @@ int mainClass::generateXLSX()
             }
             linked_tables.clear();
             multiSelectTables.clear();
-            qDebug() << "Quering table " + tables[pos].name;
+            //qDebug() << "Quering table " + tables[pos].name;
             if (primaryKey == "")
                 sql = "SELECT * FROM " + temp_table + ";";
             else
@@ -534,7 +534,7 @@ int mainClass::generateXLSX()
                 else
                     sql = "SELECT * FROM " + temp_table + ";";
             }
-            qDebug() << sql;
+            //qDebug() << sql;
             arguments.clear();
             arguments << "--sql";
             arguments << "--result-format=json/raw";
@@ -709,7 +709,7 @@ int mainClass::generateXLSX()
             while (qryIds.next())
                 lstIds << qryIds.value(0).toString();
 
-            log("Generating trees");
+            //log("Generating trees");
             for (int pos = 0; pos <= lstIds.count()-1; pos++)
             {
                 processMapFile(lstIds[pos]);
@@ -765,11 +765,14 @@ int mainClass::generateXLSX()
 
         if (returnCode == 0)
         {
-            Milliseconds = procTime.elapsed();
-            Hours = Milliseconds / (1000*60*60);
-            Minutes = (Milliseconds % (1000*60*60)) / (1000*60);
-            Seconds = ((Milliseconds % (1000*60*60)) % (1000*60)) / 1000;
-            log("Finished in " + QString::number(Hours) + " Hours," + QString::number(Minutes) + " Minutes and " + QString::number(Seconds) + " Seconds.");
+            if (primaryKey == "")
+            {
+                Milliseconds = procTime.elapsed();
+                Hours = Milliseconds / (1000*60*60);
+                Minutes = (Milliseconds % (1000*60*60)) / (1000*60);
+                Seconds = ((Milliseconds % (1000*60*60)) % (1000*60)) / 1000;
+                log("Finished in " + QString::number(Hours) + " Hours," + QString::number(Minutes) + " Minutes and " + QString::number(Seconds) + " Seconds.");
+            }
         }
         return returnCode;
     }
@@ -1108,6 +1111,17 @@ void mainClass::processMapFile(QString fileName)
                 }
             }
         }
+
+        QDomDocument XMLResult;
+        XMLResult = QDomDocument("XMLOutputFile");
+        QDomElement XMLRoot;
+        XMLRoot = XMLResult.createElement("XMLOutputFile");
+        XMLResult.appendChild(XMLRoot);
+        QDomElement eDuplicatedItem;
+        eDuplicatedItem = XMLResult.createElement("OutputFile");
+        eDuplicatedItem.setAttribute("fileName",JSONFileBoost);
+        XMLRoot.appendChild(eDuplicatedItem);
+        log(XMLResult.toString());
 
         delete mySQLDumpProcess;
     }
