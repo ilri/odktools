@@ -277,13 +277,13 @@ void compareInsert::addValueToDiff(QDomElement table, QDomElement field)
         }
     }
     sql = sql.left(sql.length()-1) + ") VALUES (";
-    sql = sql + "'" + field.attribute("code","") + "',";
-    sql = sql + "'" + field.attribute("description","") + "',";
+    sql = sql + "\"" + field.attribute("code","").replace("\"","") + "\",";
+    sql = sql + "\"'" + field.attribute("description","").replace("\"","") + "\",";
     if (properties.length() > 0)
     {
         for (int p=0; p < properties.length(); p++)
         {
-            sql = sql + "'" + field.attribute(properties[p],"") + "',";
+            sql = sql + "\"" + field.attribute(properties[p],"").replace("\"","") + "\",";
         }
     }
     sql = sql.left(sql.length()-1) + ");";
@@ -294,8 +294,8 @@ void compareInsert::UpdateValue(QDomElement table, QDomElement field)
 {
    QString sql;
    sql = "UPDATE " + table.attribute("name","") + " SET ";
-   sql = sql + table.attribute("clmdesc","") + " = '";
-   sql = sql + field.attribute("description","") + "' WHERE ";
+   sql = sql + table.attribute("clmdesc","") + " = \"";
+   sql = sql + field.attribute("description","") + "\" WHERE ";
    sql = sql + table.attribute("clmcode","") + " = '";
    sql = sql + field.attribute("code","") + "';";
    addDiffToTable(table.attribute("name",""),sql);
