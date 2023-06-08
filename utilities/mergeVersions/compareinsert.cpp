@@ -278,7 +278,7 @@ void compareInsert::addValueToDiff(QDomElement table, QDomElement field)
     }
     sql = sql.left(sql.length()-1) + ") VALUES (";
     sql = sql + "\"" + field.attribute("code","").replace("\"","") + "\",";
-    sql = sql + "\"'" + field.attribute("description","").replace("\"","") + "\",";
+    sql = sql + "\"" + field.attribute("description","").replace("\"","") + "\",";
     if (properties.length() > 0)
     {
         for (int p=0; p < properties.length(); p++)
