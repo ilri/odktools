@@ -69,6 +69,10 @@ QStringList extra_survey_columns;
 QStringList extra_choices_columns;
 QStringList extra_invalid_columns;
 
+QDomDocument XMLResult;
+QDomElement XMLDocRoot;
+bool logXMLError=false;
+
 //********************************************Global structures****************************************
 
 //Structure that holds the description of each lkpvalue separated by language
@@ -245,6 +249,7 @@ typedef duplicatedField TduplicatedField;
 QList<TduplicatedField> duplicatedFields;
 
 QStringList invalidFieldNames;
+QStringList invalidDataColumnName;
 QStringList invalidFields;
 
 QList <QJsonObject > readOnlyCalculates;
@@ -1093,6 +1098,9 @@ void loadInvalidFieldNames()
     invalidFieldNames << "_SUBMITTED_BY";
     invalidFieldNames << "_SUBMITTED_DATE";
     invalidFieldNames << "_XFORM_ID_STRING";
+
+    // The following names are invalid as column names
+    invalidDataColumnName << "CONTROL";
 }
 
 void addRequiredFile(QString fileName)
@@ -1205,12 +1213,10 @@ void log(QString message)
 }
 
 void report_file_error(QString file_name)
-{
-    QDomDocument XMLResult;
-    XMLResult = QDomDocument("XMLFileError");
+{    
     QDomElement XMLRoot;
     XMLRoot = XMLResult.createElement("XMLFileError");
-    XMLResult.appendChild(XMLRoot);
+    XMLDocRoot.appendChild(XMLRoot);
     QDomElement eFileError;
     eFileError = XMLResult.createElement("file");
     eFileError.setAttribute("name",file_name);
@@ -3427,12 +3433,10 @@ QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, 
                                     if (outputType == "m")
                                         log("Language " + parts[1] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
                                     else
-                                    {
-                                        QDomDocument XMLResult;
-                                        XMLResult = QDomDocument("XMLLanguageNotFound");
+                                    {                                        
                                         QDomElement XMLRoot;
                                         XMLRoot = XMLResult.createElement("XMLLanguageNotFound");
-                                        XMLResult.appendChild(XMLRoot);
+                                        XMLDocRoot.appendChild(XMLRoot);
                                         QDomElement eLanguages;
                                         eLanguages = XMLResult.createElement("languages");
                                         QDomElement eLanguage;
@@ -3581,12 +3585,10 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
                                             if (outputType == "m")
                                                 log("Language " + parts[1] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
                                             else
-                                            {
-                                                QDomDocument XMLResult;
-                                                XMLResult = QDomDocument("XMLLanguageNotFound");
+                                            {                                                
                                                 QDomElement XMLRoot;
                                                 XMLRoot = XMLResult.createElement("XMLLanguageNotFound");
-                                                XMLResult.appendChild(XMLRoot);
+                                                XMLDocRoot.appendChild(XMLRoot);
                                                 QDomElement eLanguages;
                                                 eLanguages = XMLResult.createElement("languages");
                                                 QDomElement eLanguage;
@@ -3820,12 +3822,10 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
                 log("Cannot locate a description column for the search select \"" + variableName + "\"");
         }
         else
-        {
-            QDomDocument XMLResult;
-            XMLResult = QDomDocument("XMLExpresionError");
+        {            
             QDomElement XMLRoot;
             XMLRoot = XMLResult.createElement("XMLExpresionError");
-            XMLResult.appendChild(XMLRoot);
+            XMLDocRoot.appendChild(XMLRoot);
             QDomElement eFileError;
             eFileError = XMLResult.createElement("search");
             eFileError.setAttribute("name",variableName);
@@ -3961,7 +3961,7 @@ QList<TlkpValue> getSelectValues(QString variableName, QJsonArray choices, bool 
             key = key.simplified().toUpper();
             if (checkColumnName(key))
             {
-                if (invalidFieldNames.indexOf(key) < 0)
+                if (invalidFieldNames.indexOf(key) < 0 && invalidDataColumnName.indexOf(key) < 0)
                 {
                     if (extra_choices_columns.indexOf(keys[k]) < 0)
                         extra_choices_columns.append(keys[k].simplified());
@@ -4244,7 +4244,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
         key = key.toUpper();
         if (checkColumnName(key))
         {
-            if (invalidFieldNames.indexOf(key) < 0)
+            if (invalidFieldNames.indexOf(key) < 0 && invalidDataColumnName.indexOf(key) < 0)
             {
                 if (extra_survey_columns.indexOf(keys[k].simplified()) < 0)
                     extra_survey_columns.append(keys[k].simplified());
@@ -5622,12 +5622,10 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList, int &num_la
 }
 
 void reportDuplicatedFields()
-{
-    QDomDocument XMLResult;
-    XMLResult = QDomDocument("XMLDuplicatedFields");
+{    
     QDomElement XMLRoot;
     XMLRoot = XMLResult.createElement("XMLDuplicatedFields");
-    XMLResult.appendChild(XMLRoot);
+    XMLDocRoot.appendChild(XMLRoot);
     if (outputType != "m")
     {
         log("The following tables have duplicated fields: ");
@@ -5659,12 +5657,10 @@ void reportDuplicatedFields()
 }
 
 void reportDuplicatedTables()
-{
-    QDomDocument XMLResult;
-    XMLResult = QDomDocument("XMLDuplicatedTables");
+{    
     QDomElement XMLRoot;
     XMLRoot = XMLResult.createElement("XMLDuplicatedTables");
-    XMLResult.appendChild(XMLRoot);
+    XMLDocRoot.appendChild(XMLRoot);
     if (outputType != "m")
     {
         log("The following tables have the same name: ");
@@ -5685,12 +5681,10 @@ void reportDuplicatedTables()
 }
 
 void reportSelectDuplicates()
-{
-    QDomDocument XMLResult;
-    XMLResult = QDomDocument("XMLDuplicatedSelects");
+{    
     QDomElement XMLRoot;
     XMLRoot = XMLResult.createElement("XMLDuplicatedSelects");
-    XMLResult.appendChild(XMLRoot);
+    XMLDocRoot.appendChild(XMLRoot);
     if (outputType != "m")
     {
         log("The following variables have duplicated options");
@@ -6028,12 +6022,10 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                     if (outputType == "h")
                         log("This ODK has multiple languages but not other languages where specified with the -l parameter.");
                     else
-                    {
-                        QDomDocument XMLResult;
-                        XMLResult = QDomDocument("XMLNoOtherLanguages");
+                    {                        
                         QDomElement XMLRoot;
                         XMLRoot = XMLResult.createElement("XMLNoOtherLanguages");
-                        XMLResult.appendChild(XMLRoot);
+                        XMLDocRoot.appendChild(XMLRoot);
                         QDomElement eLanguages;
                         eLanguages = XMLResult.createElement("languages");
                         for (int pos = 0; pos <= ODKLanguages.count()-1;pos++)
@@ -6061,11 +6053,10 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         //Check that each language is properly coded
         bool languageNotFound;
         languageNotFound = false;
-        QDomDocument XMLResult;
-        XMLResult = QDomDocument("XMLLanguageNotFound");
+
         QDomElement XMLRoot;
         XMLRoot = XMLResult.createElement("XMLLanguageNotFound");
-        XMLResult.appendChild(XMLRoot);
+        XMLDocRoot.appendChild(XMLRoot);
         QDomElement eLanguages;
         eLanguages = XMLResult.createElement("languages");
 
@@ -6100,7 +6091,8 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                     log(XMLResult.toString());
                 exit(4);
             }
-        }        
+        }
+        logXMLError = true;
 
         int lang;
         //Creating the main table
@@ -6502,12 +6494,10 @@ bool checkTables2()
             exit(24);
         }
         else
-        {
-            QDomDocument XMLResult;
-            XMLResult = QDomDocument("XMLTableNameError");
+        {            
             QDomElement XMLRoot;
             XMLRoot = XMLResult.createElement("XMLTableNameError");
-            XMLResult.appendChild(XMLRoot);
+            XMLDocRoot.appendChild(XMLRoot);
             for (pos = 0; pos < table_with_name_error.count(); pos++)
             {
                 QDomElement eTable;
@@ -6562,12 +6552,10 @@ bool checkTables2()
             return true;
         }
         else
-        {
-            QDomDocument XMLResult;
-            XMLResult = QDomDocument("XMLTooManySelects");
+        {            
             QDomElement XMLRoot;
             XMLRoot = XMLResult.createElement("XMLTooManySelects");
-            XMLResult.appendChild(XMLRoot);
+            XMLDocRoot.appendChild(XMLRoot);
             for (pos = 0; pos < tables_with_error.count(); pos++)
             {
                 QDomElement eTable;
@@ -6716,6 +6704,10 @@ int main(int argc, char *argv[])
     cmd.add(suppFiles);
     cmd.add(parseSurveyArg);
     cmd.add(parseChoicesArg);
+
+    XMLResult = QDomDocument("XMLResult");
+    XMLDocRoot = XMLResult.createElement("XMLResult");
+    XMLResult.appendChild(XMLDocRoot);
 
     //Parsing the command lines
     cmd.parse( argc, argv );
@@ -6958,12 +6950,10 @@ int main(int argc, char *argv[])
             }
         }
         else
-        {
-            QDomDocument XMLResult;
-            XMLResult = QDomDocument("XMLInvalidName");
+        {            
             QDomElement XMLRoot;
             XMLRoot = XMLResult.createElement("XMLInvalidName");
-            XMLResult.appendChild(XMLRoot);
+            XMLDocRoot.appendChild(XMLRoot);
             for (int item = 0; item < invalidFields.count(); item++)
             {
                 QDomElement eDuplicatedItem;
@@ -6978,12 +6968,10 @@ int main(int argc, char *argv[])
 
 
     if (duplicated_lookups.count() > 0)
-    {
-        QDomDocument XMLResult;
-        XMLResult = QDomDocument("XMLDuplicatedLookups");
+    {        
         QDomElement XMLRoot;
         XMLRoot = XMLResult.createElement("XMLDuplicatedLookups");
-        XMLResult.appendChild(XMLRoot);
+        XMLDocRoot.appendChild(XMLRoot);
         for (int item = 0; item < duplicated_lookups.count(); item++)
         {
             QDomElement eDuplicatedTable;
@@ -7020,12 +7008,10 @@ int main(int argc, char *argv[])
                 log("Required files:" + requiredFiles.join(","));
             }
             else
-            {
-                QDomDocument XMLResult;
-                XMLResult = QDomDocument("XMLMissingFile");
+            {                
                 QDomElement XMLRoot;
                 XMLRoot = XMLResult.createElement("XMLMissingFile");
-                XMLResult.appendChild(XMLRoot);
+                XMLDocRoot.appendChild(XMLRoot);
                 for (int item = 0; item < missingFiles.count(); item++)
                 {
                     QDomElement eDuplicatedItem;
@@ -7033,18 +7019,17 @@ int main(int argc, char *argv[])
                     eDuplicatedItem.setAttribute("fileName",missingFiles[item]);
                     XMLRoot.appendChild(eDuplicatedItem);
                 }
-                log(XMLResult.toString());
+                //log(XMLResult.toString());
+                logXMLError = true;
             }
         }
         else
         {
             if (extra_survey_columns.count() > 0 || extra_choices_columns.count() > 0 || extra_invalid_columns.count() > 0)
-            {
-                QDomDocument XMLResult;
-                XMLResult = QDomDocument("XMLExtraColumn");
+            {                
                 QDomElement XMLRoot;
                 XMLRoot = XMLResult.createElement("XMLExtraColumn");
-                XMLResult.appendChild(XMLRoot);
+                XMLDocRoot.appendChild(XMLRoot);
                 for (int item = 0; item < extra_survey_columns.count(); item++)
                 {
                     QDomElement eDuplicatedItem;
@@ -7069,7 +7054,8 @@ int main(int argc, char *argv[])
                     eDuplicatedItem.setAttribute("columType","invalid");
                     XMLRoot.appendChild(eDuplicatedItem);
                 }
-                log(XMLResult.toString());
+                //log(XMLResult.toString());
+                logXMLError = true;
             }
         }
     }    
@@ -7077,12 +7063,10 @@ int main(int argc, char *argv[])
         log("Done without errors");
 
     if (displayLanguages.getValue() == true)
-    {
-        QDomDocument XMLResult;
-        XMLResult = QDomDocument("ODKLanguages");
+    {        
         QDomElement XMLRoot;
         XMLRoot = XMLResult.createElement("ODKLanguages");
-        XMLResult.appendChild(XMLRoot);
+        XMLDocRoot.appendChild(XMLRoot);
         for (int item = 0; item < ODKLanguages.count(); item++)
         {
             QString languaje = ODKLanguages[item];
@@ -7093,7 +7077,7 @@ int main(int argc, char *argv[])
 
                 QStringList parts = languaje.split("|");
                 QDomElement eLanguageItem;
-                eLanguageItem = XMLResult.createElement("language");
+                eLanguageItem = XMLResult.createElement("ODKlanguage");
                 eLanguageItem.setAttribute("code",parts[1].simplified());
                 eLanguageItem.setAttribute("description",parts[0].simplified());
                 XMLRoot.appendChild(eLanguageItem);
@@ -7101,14 +7085,17 @@ int main(int argc, char *argv[])
             else
             {
                 QDomElement eLanguageItem;
-                eLanguageItem = XMLResult.createElement("language");
+                eLanguageItem = XMLResult.createElement("ODKlanguage");
                 eLanguageItem.setAttribute("code",languaje.simplified());
                 eLanguageItem.setAttribute("description",languaje.simplified());
                 XMLRoot.appendChild(eLanguageItem);
             }
         }
-        log(XMLResult.toString());
+        //log(XMLResult.toString());
+        logXMLError = true;
     }
+    if (logXMLError)
+        log(XMLResult.toString());
 
     return 0;
 }
