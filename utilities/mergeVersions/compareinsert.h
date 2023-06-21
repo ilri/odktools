@@ -60,6 +60,9 @@ private:
     void compareLKPTables(QDomNode table,QDomDocument &docB);
     void addDiffToTable(QString table, QString sql);
     bool ignoreChange(QString table, QString value);
+    void UpdateProperty(QDomElement table, QDomElement field, QString property);
+    void changePropertyInC(QDomNode table, QString code, QString property, QString newpropertyValue);
+    void changePropertiesInC(QDomNode table, QString properties);
 };
 
 #endif // COMPAREINSERT_H

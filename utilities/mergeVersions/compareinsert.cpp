@@ -301,6 +301,17 @@ void compareInsert::UpdateValue(QDomElement table, QDomElement field)
    addDiffToTable(table.attribute("name",""),sql);
 }
 
+void compareInsert::UpdateProperty(QDomElement table, QDomElement field, QString property)
+{
+   QString sql;
+   sql = "UPDATE " + table.attribute("name","") + " SET ";
+   sql = sql + property + " = \"";
+   sql = sql + field.attribute(property,"") + "\" WHERE ";
+   sql = sql + table.attribute("clmcode","") + " = \"";
+   sql = sql + field.attribute("code","") + "\";";
+   addDiffToTable(table.attribute("name",""),sql);
+}
+
 void compareInsert::addTableToDiff(QDomElement table)
 {
     QDomNode field;
@@ -323,6 +334,28 @@ void compareInsert::changeValueInC(QDomNode table, QString code, QString newDesc
         if (efield.attribute("code","") == code)
         {
             efield.setAttribute("description",newDescription);
+            return;
+        }
+        field = field.nextSibling();
+    }
+}
+
+void compareInsert::changePropertiesInC(QDomNode table, QString properties)
+{
+    table.toElement().setAttribute("properties",properties);
+}
+
+void compareInsert::changePropertyInC(QDomNode table, QString code, QString property, QString newpropertyValue)
+{
+    QDomNode field;
+    field = table.firstChild();
+    while (!field.isNull())
+    {
+        QDomElement efield;
+        efield = field.toElement();
+        if (efield.attribute("code","") == code)
+        {
+            efield.setAttribute(property,newpropertyValue);
             return;
         }
         field = field.nextSibling();
@@ -352,10 +385,26 @@ void compareInsert::compareLKPTables(QDomNode table,QDomDocument &docB)
     QDomNode node;
     node = table;
     while (!node.isNull())
-    {
+    {        
         QDomNode tableFound = findTable(docB,node.toElement().attribute("name",""));
         if (!tableFound.isNull())
         {
+            QStringList a_properties = node.toElement().attribute("properties","").split(",", Qt::SkipEmptyParts);
+            QStringList b_properties = tableFound.toElement().attribute("properties","").split(",", Qt::SkipEmptyParts);
+
+            for (int p=0; p < a_properties.count(); p++)
+            {
+                b_properties.append(a_properties[p]);
+            }
+            QSet<QString> t(b_properties.begin(), b_properties.end());
+            QSetIterator<QString> i(t);
+            QStringList final_properties;
+            while (i.hasNext())
+                final_properties << i.next();
+            if (final_properties.count() > 0)
+                changePropertiesInC(tableFound,final_properties.join(","));
+
+
             QDomNode field = node.firstChild();
             while (!field.isNull())
             {
@@ -385,6 +434,15 @@ void compareInsert::compareLKPTables(QDomNode table,QDomDocument &docB)
                         {
                             UpdateValue(node.toElement(),field.toElement());
                             changeValueInC(tableFound,field.toElement().attribute("code",""),field.toElement().attribute("description",""));
+                        }
+                    }                    
+                    QStringList properties = node.toElement().attribute("properties","").split(",", Qt::SkipEmptyParts);
+                    for (int p=0; p < properties.count(); p++)
+                    {
+                        if (field.toElement().attribute(properties[p],"") != fieldFound.toElement().attribute(properties[p],""))
+                        {
+                            UpdateProperty(node.toElement(),field.toElement(),properties[p]);
+                            changePropertyInC(tableFound,field.toElement().attribute("code",""),properties[p],field.toElement().attribute(properties[p],""));
                         }
                     }
                 }
