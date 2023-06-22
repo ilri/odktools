@@ -444,8 +444,11 @@ void compareInsert::compareLKPTables(QDomNode table,QDomDocument &docB)
                     {
                         if (field.toElement().attribute(properties[p],"") != fieldFound.toElement().attribute(properties[p],""))
                         {
-                            UpdateProperty(node.toElement(),field.toElement(),properties[p]);
-                            changePropertyInC(tableFound,field.toElement().attribute("code",""),properties[p],field.toElement().attribute(properties[p],""));
+                            if (field.toElement().attribute(properties[p],"!~@N0t_f0uNd:") != "!~@N0t_f0uNd:")
+                            {
+                                UpdateProperty(node.toElement(),field.toElement(),properties[p]);
+                                changePropertyInC(tableFound,field.toElement().attribute("code",""),properties[p],field.toElement().attribute(properties[p],""));
+                            }
                         }
                     }
                 }
