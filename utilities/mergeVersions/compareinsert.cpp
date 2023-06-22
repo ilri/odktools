@@ -287,6 +287,7 @@ void compareInsert::addValueToDiff(QDomElement table, QDomElement field)
         }
     }
     sql = sql.left(sql.length()-1) + ");";
+    sql = sql.replace("\"\"","NULL");
     addDiffToTable(table.attribute("name",""),sql);
 }
 
@@ -298,6 +299,7 @@ void compareInsert::UpdateValue(QDomElement table, QDomElement field)
    sql = sql + field.attribute("description","") + "\" WHERE ";
    sql = sql + table.attribute("clmcode","") + " = '";
    sql = sql + field.attribute("code","") + "';";
+   sql = sql.replace("\"\"","NULL");
    addDiffToTable(table.attribute("name",""),sql);
 }
 
@@ -309,6 +311,7 @@ void compareInsert::UpdateProperty(QDomElement table, QDomElement field, QString
    sql = sql + field.attribute(property,"") + "\" WHERE ";
    sql = sql + table.attribute("clmcode","") + " = \"";
    sql = sql + field.attribute("code","") + "\";";
+   sql = sql.replace("\"\"","NULL");
    addDiffToTable(table.attribute("name",""),sql);
 }
 
