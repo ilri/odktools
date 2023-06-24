@@ -89,6 +89,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> tArg("t","outputype","Output type: (h)uman readble or (m)achine readble",false,"m","string");
     TCLAP::ValueArg<std::string> oArg("o","erroroutput","Error file ",false,"./error.xml","string");
     TCLAP::ValueArg<std::string> iArg("i","ignore","Ignore changes in value descriptions. Indicated like Table1:value1,value2,...;Table2:value1,value2,..;..",false,"","string");
+    TCLAP::ValueArg<std::string> pArg("p","properties","Survey properties to merge. String separated by piper (|)",false,"","string");
     TCLAP::SwitchArg saveErrorSwitch("s","saveerror","Save errors to file", cmd, false);
 
     cmd.add(aArg);
@@ -102,6 +103,7 @@ int main(int argc, char *argv[])
     cmd.add(tArg);
     cmd.add(iArg);
     cmd.add(oArg);
+    cmd.add(pArg);
 
 
     //Parsing the command lines
@@ -120,6 +122,7 @@ int main(int argc, char *argv[])
     QString outputType = QString::fromUtf8(tArg.getValue().c_str());
     QString ignoreString = QString::fromUtf8(iArg.getValue().c_str());
     QString errorFile = QString::fromUtf8(oArg.getValue().c_str());
+    QString properties = QString::fromUtf8(pArg.getValue().c_str());
 
     QStringList ignoreTables;
     QList<TignoreTableValues> valuesToIgnore;
@@ -162,7 +165,8 @@ int main(int argc, char *argv[])
 
 
     mainClass *task = new mainClass(&a);
-    task->setParameters(a_createXML,b_createXML,a_insertXML,b_insertXML,c_createXML,c_insertXML,outputd,outputD,outputType,valuesToIgnore,saveToFile,errorFile);
+    QStringList property_list = properties.split("|", Qt::KeepEmptyParts);
+    task->setParameters(a_createXML,b_createXML,a_insertXML,b_insertXML,c_createXML,c_insertXML,outputd,outputD,outputType,valuesToIgnore,saveToFile,errorFile,property_list);
     QObject::connect(task, SIGNAL(finished()), &a, SLOT(quit()));
 
     QTimer::singleShot(0, task, SLOT(run()));

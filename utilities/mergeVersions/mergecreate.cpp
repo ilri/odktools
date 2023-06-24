@@ -693,10 +693,17 @@ QString mergeCreate::compareFields(QDomElement a, QDomElement b, int &newSize, i
                 return "FTC";
             }
             else
+            {
+                // If a property change from decimal to integer then leave it as decimal
+                if (b.attribute("type") == "decimal(17,3)" && a.attribute("type") == "int(9)")
+                {
+                    return "FDC";
+                }
                 return "FNS";
+            }
         }
         else
-        {
+        {            
             if (a.attribute("type") == "text")
             {
                 newSize = 0;
@@ -712,7 +719,14 @@ QString mergeCreate::compareFields(QDomElement a, QDomElement b, int &newSize, i
                     return "FTC";
                 }
                 else
+                {
+                    // If a property change from decimal to integer then leave it as decimal
+                    if (b.attribute("type") == "decimal(17,3)" && a.attribute("type") == "int(9)")
+                    {
+                        return "FDC";
+                    }
                     return "FNS";
+                }
             }
         }
     }
@@ -1021,6 +1035,14 @@ void mergeCreate::compareTables(QDomNode table,QDomDocument &docB)
                     if (!fieldFound.isNull())
                     {
                         checkField(tablefound,field.toElement(),fieldFound.toElement(),false);
+                        //We move the properties from A to C and the protection
+                        for (int p=0; p < properties.count(); p++)
+                        {
+                            if (field.toElement().attribute(properties[p],"!#$N0tF0und~") != "!#$N0tF0und~")
+                            {
+                                fieldFound.toElement().setAttribute(properties[p],field.toElement().attribute(properties[p]));
+                            }
+                        }
                     }
                     else
                     {
