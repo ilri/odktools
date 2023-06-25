@@ -1043,6 +1043,7 @@ void mergeCreate::compareTables(QDomNode table,QDomDocument &docB)
                                 fieldFound.toElement().setAttribute(properties[p],field.toElement().attribute(properties[p]));
                             }
                         }
+                        fieldFound.toElement().setAttribute("desc",field.toElement().attribute("desc"));
                     }
                     else
                     {
