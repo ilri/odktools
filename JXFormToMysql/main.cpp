@@ -38,6 +38,7 @@ License along with JXFormToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl
 #include <QJsonArray>
 #include <QSqlRecord>
 #include <QRegularExpression>
+#include <QRegularExpressionMatch>
 #include <QUuid>
 
 //*******************************************Global variables***********************************************
@@ -4322,14 +4323,13 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 if (!calculation.isNull())
                 {
                     calculation = calculation.toLower().simplified();
-                    if (calculation.indexOf("pulldata") >= 0)
+
+                    static QRegularExpression pattern("pulldata\\s*\\(\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*\\)");
+                    QRegularExpressionMatch match = pattern.match(calculation);
+
+                    if (match.hasMatch())
                     {
-                        int temp;
-                        temp = calculation.indexOf(",");
-                        calculation = calculation.left(temp);
-                        temp = calculation.indexOf("(");
-                        calculation = calculation.right(calculation.length()-temp-1);
-                        calculation.replace("'","");
+                        calculation = match.captured(1).replace("'","");
                         if (calculation.indexOf(".csv") < 0)
                         {
                             calculation = calculation + ".csv";
@@ -4338,6 +4338,23 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         else
                             addRequiredFile(calculation);
                     }
+
+//                    if (calculation.indexOf("pulldata") >= 0)
+//                    {
+//                        int temp;
+//                        temp = calculation.indexOf(",");
+//                        calculation = calculation.left(temp);
+//                        temp = calculation.indexOf("(");
+//                        calculation = calculation.right(calculation.length()-temp-1);
+//                        calculation.replace("'","");
+//                        if (calculation.indexOf(".csv") < 0)
+//                        {
+//                            calculation = calculation + ".csv";
+//                            addRequiredFile(calculation);
+//                        }
+//                        else
+//                            addRequiredFile(calculation);
+//                    }
                 }
 
             }
