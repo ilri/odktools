@@ -7040,41 +7040,40 @@ int main(int argc, char *argv[])
                 logXMLError = true;
             }
         }
-        else
+
+        if (extra_survey_columns.count() > 0 || extra_choices_columns.count() > 0 || extra_invalid_columns.count() > 0)
         {
-            if (extra_survey_columns.count() > 0 || extra_choices_columns.count() > 0 || extra_invalid_columns.count() > 0)
-            {                
-                QDomElement XMLRoot;
-                XMLRoot = XMLResult.createElement("XMLExtraColumn");
-                XMLDocRoot.appendChild(XMLRoot);
-                for (int item = 0; item < extra_survey_columns.count(); item++)
-                {
-                    QDomElement eDuplicatedItem;
-                    eDuplicatedItem = XMLResult.createElement("extraColumn");
-                    eDuplicatedItem.setAttribute("columnName",extra_survey_columns[item]);
-                    eDuplicatedItem.setAttribute("columType","survey");
-                    XMLRoot.appendChild(eDuplicatedItem);
-                }
-                for (int item = 0; item < extra_choices_columns.count(); item++)
-                {
-                    QDomElement eDuplicatedItem;
-                    eDuplicatedItem = XMLResult.createElement("extraColumn");
-                    eDuplicatedItem.setAttribute("columnName",extra_choices_columns[item]);
-                    eDuplicatedItem.setAttribute("columType","choices");
-                    XMLRoot.appendChild(eDuplicatedItem);
-                }
-                for (int item = 0; item < extra_invalid_columns.count(); item++)
-                {
-                    QDomElement eDuplicatedItem;
-                    eDuplicatedItem = XMLResult.createElement("extraColumn");
-                    eDuplicatedItem.setAttribute("columnName",extra_invalid_columns[item]);
-                    eDuplicatedItem.setAttribute("columType","invalid");
-                    XMLRoot.appendChild(eDuplicatedItem);
-                }
-                //log(XMLResult.toString());
-                logXMLError = true;
+            QDomElement XMLRoot;
+            XMLRoot = XMLResult.createElement("XMLExtraColumn");
+            XMLDocRoot.appendChild(XMLRoot);
+            for (int item = 0; item < extra_survey_columns.count(); item++)
+            {
+                QDomElement eDuplicatedItem;
+                eDuplicatedItem = XMLResult.createElement("extraColumn");
+                eDuplicatedItem.setAttribute("columnName",extra_survey_columns[item]);
+                eDuplicatedItem.setAttribute("columType","survey");
+                XMLRoot.appendChild(eDuplicatedItem);
             }
+            for (int item = 0; item < extra_choices_columns.count(); item++)
+            {
+                QDomElement eDuplicatedItem;
+                eDuplicatedItem = XMLResult.createElement("extraColumn");
+                eDuplicatedItem.setAttribute("columnName",extra_choices_columns[item]);
+                eDuplicatedItem.setAttribute("columType","choices");
+                XMLRoot.appendChild(eDuplicatedItem);
+            }
+            for (int item = 0; item < extra_invalid_columns.count(); item++)
+            {
+                QDomElement eDuplicatedItem;
+                eDuplicatedItem = XMLResult.createElement("extraColumn");
+                eDuplicatedItem.setAttribute("columnName",extra_invalid_columns[item]);
+                eDuplicatedItem.setAttribute("columType","invalid");
+                XMLRoot.appendChild(eDuplicatedItem);
+            }
+            //log(XMLResult.toString());
+            logXMLError = true;
         }
+
     }    
     if (outputType == "h")
         log("Done without errors");
