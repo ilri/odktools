@@ -467,7 +467,12 @@ void mergeCreate::addTableToSDiff(QDomNode table, bool lookUp)
             else
             {
                 if (field.attribute("type","") != "text")
-                    sql = sql + " " + field.attribute("type","") + " (" + field.attribute("size","0") + ")";
+                {
+                    if (field.attribute("type","") != "int(9)"  && field.attribute("type","") != "decimal(17,3)")
+                        sql = sql + " " + field.attribute("type","") + " (" + field.attribute("size","0") + ")";
+                    else
+                        sql = sql + " " + field.attribute("type","");
+                }
                 else
                     sql = sql + " " + field.attribute("type","");
             }
