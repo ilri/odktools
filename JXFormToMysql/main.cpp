@@ -38,6 +38,7 @@ License along with JXFormToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl
 #include <QJsonArray>
 #include <QSqlRecord>
 #include <QRegularExpression>
+#include <QRegularExpressionMatch>
 #include <QUuid>
 
 //*******************************************Global variables***********************************************
@@ -61,8 +62,17 @@ int numColumnsInData;
 QStringList duplicatedTables;
 bool justCheck;
 QStringList requiredFiles;
+QStringList extraColumnsInSurvey;
+QStringList extraColumnsInOptions;
 QStringList ODKLanguages;
 bool hasSelects;
+QStringList extra_survey_columns;
+QStringList extra_choices_columns;
+QStringList extra_invalid_columns;
+
+QDomDocument XMLResult;
+QDomElement XMLDocRoot;
+bool logXMLError=false;
 
 //********************************************Global structures****************************************
 
@@ -107,6 +117,14 @@ struct fieldMap
 };
 typedef fieldMap TfieldMap;
 
+//Extra columns in survey
+struct extraSurveyColum
+{
+    QString name;
+    QString value;
+};
+typedef extraSurveyColum TextraSurveyColum;
+
 //Field Definition structure
 struct fieldDef
 {
@@ -134,6 +152,7 @@ struct fieldDef
   QString codeColumn;
   QString descColumn;
   bool autoincrement = false;
+  QList<TextraSurveyColum > extraSurveyColumns; //List of extra columns in survey
 };
 typedef fieldDef TfieldDef;
 
@@ -231,6 +250,7 @@ typedef duplicatedField TduplicatedField;
 QList<TduplicatedField> duplicatedFields;
 
 QStringList invalidFieldNames;
+QStringList invalidDataColumnName;
 QStringList invalidFields;
 
 QList <QJsonObject > readOnlyCalculates;
@@ -310,15 +330,7 @@ void isFieldValid(QString field, bool select)
 void loadInvalidFieldNames()
 {
     //This is the list of invalid column or table names. Source: https://dev.mysql.com/doc/refman/8.0/en/keywords.html
-    invalidFieldNames << "_SUBMITTED_BY";
-    invalidFieldNames << "_XFORM_ID_STRING";
-    invalidFieldNames << "_SUBMITTED_DATE";
-    invalidFieldNames << "_GEOPOINT";
-    invalidFieldNames << "_LONGITUDE";
-    invalidFieldNames << "_LATITUDE";
-    invalidFieldNames << "_ELEVATION";
-    invalidFieldNames << "_PRECISION";
-    invalidFieldNames << "_ACTIVE";
+    invalidFieldNames << "ABSTRACT";
     invalidFieldNames << "ACCESSIBLE";
     invalidFieldNames << "ACCOUNT";
     invalidFieldNames << "ACTION";
@@ -336,10 +348,12 @@ void loadInvalidFieldNames()
     invalidFieldNames << "ANALYZE";
     invalidFieldNames << "AND";
     invalidFieldNames << "ANY";
+    invalidFieldNames << "APPEARANCE";
     invalidFieldNames << "AS";
     invalidFieldNames << "ASC";
     invalidFieldNames << "ASCII";
     invalidFieldNames << "ASENSITIVE";
+    invalidFieldNames << "ASSERT";
     invalidFieldNames << "AT";
     invalidFieldNames << "AUTOEXTEND_SIZE";
     invalidFieldNames << "AUTO_INCREMENT";
@@ -351,23 +365,30 @@ void loadInvalidFieldNames()
     invalidFieldNames << "BETWEEN";
     invalidFieldNames << "BIGINT";
     invalidFieldNames << "BINARY";
+    invalidFieldNames << "BIND";
     invalidFieldNames << "BINLOG";
     invalidFieldNames << "BIT";
+    invalidFieldNames << "BIT_AND";
+    invalidFieldNames << "BIT_OR";
+    invalidFieldNames << "BIT_XOR";
     invalidFieldNames << "BLOB";
     invalidFieldNames << "BLOCK";
     invalidFieldNames << "BOOL";
     invalidFieldNames << "BOOLEAN";
     invalidFieldNames << "BOTH";
+    invalidFieldNames << "BREAK";
     invalidFieldNames << "BTREE";
     invalidFieldNames << "BUCKETS";
     invalidFieldNames << "BY";
     invalidFieldNames << "BYTE";
     invalidFieldNames << "CACHE";
+    invalidFieldNames << "CALCULATION";
     invalidFieldNames << "CALL";
     invalidFieldNames << "CASCADE";
     invalidFieldNames << "CASCADED";
     invalidFieldNames << "CASE";
     invalidFieldNames << "CATALOG_NAME";
+    invalidFieldNames << "CATCH";
     invalidFieldNames << "CHAIN";
     invalidFieldNames << "CHANGE";
     invalidFieldNames << "CHANGED";
@@ -377,7 +398,10 @@ void loadInvalidFieldNames()
     invalidFieldNames << "CHARSET";
     invalidFieldNames << "CHECK";
     invalidFieldNames << "CHECKSUM";
+    invalidFieldNames << "CHOICES";
+    invalidFieldNames << "CHOICE_FILTER";
     invalidFieldNames << "CIPHER";
+    invalidFieldNames << "CLASS";
     invalidFieldNames << "CLASS_ORIGIN";
     invalidFieldNames << "CLIENT";
     invalidFieldNames << "CLONE";
@@ -402,14 +426,18 @@ void loadInvalidFieldNames()
     invalidFieldNames << "CONDITION";
     invalidFieldNames << "CONNECTION";
     invalidFieldNames << "CONSISTENT";
+    invalidFieldNames << "CONST";
     invalidFieldNames << "CONSTRAINT";
     invalidFieldNames << "CONSTRAINT_CATALOG";
+    invalidFieldNames << "CONSTRAINT_MESSAGE";
     invalidFieldNames << "CONSTRAINT_NAME";
     invalidFieldNames << "CONSTRAINT_SCHEMA";
     invalidFieldNames << "CONTAINS";
     invalidFieldNames << "CONTEXT";
     invalidFieldNames << "CONTINUE";
     invalidFieldNames << "CONVERT";
+    invalidFieldNames << "COUNT";
+    invalidFieldNames << "COUNT(DISTINCT)";
     invalidFieldNames << "CPU";
     invalidFieldNames << "CREATE";
     invalidFieldNames << "CROSS";
@@ -496,6 +524,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "EXPLAIN";
     invalidFieldNames << "EXPORT";
     invalidFieldNames << "EXTENDED";
+    invalidFieldNames << "EXTENDS";
     invalidFieldNames << "EXTENT_SIZE";
     invalidFieldNames << "FALSE";
     invalidFieldNames << "FAST";
@@ -505,6 +534,8 @@ void loadInvalidFieldNames()
     invalidFieldNames << "FILE";
     invalidFieldNames << "FILE_BLOCK_SIZE";
     invalidFieldNames << "FILTER";
+    invalidFieldNames << "FINAL";
+    invalidFieldNames << "FINALLY";
     invalidFieldNames << "FIRST";
     invalidFieldNames << "FIRST_VALUE";
     invalidFieldNames << "FIXED";
@@ -532,17 +563,20 @@ void loadInvalidFieldNames()
     invalidFieldNames << "GET_FORMAT";
     invalidFieldNames << "GET_MASTER_PUBLIC_KEY";
     invalidFieldNames << "GLOBAL";
+    invalidFieldNames << "GOTO";
     invalidFieldNames << "GRANT";
     invalidFieldNames << "GRANTS";
     invalidFieldNames << "GROUP";
     invalidFieldNames << "GROUPING";
     invalidFieldNames << "GROUPS";
+    invalidFieldNames << "GROUP_CONCAT";
     invalidFieldNames << "GROUP_REPLICATION";
     invalidFieldNames << "HANDLER";
     invalidFieldNames << "HASH";
     invalidFieldNames << "HAVING";
     invalidFieldNames << "HELP";
     invalidFieldNames << "HIGH_PRIORITY";
+    invalidFieldNames << "HINT";
     invalidFieldNames << "HISTOGRAM";
     invalidFieldNames << "HISTORY";
     invalidFieldNames << "HOST";
@@ -555,6 +589,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "IF";
     invalidFieldNames << "IGNORE";
     invalidFieldNames << "IGNORE_SERVER_IDS";
+    invalidFieldNames << "IMPLEMENTS";
     invalidFieldNames << "IMPORT";
     invalidFieldNames << "IN";
     invalidFieldNames << "INACTIVE";
@@ -569,6 +604,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "INSERT_METHOD";
     invalidFieldNames << "INSTALL";
     invalidFieldNames << "INSTANCE";
+    invalidFieldNames << "INSTANCEOF";
     invalidFieldNames << "INT";
     invalidFieldNames << "INT1";
     invalidFieldNames << "INT2";
@@ -576,6 +612,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "INT4";
     invalidFieldNames << "INT8";
     invalidFieldNames << "INTEGER";
+    invalidFieldNames << "INTERFACE";
     invalidFieldNames << "INTERVAL";
     invalidFieldNames << "INTO";
     invalidFieldNames << "INVISIBLE";
@@ -588,16 +625,19 @@ void loadInvalidFieldNames()
     invalidFieldNames << "IS";
     invalidFieldNames << "ISOLATION";
     invalidFieldNames << "ISSUER";
+    invalidFieldNames << "ITEMSET";
     invalidFieldNames << "ITERATE";
     invalidFieldNames << "JOIN";
     invalidFieldNames << "JSON";
+    invalidFieldNames << "JSON_ARRAYAGG";
+    invalidFieldNames << "JSON_OBJECTAGG";
     invalidFieldNames << "JSON_TABLE";
     invalidFieldNames << "KEY";
     invalidFieldNames << "KEYS";
     invalidFieldNames << "KEY_BLOCK_SIZE";
     invalidFieldNames << "KILL";
+    invalidFieldNames << "LABEL";
     invalidFieldNames << "LAG";
-    invalidFieldNames << "LAG ";
     invalidFieldNames << "LANGUAGE";
     invalidFieldNames << "LAST";
     invalidFieldNames << "LAST_VALUE";
@@ -615,6 +655,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "LINES";
     invalidFieldNames << "LINESTRING";
     invalidFieldNames << "LIST";
+    invalidFieldNames << "LIST_NAME";
     invalidFieldNames << "LOAD";
     invalidFieldNames << "LOCAL";
     invalidFieldNames << "LOCALTIME";
@@ -625,7 +666,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "LOGFILE";
     invalidFieldNames << "LOGS";
     invalidFieldNames << "LONG";
-    invalidFieldNames << "LONGBLOB ";
+    invalidFieldNames << "LONGBLOB";
     invalidFieldNames << "LONGTEXT";
     invalidFieldNames << "LOOP";
     invalidFieldNames << "LOW_PRIORITY";
@@ -655,6 +696,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "MASTER_TLS_VERSION";
     invalidFieldNames << "MASTER_USER";
     invalidFieldNames << "MATCH";
+    invalidFieldNames << "MAX";
     invalidFieldNames << "MAXVALUE";
     invalidFieldNames << "MAX_CONNECTIONS_PER_HOUR";
     invalidFieldNames << "MAX_QUERIES_PER_HOUR";
@@ -662,6 +704,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "MAX_SIZE";
     invalidFieldNames << "MAX_UPDATES_PER_HOUR";
     invalidFieldNames << "MAX_USER_CONNECTIONS";
+    invalidFieldNames << "MEDIA";
     invalidFieldNames << "MEDIUM";
     invalidFieldNames << "MEDIUMBLOB";
     invalidFieldNames << "MEDIUMINT";
@@ -672,6 +715,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "MICROSECOND";
     invalidFieldNames << "MIDDLEINT";
     invalidFieldNames << "MIGRATE";
+    invalidFieldNames << "MIN";
     invalidFieldNames << "MINUTE";
     invalidFieldNames << "MINUTE_MICROSECOND";
     invalidFieldNames << "MINUTE_SECOND";
@@ -689,6 +733,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "NAME";
     invalidFieldNames << "NAMES";
     invalidFieldNames << "NATIONAL";
+    invalidFieldNames << "NATIVE";
     invalidFieldNames << "NATURAL";
     invalidFieldNames << "NCHAR";
     invalidFieldNames << "NDB";
@@ -737,8 +782,10 @@ void loadInvalidFieldNames()
     invalidFieldNames << "OUTFILE";
     invalidFieldNames << "OVER";
     invalidFieldNames << "OWNER";
+    invalidFieldNames << "PACKAGE";
     invalidFieldNames << "PACK_KEYS";
     invalidFieldNames << "PAGE";
+    invalidFieldNames << "PARAMETERS";
     invalidFieldNames << "PARSER";
     invalidFieldNames << "PARSE_GCOL_EXPR";
     invalidFieldNames << "PARTIAL";
@@ -764,13 +811,16 @@ void loadInvalidFieldNames()
     invalidFieldNames << "PRESERVE";
     invalidFieldNames << "PREV";
     invalidFieldNames << "PRIMARY";
+    invalidFieldNames << "PRIVATE";
     invalidFieldNames << "PRIVILEGES";
     invalidFieldNames << "PROCEDURE";
     invalidFieldNames << "PROCESS";
     invalidFieldNames << "PROCESSLIST";
     invalidFieldNames << "PROFILE";
     invalidFieldNames << "PROFILES";
+    invalidFieldNames << "PROTECTED";
     invalidFieldNames << "PROXY";
+    invalidFieldNames << "PUBLIC";
     invalidFieldNames << "PURGE";
     invalidFieldNames << "QUARTER";
     invalidFieldNames << "QUERY";
@@ -797,6 +847,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "RELAY_LOG_POS";
     invalidFieldNames << "RELAY_THREAD";
     invalidFieldNames << "RELEASE";
+    invalidFieldNames << "RELEVANT";
     invalidFieldNames << "RELOAD";
     invalidFieldNames << "REMOTE";
     invalidFieldNames << "REMOVE";
@@ -805,6 +856,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "REPAIR";
     invalidFieldNames << "REPEAT";
     invalidFieldNames << "REPEATABLE";
+    invalidFieldNames << "REPEAT_COUNT";
     invalidFieldNames << "REPLACE";
     invalidFieldNames << "REPLICATE_DO_DB";
     invalidFieldNames << "REPLICATE_DO_TABLE";
@@ -815,6 +867,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "REPLICATE_WILD_IGNORE_TABLE";
     invalidFieldNames << "REPLICATION";
     invalidFieldNames << "REQUIRE";
+    invalidFieldNames << "REQUIRED";
     invalidFieldNames << "RESET";
     invalidFieldNames << "RESIGNAL";
     invalidFieldNames << "RESOURCE";
@@ -866,6 +919,7 @@ void loadInvalidFieldNames()
     invalidFieldNames << "SESSION";
     invalidFieldNames << "SET";
     invalidFieldNames << "SHARE";
+    invalidFieldNames << "SHORT";
     invalidFieldNames << "SHOW";
     invalidFieldNames << "SHUTDOWN";
     invalidFieldNames << "SIGNAL";
@@ -911,24 +965,33 @@ void loadInvalidFieldNames()
     invalidFieldNames << "START";
     invalidFieldNames << "STARTING";
     invalidFieldNames << "STARTS";
+    invalidFieldNames << "STATIC";
     invalidFieldNames << "STATS_AUTO_RECALC";
     invalidFieldNames << "STATS_PERSISTENT";
     invalidFieldNames << "STATS_SAMPLE_PAGES";
     invalidFieldNames << "STATUS";
+    invalidFieldNames << "STD";
+    invalidFieldNames << "STDDEV";
+    invalidFieldNames << "STDDEV_POP";
+    invalidFieldNames << "STDDEV_SAMP";
     invalidFieldNames << "STOP";
     invalidFieldNames << "STORAGE";
     invalidFieldNames << "STORED";
     invalidFieldNames << "STRAIGHT_JOIN";
+    invalidFieldNames << "STRICTFP";
     invalidFieldNames << "STRING";
     invalidFieldNames << "SUBCLASS_ORIGIN";
     invalidFieldNames << "SUBJECT";
     invalidFieldNames << "SUBPARTITION";
     invalidFieldNames << "SUBPARTITIONS";
+    invalidFieldNames << "SUM";
     invalidFieldNames << "SUPER";
     invalidFieldNames << "SURVEYID";
     invalidFieldNames << "SUSPEND";
     invalidFieldNames << "SWAPS";
+    invalidFieldNames << "SWITCH";
     invalidFieldNames << "SWITCHES";
+    invalidFieldNames << "SYNCHRONIZED";
     invalidFieldNames << "SYSTEM";
     invalidFieldNames << "TABLE";
     invalidFieldNames << "TABLES";
@@ -941,7 +1004,10 @@ void loadInvalidFieldNames()
     invalidFieldNames << "TEXT";
     invalidFieldNames << "THAN";
     invalidFieldNames << "THEN";
+    invalidFieldNames << "THIS";
     invalidFieldNames << "THREAD_PRIORITY";
+    invalidFieldNames << "THROW";
+    invalidFieldNames << "THROWS";
     invalidFieldNames << "TIES";
     invalidFieldNames << "TIME";
     invalidFieldNames << "TIMESTAMP";
@@ -953,10 +1019,12 @@ void loadInvalidFieldNames()
     invalidFieldNames << "TO";
     invalidFieldNames << "TRAILING";
     invalidFieldNames << "TRANSACTION";
+    invalidFieldNames << "TRANSIENT";
     invalidFieldNames << "TRIGGER";
     invalidFieldNames << "TRIGGERS";
     invalidFieldNames << "TRUE";
     invalidFieldNames << "TRUNCATE";
+    invalidFieldNames << "TRY";
     invalidFieldNames << "TYPE";
     invalidFieldNames << "TYPES";
     invalidFieldNames << "UNBOUNDED";
@@ -991,11 +1059,16 @@ void loadInvalidFieldNames()
     invalidFieldNames << "VARCHAR";
     invalidFieldNames << "VARCHARACTER";
     invalidFieldNames << "VARIABLES";
+    invalidFieldNames << "VARIANCE";
     invalidFieldNames << "VARYING";
+    invalidFieldNames << "VAR_POP";
+    invalidFieldNames << "VAR_SAMP";
     invalidFieldNames << "VCPU";
     invalidFieldNames << "VIEW";
     invalidFieldNames << "VIRTUAL";
     invalidFieldNames << "VISIBLE";
+    invalidFieldNames << "VOID";
+    invalidFieldNames << "VOLATILE";
     invalidFieldNames << "WAIT";
     invalidFieldNames << "WARNINGS";
     invalidFieldNames << "WEEK";
@@ -1017,79 +1090,18 @@ void loadInvalidFieldNames()
     invalidFieldNames << "YEAR";
     invalidFieldNames << "YEAR_MONTH";
     invalidFieldNames << "ZEROFILL";
-    invalidFieldNames << "AVG";
-    invalidFieldNames << "BIT_AND";
-    invalidFieldNames << "BIT_OR";
-    invalidFieldNames << "BIT_XOR";
-    invalidFieldNames << "COUNT";
-    invalidFieldNames << "COUNT(DISTINCT)";
-    invalidFieldNames << "GROUP_CONCAT";
-    invalidFieldNames << "JSON_ARRAYAGG";
-    invalidFieldNames << "JSON_OBJECTAGG";
-    invalidFieldNames << "MAX";
-    invalidFieldNames << "MIN";
-    invalidFieldNames << "STD";
-    invalidFieldNames << "STDDEV";
-    invalidFieldNames << "STDDEV_POP";
-    invalidFieldNames << "STDDEV_SAMP";
-    invalidFieldNames << "SUM";
-    invalidFieldNames << "VAR_POP";
-    invalidFieldNames << "VAR_SAMP";
-    invalidFieldNames << "VARIANCE";
+    invalidFieldNames << "_ACTIVE";
+    invalidFieldNames << "_ELEVATION";
+    invalidFieldNames << "_GEOPOINT";
+    invalidFieldNames << "_LATITUDE";
+    invalidFieldNames << "_LONGITUDE";
+    invalidFieldNames << "_PRECISION";
+    invalidFieldNames << "_SUBMITTED_BY";
+    invalidFieldNames << "_SUBMITTED_DATE";
+    invalidFieldNames << "_XFORM_ID_STRING";
 
-    invalidFieldNames << "ABSTRACT";
-    invalidFieldNames << "CATCH";
-    invalidFieldNames << "DOUBLE";
-    invalidFieldNames << "FINAL";
-    invalidFieldNames << "IMPLEMENTS";
-    invalidFieldNames << "NATIVE";
-    invalidFieldNames << "PUBLIC";
-    invalidFieldNames << "SWITCH";
-    invalidFieldNames << "TRUE";
-    invalidFieldNames << "ASSERT";
-    invalidFieldNames << "CHAR";
-    invalidFieldNames << "DO";
-    invalidFieldNames << "FINALLY";
-    invalidFieldNames << "IMPORT";
-    invalidFieldNames << "NEW";
-    invalidFieldNames << "RETURN";
-    invalidFieldNames << "SYNCHRONIZED";
-    invalidFieldNames << "TRY";
-    invalidFieldNames << "BOOLEAN";
-    invalidFieldNames << "CLASS";
-    invalidFieldNames << "ELSE";
-    invalidFieldNames << "FLOAT";
-    invalidFieldNames << "INSTANCEOF";
-    invalidFieldNames << "NULL";
-    invalidFieldNames << "SHORT";
-    invalidFieldNames << "THIS";
-    invalidFieldNames << "VOID";
-    invalidFieldNames << "BREAK";
-    invalidFieldNames << "CONST";
-    invalidFieldNames << "ENUM";
-    invalidFieldNames << "FOR";
-    invalidFieldNames << "INT";
-    invalidFieldNames << "PACKAGE";
-    invalidFieldNames << "STATIC";
-    invalidFieldNames << "THROW";
-    invalidFieldNames << "VOLATILE";
-    invalidFieldNames << "BYTE";
-    invalidFieldNames << "CONTINUE";
-    invalidFieldNames << "EXTENDS";
-    invalidFieldNames << "GOTO";
-    invalidFieldNames << "INTERFACE";
-    invalidFieldNames << "PRIVATE";
-    invalidFieldNames << "STRICTFP";
-    invalidFieldNames << "THROWS";
-    invalidFieldNames << "WHILE";
-    invalidFieldNames << "CASE";
-    invalidFieldNames << "DEFAULT";
-    invalidFieldNames << "FALSE";
-    invalidFieldNames << "IF";
-    invalidFieldNames << "LONG";
-    invalidFieldNames << "PROTECTED";
-    invalidFieldNames << "SUPER";
-    invalidFieldNames << "TRANSIENT";
+    // The following names are invalid as column names
+    invalidDataColumnName << "CONTROL";
 }
 
 void addRequiredFile(QString fileName)
@@ -1202,12 +1214,10 @@ void log(QString message)
 }
 
 void report_file_error(QString file_name)
-{
-    QDomDocument XMLResult;
-    XMLResult = QDomDocument("XMLResult");
+{    
     QDomElement XMLRoot;
-    XMLRoot = XMLResult.createElement("XMLResult");
-    XMLResult.appendChild(XMLRoot);
+    XMLRoot = XMLResult.createElement("XMLFileError");
+    XMLDocRoot.appendChild(XMLRoot);
     QDomElement eFileError;
     eFileError = XMLResult.createElement("file");
     eFileError.setAttribute("name",file_name);
@@ -1608,7 +1618,7 @@ TtableDef checkDuplicatedLkpTable(QString table, QList<TlkpValue> thisValues)
                         }
                         if (idx == -1)
                         {
-                            found = false;
+                            //found = false;
                             TduplicatedLookUp duplicated;
                             duplicated.sameas = tables[pos].name;
                             duplicated.tables.append(table);
@@ -2079,6 +2089,12 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
                         createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                         createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
+
+                        for (int ex=0; ex < tables[pos].fields[clm].extraSurveyColumns.count(); ex++)
+                        {
+                            createFieldNode.setAttribute(tables[pos].fields[clm].extraSurveyColumns[ex].name, tables[pos].fields[clm].extraSurveyColumns[ex].value);
+                        }
+
                         if (tables[pos].fields[clm].autoincrement == true)
                             createFieldNode.setAttribute("autoincrement","true");
                         if (tables[pos].fields[clm].sensitive == true)
@@ -2123,6 +2139,12 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                         createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
                         createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                         createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
+
+                        for (int ex=0; ex < tables[pos].fields[clm].extraSurveyColumns.count(); ex++)
+                        {
+                            createFieldNode.setAttribute(tables[pos].fields[clm].extraSurveyColumns[ex].name, tables[pos].fields[clm].extraSurveyColumns[ex].value);
+                        }
+
                         if (tables[pos].fields[clm].autoincrement == true)
                             createFieldNode.setAttribute("autoincrement","true");
                         if (tables[pos].fields[clm].sensitive == true)
@@ -2160,6 +2182,12 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                     createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
                     createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                     createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
+
+                    for (int ex=0; ex < tables[pos].fields[clm].extraSurveyColumns.count(); ex++)
+                    {
+                        createFieldNode.setAttribute(tables[pos].fields[clm].extraSurveyColumns[ex].name, tables[pos].fields[clm].extraSurveyColumns[ex].value);
+                    }
+
                     if (tables[pos].fields[clm].autoincrement == true)
                         createFieldNode.setAttribute("autoincrement","true");
                     if (tables[pos].fields[clm].sensitive == true)
@@ -2197,6 +2225,12 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 createFieldNode.setAttribute("codeColumn",tables[pos].fields[clm].codeColumn);
                 createFieldNode.setAttribute("descColumn",tables[pos].fields[clm].descColumn);
                 createFieldNode.setAttribute("xmlcode",tables[pos].fields[clm].xmlCode);
+
+                for (int ex=0; ex < tables[pos].fields[clm].extraSurveyColumns.count(); ex++)
+                {
+                    createFieldNode.setAttribute(tables[pos].fields[clm].extraSurveyColumns[ex].name, tables[pos].fields[clm].extraSurveyColumns[ex].value);
+                }
+
                 if (tables[pos].fields[clm].autoincrement == true)
                     createFieldNode.setAttribute("autoincrement","true");
                 if (tables[pos].fields[clm].sensitive == true)
@@ -2403,7 +2437,9 @@ void generateOutputFiles(QString ddlFile,QString insFile, QString metaFile, QStr
                 insertSQL = insertSQL + fixString(getDescForLanguage(tables[pos].lkpValues[clm].desc,defLangCode)) + "\",";
                 for (int p = 0; p < tables[pos].propertyList.count(); p++)
                 {
-                    insertSQL = insertSQL + "\"" + tables[pos].lkpValues[clm].other_values[p].column_value.toString() + "\",";
+                    QString sqlString = "\"" + tables[pos].lkpValues[clm].other_values[p].column_value.toString() + "\",";
+                    sqlString = sqlString.replace("\"\"","NULL");
+                    insertSQL = insertSQL + sqlString;
                 }
                 insertSQL = insertSQL.left(insertSQL.length()-1) + ");";
                 sqlInsertStrm << insertSQL << "\n";
@@ -3011,7 +3047,7 @@ QString getVariableStack(bool full)
     QString res;
     for (int pos = 0; pos < variableStack.count();pos++)
     {
-        QStringList parts = variableStack[pos].split("@",QString::SkipEmptyParts);
+        QStringList parts = variableStack[pos].split("@",Qt::SkipEmptyParts);
         if (full)
             res = res + parts[0] + "/";
         else
@@ -3089,8 +3125,9 @@ QList <TlngLkpDesc > getLabels(QJsonValue labelValue)
         for (int lbl = 0; lbl < labelObject.keys().count(); lbl++)
         {
             TlngLkpDesc fieldDesc;
-            fieldDesc.langCode = getLanguageCode(labelObject.keys()[lbl]);
-            fieldDesc.desc = labelObject.value(labelObject.keys()[lbl]).toString();
+            QStringList kys = labelObject.keys();
+            fieldDesc.langCode = getLanguageCode(kys[lbl]);
+            fieldDesc.desc = labelObject.value(kys[lbl]).toString();
             labels.append(fieldDesc);
         }
     }
@@ -3382,7 +3419,7 @@ QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, 
                             if (descColumns[pos].indexOf("::") >= 0)
                             {
                                 QStringList parts;
-                                parts = descColumns[pos].split("::",QString::SkipEmptyParts);
+                                parts = descColumns[pos].split("::",Qt::SkipEmptyParts);
                                 QString langCode;
                                 langCode = getLanguageCode(parts[1]);
                                 if (langCode != "")
@@ -3397,12 +3434,10 @@ QList<TlkpValue> getSelectValuesFromXML(QString variableName, QString fileName, 
                                     if (outputType == "m")
                                         log("Language " + parts[1] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
                                     else
-                                    {
-                                        QDomDocument XMLResult;
-                                        XMLResult = QDomDocument("XMLResult");
+                                    {                                        
                                         QDomElement XMLRoot;
-                                        XMLRoot = XMLResult.createElement("XMLResult");
-                                        XMLResult.appendChild(XMLRoot);
+                                        XMLRoot = XMLResult.createElement("XMLLanguageNotFound");
+                                        XMLDocRoot.appendChild(XMLRoot);
                                         QDomElement eLanguages;
                                         eLanguages = XMLResult.createElement("languages");
                                         QDomElement eLanguage;
@@ -3536,7 +3571,7 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
                                     if (descColumns[pos].indexOf("::") >= 0)
                                     {
                                         QStringList parts;
-                                        parts = descColumns[pos].split("::",QString::SkipEmptyParts);
+                                        parts = descColumns[pos].split("::",Qt::SkipEmptyParts);
                                         QString langCode;
                                         langCode = getLanguageCode(parts[1]);
                                         if (langCode != "")
@@ -3551,12 +3586,10 @@ QList<TlkpValue> getSelectValuesFromCSV2(QString variableName, QString fileName,
                                             if (outputType == "m")
                                                 log("Language " + parts[1] + " was not found in the parameters. Please indicate it as default language (-d) or as other lannguage (-l)");
                                             else
-                                            {
-                                                QDomDocument XMLResult;
-                                                XMLResult = QDomDocument("XMLResult");
+                                            {                                                
                                                 QDomElement XMLRoot;
-                                                XMLRoot = XMLResult.createElement("XMLResult");
-                                                XMLResult.appendChild(XMLRoot);
+                                                XMLRoot = XMLResult.createElement("XMLLanguageNotFound");
+                                                XMLDocRoot.appendChild(XMLRoot);
                                                 QDomElement eLanguages;
                                                 eLanguages = XMLResult.createElement("languages");
                                                 QDomElement eLanguage;
@@ -3790,12 +3823,10 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
                 log("Cannot locate a description column for the search select \"" + variableName + "\"");
         }
         else
-        {
-            QDomDocument XMLResult;
-            XMLResult = QDomDocument("XMLResult");
+        {            
             QDomElement XMLRoot;
-            XMLRoot = XMLResult.createElement("XMLResult");
-            XMLResult.appendChild(XMLRoot);
+            XMLRoot = XMLResult.createElement("XMLExpresionError");
+            XMLDocRoot.appendChild(XMLRoot);
             QDomElement eFileError;
             eFileError = XMLResult.createElement("search");
             eFileError.setAttribute("name",variableName);
@@ -3811,18 +3842,161 @@ QList<TlkpValue> getSelectValuesFromCSV(QString searchExpresion, QJsonArray choi
     return res;
 }
 
+//This return the list of extra columns as a StrinList
+QStringList getExtraColumns(QJsonArray choices)
+{
+    QStringList res;
+    for (int nrow = 0; nrow < choices.count(); nrow++)
+    {
+        QJsonValue JSONValue = choices.at(nrow);
+        QStringList keys = JSONValue.toObject().keys();
+        for (int k=0; k < keys.count(); k++)
+        {
+            if (extra_choices_columns.indexOf(keys[k]) >= 0)
+            {
+                QString column = fixField(keys[k]);
+                if (res.indexOf(column) < 0)
+                    res.append(column);
+            }
+        }
+    }
+    return res;
+}
+
+//This return the list of extra columns as a StrinList
+QStringList getExtraColumnsTypes(QJsonArray choices, QStringList extra_colums)
+{
+    QStringList res;
+    for (int k=0; k < extra_colums.count(); k++)
+    {
+        bool is_int = true;
+        bool is_float = true;
+
+        //Check if all the values are int
+        for (int nrow = 0; nrow < choices.count(); nrow++)
+        {
+            QJsonValue JSONValue = choices.at(nrow);
+            if (JSONValue.toObject().value(extra_colums[k]) != QJsonValue::Undefined)
+            {
+                QString value = JSONValue.toObject().value(extra_colums[k]).toString();
+                bool value_is_int;
+                value.toInt(&value_is_int);
+                if (is_int && !value_is_int)
+                    is_int = false;
+            }
+        }
+        if (!is_int)
+        {
+            //If not int check if all the values are float
+            for (int nrow = 0; nrow < choices.count(); nrow++)
+            {
+                QJsonValue JSONValue = choices.at(nrow);
+                if (JSONValue.toObject().value(extra_colums[k]) != QJsonValue::Undefined)
+                {
+                    QString value = JSONValue.toObject().value(extra_colums[k]).toString();
+                    bool value_is_float;
+                    value.toFloat(&value_is_float);
+                    if (is_float && !value_is_float)
+                        is_float = false;
+                }
+            }
+        }
+        else
+        {
+            is_float = false;
+        }
+
+        bool is_sequence = false;
+        for (int nrow = 0; nrow < choices.count(); nrow++)
+        {
+            QJsonValue JSONValue = choices.at(nrow);
+            if (JSONValue.toObject().value(extra_colums[k]) != QJsonValue::Undefined)
+            {
+                QString value = JSONValue.toObject().value(extra_colums[k]).toString();
+                if (!value.isEmpty())
+                    if (value[0] == '0')
+                        is_sequence = true;
+            }
+        }
+
+
+        if (is_float)
+        {
+            res.append("decimal(17,3)");
+        }
+        if (is_int && !is_sequence)
+        {
+            res.append("int(9)");
+        }
+        if ((!is_float && !is_int) || is_sequence)
+            res.append("text");
+    }
+    return res;
+}
+
+bool checkColumnName(QString name)
+{
+    QRegExp rx("^[a-zA-Z][a-zA-Z0-9_]*$");
+    if (rx.exactMatch(name)) {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+
 //This return the values of a simple select or select multiple
-QList<TlkpValue> getSelectValues(QString variableName, QJsonArray choices, bool hasOther)
+QList<TlkpValue> getSelectValues(QString variableName, QJsonArray choices, bool hasOther, QStringList extraColumns)
 {
     QList<TlkpValue> res;
     for (int nrow = 0; nrow < choices.count(); nrow++)
     {
         QJsonValue JSONValue = choices.at(nrow);
+
+        QStringList keys = JSONValue.toObject().keys();
+        for (int k = 0; k < keys.count(); k++)
+        {
+            QString key = keys[k];
+            key = key.simplified().toUpper();
+            if (checkColumnName(key))
+            {
+                if (invalidFieldNames.indexOf(key) < 0 && invalidDataColumnName.indexOf(key) < 0)
+                {
+                    if (extra_choices_columns.indexOf(keys[k]) < 0)
+                        extra_choices_columns.append(keys[k].simplified());
+                }
+                else
+                {
+                    if (keys[k].simplified() != "name" && keys[k].simplified() != "label")
+                        if (extra_invalid_columns.indexOf(keys[k].simplified()) < 0)
+                            extra_invalid_columns.append(keys[k].simplified());
+                }
+            }
+            else
+            {
+                if (extra_invalid_columns.indexOf(keys[k].simplified()) < 0)
+                    extra_invalid_columns.append(keys[k].simplified());
+            }
+        }
+
+
         TlkpValue value;
         value.code = JSONValue.toObject().value("name").toString();
         QJsonValue JSONlabel = JSONValue.toObject().value("label");
         value.desc = getLabels(JSONlabel);
         checkSelectValue(variableName,res,value.code);
+        for (int ex=0; ex < extraColumns.count(); ex++)
+        {
+            TotherLkpValue other_value;
+            other_value.column_name = extraColumns[ex];
+            if (JSONValue.toObject().value(extraColumns[ex]) != QJsonValue::Undefined)
+                other_value.column_value = JSONValue.toObject().value(extraColumns[ex]).toString();
+            else
+                other_value.column_value = "";
+            value.other_values.append(other_value);
+        }
         res.append(value);
     }
     if (hasOther)
@@ -3921,7 +4095,9 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
     if (fieldObject.keys().indexOf("choices") >= 0)
     {
         QList<TlkpValue> values;
-        values.append(getSelectValues(variableName,fieldObject.value("choices").toArray(),false));
+        QStringList extra_columns;
+        extra_columns = getExtraColumns(fieldObject.value("choices").toArray());
+        values.append(getSelectValues(variableName,fieldObject.value("choices").toArray(),false,extra_columns));
         TfieldDef aField;
         aField.selectSource = "NONE";
         aField.name = fixField(variableName.toLower());
@@ -4059,10 +4235,28 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
     QString variableType;
     variableType = fieldObject.value("type").toString("text");
     QString variableName;
-    variableName = fieldObject.value("name").toString();    
-//    if (variableName == "d233_whotranslvstck")
-//        log("d233_whotranslvstck");
+    variableName = fieldObject.value("name").toString();
 
+    QStringList keys = fieldObject.keys();
+    for (int k = 0; k < keys.count(); k++)
+    {
+        QString key = keys[k];
+        key = key.simplified();
+        key = key.toUpper();
+        if (checkColumnName(key))
+        {
+            if (invalidFieldNames.indexOf(key) < 0 && invalidDataColumnName.indexOf(key) < 0)
+            {
+                if (extra_survey_columns.indexOf(keys[k].simplified()) < 0)
+                    extra_survey_columns.append(keys[k].simplified());
+            }
+        }
+        else
+        {
+            if (extra_invalid_columns.indexOf(keys[k].simplified()) < 0)
+                extra_invalid_columns.append(keys[k].simplified());
+        }
+    }
 
     QString tableType = "NotLoop";
     if (tables[tblIndex].isLoop)
@@ -4074,7 +4268,20 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
     if (isSelect(variableType) == 0)
     {
         TfieldDef aField;
-        aField.name = fixField(variableName.toLower());        
+        aField.name = fixField(variableName.toLower());
+
+        QStringList keys = fieldObject.keys();
+        for (int k=0; k< keys.count(); k++)
+        {
+            if (extra_survey_columns.indexOf(keys[k]) >= 0)
+            {
+                TextraSurveyColum extra_col;
+                extra_col.name = keys[k];
+                extra_col.value = fieldObject.value(keys[k]).toString();
+                aField.extraSurveyColumns.append(extra_col);
+            }
+        }
+
         TfieldMap vartype = mapODKFieldTypeToMySQL(variableType);
         aField.selectSource = "NONE";
         aField.selectListName = "NONE";
@@ -4116,14 +4323,13 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 if (!calculation.isNull())
                 {
                     calculation = calculation.toLower().simplified();
-                    if (calculation.indexOf("pulldata") >= 0)
+
+                    static QRegularExpression pattern("pulldata\\s*\\(\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*\\)");
+                    QRegularExpressionMatch match = pattern.match(calculation);
+
+                    if (match.hasMatch())
                     {
-                        int temp;
-                        temp = calculation.indexOf(",");
-                        calculation = calculation.left(temp);
-                        temp = calculation.indexOf("(");
-                        calculation = calculation.right(calculation.length()-temp-1);
-                        calculation.replace("'","");
+                        calculation = match.captured(1).replace("'","");
                         if (calculation.indexOf(".csv") < 0)
                         {
                             calculation = calculation + ".csv";
@@ -4132,6 +4338,23 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                         else
                             addRequiredFile(calculation);
                     }
+
+//                    if (calculation.indexOf("pulldata") >= 0)
+//                    {
+//                        int temp;
+//                        temp = calculation.indexOf(",");
+//                        calculation = calculation.left(temp);
+//                        temp = calculation.indexOf("(");
+//                        calculation = calculation.right(calculation.length()-temp-1);
+//                        calculation.replace("'","");
+//                        if (calculation.indexOf(".csv") < 0)
+//                        {
+//                            calculation = calculation + ".csv";
+//                            addRequiredFile(calculation);
+//                        }
+//                        else
+//                            addRequiredFile(calculation);
+//                    }
                 }
 
             }
@@ -4287,8 +4510,10 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             else
             {
                 if (!fromSearchCSV)
-                {
-                    values.append(getSelectValues(fixField(variableName, true),fieldObject.value("choices").toArray(),selectHasOrOther(variableType)));
+                {                    
+                    propertyList = getExtraColumns(fieldObject.value("choices").toArray());
+                    propertyTypes = getExtraColumnsTypes(fieldObject.value("choices").toArray(), propertyList);
+                    values.append(getSelectValues(fixField(variableName, true),fieldObject.value("choices").toArray(),selectHasOrOther(variableType),propertyList));
                     select_type = 1;
                 }
                 else
@@ -4342,6 +4567,18 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             aField.externalFileName = external_file;
             aField.codeColumn = codeColumn;
             aField.descColumn = descColumn;
+
+            QStringList keys = fieldObject.keys();
+            for (int k=0; k< keys.count(); k++)
+            {
+                if (extra_survey_columns.indexOf(keys[k]) >= 0)
+                {
+                    TextraSurveyColum extra_col;
+                    extra_col.name = keys[k];
+                    extra_col.value = fieldObject.value(keys[k]).toString();
+                    aField.extraSurveyColumns.append(extra_col);
+                }
+            }
 
             aField.odktype = variableType;
             aField.selectListName = "NONE";
@@ -4550,6 +4787,19 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
             hasSelects = true;
             TfieldDef aField;
             aField.name = fixField(variableName.toLower(), true);
+
+            QStringList keys = fieldObject.keys();
+            for (int k=0; k< keys.count(); k++)
+            {
+                if (extra_survey_columns.indexOf(keys[k]) >= 0)
+                {
+                    TextraSurveyColum extra_col;
+                    extra_col.name = keys[k];
+                    extra_col.value = fieldObject.value(keys[k]).toString();
+                    aField.extraSurveyColumns.append(extra_col);
+                }
+            }
+
             aField.selectType = select_type;
             aField.externalFileName = external_file;
             aField.codeColumn = codeColumn;
@@ -4974,7 +5224,9 @@ void parseTable(QJsonObject tableObject, QString tableType, bool repeatOfOne = f
         hasSelects = true;
         aTable.isLoop = true;
         QList<TlkpValue> values;
-        values.append(getSelectValues(aTable.name,tableObject.value("columns").toArray(),false));
+        QStringList extra_columns;
+        extra_columns = getExtraColumns(tableObject.value("columns").toArray());
+        values.append(getSelectValues(aTable.name,tableObject.value("columns").toArray(),false,extra_columns));
         for (int litem = 0; litem < values.count(); litem++)
         {
             aTable.loopItems.append(values[litem].code);
@@ -5309,7 +5561,8 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList, int &num_la
 {
     for (int nkey = 0; nkey < JSONObject.keys().count(); nkey++)
     {        
-        QString key = JSONObject.keys()[nkey];
+        QStringList kys = JSONObject.keys();
+        QString key = kys[nkey];
         if (key.indexOf(":") >= 0)
         {
             QStringList parts = key.split(":");
@@ -5334,7 +5587,8 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList, int &num_la
                         QJsonObject valueObj = value.toObject();
                         for (int a_choice = 0; a_choice < valueObj.keys().count(); a_choice++)
                         {
-                            if (valueObj.keys()[a_choice] == "label")
+                            QStringList k = valueObj.keys();
+                            if (k[a_choice] == "label")
                                 num_labels++;
                         }
                     }
@@ -5374,7 +5628,8 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList, int &num_la
                 for (int nitem = 0; nitem < labelObject.keys().count(); nitem++)
                 {
                     QString language;
-                    language = labelObject.keys()[nitem];
+                    QStringList kys = labelObject.keys();
+                    language = kys[nitem];
                     if (languageList.indexOf(language) < 0)
                         languageList.append(language);
                 }
@@ -5384,12 +5639,10 @@ void getLanguages(QJsonObject JSONObject, QStringList &languageList, int &num_la
 }
 
 void reportDuplicatedFields()
-{
-    QDomDocument XMLResult;
-    XMLResult = QDomDocument("XMLResult");
+{    
     QDomElement XMLRoot;
-    XMLRoot = XMLResult.createElement("XMLResult");
-    XMLResult.appendChild(XMLRoot);
+    XMLRoot = XMLResult.createElement("XMLDuplicatedFields");
+    XMLDocRoot.appendChild(XMLRoot);
     if (outputType != "m")
     {
         log("The following tables have duplicated fields: ");
@@ -5421,12 +5674,10 @@ void reportDuplicatedFields()
 }
 
 void reportDuplicatedTables()
-{
-    QDomDocument XMLResult;
-    XMLResult = QDomDocument("XMLResult");
+{    
     QDomElement XMLRoot;
-    XMLRoot = XMLResult.createElement("XMLResult");
-    XMLResult.appendChild(XMLRoot);
+    XMLRoot = XMLResult.createElement("XMLDuplicatedTables");
+    XMLDocRoot.appendChild(XMLRoot);
     if (outputType != "m")
     {
         log("The following tables have the same name: ");
@@ -5447,12 +5698,10 @@ void reportDuplicatedTables()
 }
 
 void reportSelectDuplicates()
-{
-    QDomDocument XMLResult;
-    XMLResult = QDomDocument("XMLResult");
+{    
     QDomElement XMLRoot;
-    XMLRoot = XMLResult.createElement("XMLResult");
-    XMLResult.appendChild(XMLRoot);
+    XMLRoot = XMLResult.createElement("XMLDuplicatedSelects");
+    XMLDocRoot.appendChild(XMLRoot);
     if (outputType != "m")
     {
         log("The following variables have duplicated options");
@@ -5730,7 +5979,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                 {
                     for (int l=0; l < odk_langs.count(); l++)
                     {                        
-                        QStringList parts = odk_langs[l].split("|",QString::SkipEmptyParts);
+                        QStringList parts = odk_langs[l].split("|",Qt::SkipEmptyParts);
                         if (parts[0].toLower() == "en")
                             addLanguage2(parts[0],parts[1],true);
                         else
@@ -5741,7 +5990,7 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                 {
                     for (int l=0; l < odk_langs.count(); l++)
                     {
-                        QStringList parts = odk_langs[l].split("|",QString::SkipEmptyParts);
+                        QStringList parts = odk_langs[l].split("|",Qt::SkipEmptyParts);
                         if (l == 0)
                             addLanguage2(parts[0],parts[1],true);
                         else
@@ -5790,12 +6039,10 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                     if (outputType == "h")
                         log("This ODK has multiple languages but not other languages where specified with the -l parameter.");
                     else
-                    {
-                        QDomDocument XMLResult;
-                        XMLResult = QDomDocument("XMLResult");
+                    {                        
                         QDomElement XMLRoot;
-                        XMLRoot = XMLResult.createElement("XMLResult");
-                        XMLResult.appendChild(XMLRoot);
+                        XMLRoot = XMLResult.createElement("XMLNoOtherLanguages");
+                        XMLDocRoot.appendChild(XMLRoot);
                         QDomElement eLanguages;
                         eLanguages = XMLResult.createElement("languages");
                         for (int pos = 0; pos <= ODKLanguages.count()-1;pos++)
@@ -5823,11 +6070,10 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
         //Check that each language is properly coded
         bool languageNotFound;
         languageNotFound = false;
-        QDomDocument XMLResult;
-        XMLResult = QDomDocument("XMLResult");
+
         QDomElement XMLRoot;
-        XMLRoot = XMLResult.createElement("XMLResult");
-        XMLResult.appendChild(XMLRoot);
+        XMLRoot = XMLResult.createElement("XMLLanguageNotFound");
+        XMLDocRoot.appendChild(XMLRoot);
         QDomElement eLanguages;
         eLanguages = XMLResult.createElement("languages");
 
@@ -5862,7 +6108,8 @@ int processJSON(QString inputFile, QString mainTable, QString mainField, QDir di
                     log(XMLResult.toString());
                 exit(4);
             }
-        }        
+        }
+        logXMLError = true;
 
         int lang;
         //Creating the main table
@@ -6264,12 +6511,10 @@ bool checkTables2()
             exit(24);
         }
         else
-        {
-            QDomDocument XMLResult;
-            XMLResult = QDomDocument("XMLResult");
+        {            
             QDomElement XMLRoot;
-            XMLRoot = XMLResult.createElement("XMLResult");
-            XMLResult.appendChild(XMLRoot);
+            XMLRoot = XMLResult.createElement("XMLTableNameError");
+            XMLDocRoot.appendChild(XMLRoot);
             for (pos = 0; pos < table_with_name_error.count(); pos++)
             {
                 QDomElement eTable;
@@ -6324,12 +6569,10 @@ bool checkTables2()
             return true;
         }
         else
-        {
-            QDomDocument XMLResult;
-            XMLResult = QDomDocument("XMLResult");
+        {            
             QDomElement XMLRoot;
-            XMLRoot = XMLResult.createElement("XMLResult");
-            XMLResult.appendChild(XMLRoot);
+            XMLRoot = XMLResult.createElement("XMLTooManySelects");
+            XMLDocRoot.appendChild(XMLRoot);
             for (pos = 0; pos < tables_with_error.count(); pos++)
             {
                 QDomElement eTable;
@@ -6422,6 +6665,7 @@ int main(int argc, char *argv[])
     title = title + " * 30: Resource GeoJSON does not have the id or title columns (XML).   * \n";
     title = title + " * 31: Resource GeoJSON does has features without geometry (XML).      * \n";
     title = title + " * 32: Resource GeoJSON does has features that are not point (XML).    * \n";
+    title = title + " * 33: Extra survey or choice columns cannot have spaces.              * \n";
     title = title + " *                                                                     * \n";
     title = title + " * XML = XML oputput is available.                                     * \n";
     title = title + " ********************************************************************* \n";
@@ -6443,7 +6687,9 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> defLangArg("d","deflanguage","Default language. For example: (en)english. If not indicated then English will be asumed",false,"(en)english","string");
     TCLAP::ValueArg<std::string> transFileArg("T","translationfile","Output translation file",false,"./iso639.sql","string");    
     TCLAP::ValueArg<std::string> tempDirArg("e","tempdirectory","Temporary directory. ./tmp by default",false,"./tmp","string");
-    TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");    
+    TCLAP::ValueArg<std::string> outputTypeArg("o","outputtype","Output type: (h)uman or (m)achine readble. Machine readble by default",false,"m","string");
+    TCLAP::ValueArg<std::string> parseSurveyArg("y","surveyextra","Parse extra columns in survey as properties of the XML schema. List separared with pipe (|)",false,"","string");
+    TCLAP::ValueArg<std::string> parseChoicesArg("s","choicesextra","Parse extra columns in choices as lookup columns. List separared with pipe (|)",false,"","string");
     TCLAP::SwitchArg justCheckSwitch("K","justCheck","Just check of main inconsistencies and report back", cmd, false);    
     TCLAP::SwitchArg displayLanguages("L","displayLanguages","Display languages", cmd, false);
     TCLAP::UnlabeledMultiArg<std::string> suppFiles("supportFile", "support files", false, "string");
@@ -6473,6 +6719,12 @@ int main(int argc, char *argv[])
     cmd.add(tempDirArg);
     cmd.add(outputTypeArg);
     cmd.add(suppFiles);
+    cmd.add(parseSurveyArg);
+    cmd.add(parseChoicesArg);
+
+    XMLResult = QDomDocument("XMLResult");
+    XMLDocRoot = XMLResult.createElement("XMLResult");
+    XMLResult.appendChild(XMLDocRoot);
 
     //Parsing the command lines
     cmd.parse( argc, argv );
@@ -6511,6 +6763,22 @@ int main(int argc, char *argv[])
     QString defLang = QString::fromUtf8(defLangArg.getValue().c_str());
     QString transFile = QString::fromUtf8(transFileArg.getValue().c_str());    
     QString tempDirectory = QString::fromUtf8(tempDirArg.getValue().c_str());
+
+    QString parseSurvey = QString::fromUtf8(parseSurveyArg.getValue().c_str());
+    QString parseChoices = QString::fromUtf8(parseChoicesArg.getValue().c_str());
+
+    if (!justCheck)
+    {
+        parseChoices = parseChoices.simplified();
+        parseSurvey = parseSurvey.simplified();
+
+        if (parseChoices.indexOf(" ") >= 0 || parseSurvey.indexOf(" ") >= 0)
+        {
+            exit(33);
+        }
+        extra_survey_columns = parseSurvey.split("|",Qt::SkipEmptyParts);
+        extra_choices_columns = parseChoices.split("|",Qt::SkipEmptyParts);
+    }
 
     lang = lang.replace("'","");
     defLang = defLang.replace("'","");
@@ -6612,8 +6880,8 @@ int main(int argc, char *argv[])
         supportFiles.append(it.next());
 
     QSqlDatabase dblite = QSqlDatabase::addDatabase("QSQLITE","DBLite");
-    int CSVError;
-    CSVError = 0;
+    int CSVError = 0;
+    //CSVError = 0;
     for (int pos = 0; pos <= supportFiles.count()-1;pos++)
     {
         if (supportFiles[pos].right(3).toLower() == "csv")
@@ -6647,7 +6915,7 @@ int main(int argc, char *argv[])
         exit(5);
     
     QStringList othLanguages;
-    othLanguages = lang.split(",",QString::SkipEmptyParts);
+    othLanguages = lang.split(",",Qt::SkipEmptyParts);
     for (int lng = 0; lng < othLanguages.count(); lng++)
         if (addLanguage(othLanguages[lng].replace("'",""),false,true) != 0)
             exit(6);
@@ -6699,12 +6967,10 @@ int main(int argc, char *argv[])
             }
         }
         else
-        {
-            QDomDocument XMLResult;
-            XMLResult = QDomDocument("XMLResult");
+        {            
             QDomElement XMLRoot;
-            XMLRoot = XMLResult.createElement("XMLResult");
-            XMLResult.appendChild(XMLRoot);
+            XMLRoot = XMLResult.createElement("XMLInvalidName");
+            XMLDocRoot.appendChild(XMLRoot);
             for (int item = 0; item < invalidFields.count(); item++)
             {
                 QDomElement eDuplicatedItem;
@@ -6719,12 +6985,10 @@ int main(int argc, char *argv[])
 
 
     if (duplicated_lookups.count() > 0)
-    {
-        QDomDocument XMLResult;
-        XMLResult = QDomDocument("XMLResult");
+    {        
         QDomElement XMLRoot;
-        XMLRoot = XMLResult.createElement("XMLResult");
-        XMLResult.appendChild(XMLRoot);
+        XMLRoot = XMLResult.createElement("XMLDuplicatedLookups");
+        XMLDocRoot.appendChild(XMLRoot);
         for (int item = 0; item < duplicated_lookups.count(); item++)
         {
             QDomElement eDuplicatedTable;
@@ -6761,12 +7025,10 @@ int main(int argc, char *argv[])
                 log("Required files:" + requiredFiles.join(","));
             }
             else
-            {
-                QDomDocument XMLResult;
-                XMLResult = QDomDocument("XMLResult");
+            {                
                 QDomElement XMLRoot;
-                XMLRoot = XMLResult.createElement("XMLResult");
-                XMLResult.appendChild(XMLRoot);
+                XMLRoot = XMLResult.createElement("XMLMissingFile");
+                XMLDocRoot.appendChild(XMLRoot);
                 for (int item = 0; item < missingFiles.count(); item++)
                 {
                     QDomElement eDuplicatedItem;
@@ -6774,20 +7036,53 @@ int main(int argc, char *argv[])
                     eDuplicatedItem.setAttribute("fileName",missingFiles[item]);
                     XMLRoot.appendChild(eDuplicatedItem);
                 }
-                log(XMLResult.toString());
+                //log(XMLResult.toString());
+                logXMLError = true;
             }
         }
+
+        if (extra_survey_columns.count() > 0 || extra_choices_columns.count() > 0 || extra_invalid_columns.count() > 0)
+        {
+            QDomElement XMLRoot;
+            XMLRoot = XMLResult.createElement("XMLExtraColumn");
+            XMLDocRoot.appendChild(XMLRoot);
+            for (int item = 0; item < extra_survey_columns.count(); item++)
+            {
+                QDomElement eDuplicatedItem;
+                eDuplicatedItem = XMLResult.createElement("extraColumn");
+                eDuplicatedItem.setAttribute("columnName",extra_survey_columns[item]);
+                eDuplicatedItem.setAttribute("columType","survey");
+                XMLRoot.appendChild(eDuplicatedItem);
+            }
+            for (int item = 0; item < extra_choices_columns.count(); item++)
+            {
+                QDomElement eDuplicatedItem;
+                eDuplicatedItem = XMLResult.createElement("extraColumn");
+                eDuplicatedItem.setAttribute("columnName",extra_choices_columns[item]);
+                eDuplicatedItem.setAttribute("columType","choices");
+                XMLRoot.appendChild(eDuplicatedItem);
+            }
+            for (int item = 0; item < extra_invalid_columns.count(); item++)
+            {
+                QDomElement eDuplicatedItem;
+                eDuplicatedItem = XMLResult.createElement("extraColumn");
+                eDuplicatedItem.setAttribute("columnName",extra_invalid_columns[item]);
+                eDuplicatedItem.setAttribute("columType","invalid");
+                XMLRoot.appendChild(eDuplicatedItem);
+            }
+            //log(XMLResult.toString());
+            logXMLError = true;
+        }
+
     }    
     if (outputType == "h")
         log("Done without errors");
 
     if (displayLanguages.getValue() == true)
-    {
-        QDomDocument XMLResult;
-        XMLResult = QDomDocument("ODKLanguages");
+    {        
         QDomElement XMLRoot;
         XMLRoot = XMLResult.createElement("ODKLanguages");
-        XMLResult.appendChild(XMLRoot);
+        XMLDocRoot.appendChild(XMLRoot);
         for (int item = 0; item < ODKLanguages.count(); item++)
         {
             QString languaje = ODKLanguages[item];
@@ -6798,7 +7093,7 @@ int main(int argc, char *argv[])
 
                 QStringList parts = languaje.split("|");
                 QDomElement eLanguageItem;
-                eLanguageItem = XMLResult.createElement("language");
+                eLanguageItem = XMLResult.createElement("ODKlanguage");
                 eLanguageItem.setAttribute("code",parts[1].simplified());
                 eLanguageItem.setAttribute("description",parts[0].simplified());
                 XMLRoot.appendChild(eLanguageItem);
@@ -6806,14 +7101,17 @@ int main(int argc, char *argv[])
             else
             {
                 QDomElement eLanguageItem;
-                eLanguageItem = XMLResult.createElement("language");
+                eLanguageItem = XMLResult.createElement("ODKlanguage");
                 eLanguageItem.setAttribute("code",languaje.simplified());
                 eLanguageItem.setAttribute("description",languaje.simplified());
                 XMLRoot.appendChild(eLanguageItem);
             }
         }
-        log(XMLResult.toString());
+        //log(XMLResult.toString());
+        logXMLError = true;
     }
+    if (logXMLError)
+        log(XMLResult.toString());
 
     return 0;
 }

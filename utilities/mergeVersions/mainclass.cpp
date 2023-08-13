@@ -86,6 +86,7 @@ void mainClass::run()
             mergeCreate create;
             create.setFiles(a_createXML,b_createXML,c_createXML,d_createSQL,output_type);
             create.setInsertDiff(insert.getDiffs());
+            create.properties = this->properties;
             returnCode = create.compare();
             if (output_type != "h")
             {
@@ -140,7 +141,7 @@ void mainClass::run()
     }
     emit finished();
 }
-void mainClass::setParameters(QString createA, QString createB, QString insertA, QString insertB, QString createC, QString insertC, QString diffCreate, QString diffInsert, QString outputType, QList<TignoreTableValues> toIgnore, bool saveToFile, QString errorFile)
+void mainClass::setParameters(QString createA, QString createB, QString insertA, QString insertB, QString createC, QString insertC, QString diffCreate, QString diffInsert, QString outputType, QList<TignoreTableValues> toIgnore, bool saveToFile, QString errorFile, QStringList properties)
 {
     a_createXML = createA;
     b_createXML = createB;
@@ -154,4 +155,5 @@ void mainClass::setParameters(QString createA, QString createB, QString insertA,
     valuesToIgnore = toIgnore;
     error_file = errorFile;
     save_to_file = saveToFile;
+    this->properties = properties;
 }

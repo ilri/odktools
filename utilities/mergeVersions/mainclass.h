@@ -34,7 +34,7 @@ signals:
     void finished();
 public slots:
     void run();
-    void setParameters(QString createA, QString createB, QString insertA, QString insertB, QString createC, QString insertC, QString diffCreate, QString diffInsert, QString outputType, QList<TignoreTableValues> toIgnore, bool saveToFile, QString errorFile);
+    void setParameters(QString createA, QString createB, QString insertA, QString insertB, QString createC, QString insertC, QString diffCreate, QString diffInsert, QString outputType, QList<TignoreTableValues> toIgnore, bool saveToFile, QString errorFile, QStringList properties);
 private:
     QString a_createXML;
     QString b_createXML ;
@@ -46,6 +46,7 @@ private:
     QString d_insertSQL;
     QString output_type;
     QString error_file;
+    QStringList properties;
     bool save_to_file;
     void log(QString message);
     QList<TignoreTableValues> valuesToIgnore;

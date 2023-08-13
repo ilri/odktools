@@ -102,6 +102,7 @@ void genInsert(QDomNode node, QTextStream &out)
             insertSQL = insertSQL + "\"" + fixString(value.toElement().attribute(properties[p],"")) + "\",";
         }
         insertSQL = insertSQL.left(insertSQL.length()-1) + ");";
+        insertSQL = insertSQL.replace("\"\"","NULL");
         out << insertSQL << "\n";
 
         value = value.nextSibling();

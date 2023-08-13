@@ -67,6 +67,7 @@ public:
     void setInsertDiff(QList<TtableDiff> diff);
     QStringList getInsertTablesUsed();
     QList<TcompError> getErrorList();
+    QStringList properties;
 private:
     QDomElement rootA;
     QDomElement rootB;

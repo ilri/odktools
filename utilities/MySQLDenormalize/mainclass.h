@@ -13,6 +13,7 @@ namespace pt = boost::property_tree;
 struct fieldDef
 {
   QString name; //Field Name
+  QString ODKname; //Field name in ODK
   QString type; //Variable type in MySQL
   QString desc; //Variable description
   int size; //Variable size
@@ -38,6 +39,7 @@ struct tableDef
 {
   QString name;
   QString desc;
+  QString ODKname;
   QList<TfieldDef> fields; //List of fields
   bool islookup; //Whether the table is a lookup table
 };
@@ -81,7 +83,7 @@ class mainClass : public QObject
     Q_OBJECT
 public:
     explicit mainClass(QObject *parent = nullptr);
-    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, bool protectSensitive, QString tempDir, QString encryption_key, QString mapDir, QString outputDir, QString mainTable, QString resolve_type, QString primaryKey);
+    void setParameters(QString host, QString port, QString user, QString pass, QString schema, QString createXML, bool protectSensitive, QString tempDir, QString encryption_key, QString mapDir, QString outputDir, QString mainTable, QString resolve_type, QString primaryKey, QString primaryKeyValue, QString separator, bool useODKFormat);
     int returnCode;
 signals:
     void finished();
@@ -111,6 +113,9 @@ private:
     QString mainTable;
     int resolve_type;
     QString primaryKey;
+    QString primaryKeyValue;
+    bool useODKFormat;
+    QString separator;
     mongocxx::collection mongo_collection;
     void getAllUUIDs(QDomNode node,QStringList &UUIDs);
     void parseMapFileWithBoost(QVector <TUUIDDef> dataList, QDomNode node, pt::ptree &json, pt::ptree &parent);
