@@ -43,6 +43,7 @@ License along with JXFormToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl
 
 //*******************************************Global variables***********************************************
 bool debug;
+bool ignore_too_many_selects = false;
 QString command;
 QString outputType;
 QString default_language;
@@ -6550,7 +6551,7 @@ bool checkTables2()
             tables_with_error.append(aTable);
         }
     }
-    if (tables_with_error.count() > 0)
+    if (tables_with_error.count() > 0 && ignore_too_many_selects == false)
     {
         if (outputType == "h")
         {
@@ -6692,6 +6693,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> parseChoicesArg("s","choicesextra","Parse extra columns in choices as lookup columns. List separared with pipe (|)",false,"","string");
     TCLAP::SwitchArg justCheckSwitch("K","justCheck","Just check of main inconsistencies and report back", cmd, false);    
     TCLAP::SwitchArg displayLanguages("L","displayLanguages","Display languages", cmd, false);
+    TCLAP::SwitchArg ignoresixty("x","ignoresixty","Ignore the too many selects restriction. Only for testing", cmd, false);
     TCLAP::UnlabeledMultiArg<std::string> suppFiles("supportFile", "support files", false, "string");
 
 
@@ -6747,7 +6749,8 @@ int main(int argc, char *argv[])
         }
     }
     loadInvalidFieldNames();
-    justCheck = justCheckSwitch.getValue();    
+    justCheck = justCheckSwitch.getValue();
+    ignore_too_many_selects = ignoresixty.getValue();
     //Getting the variables from the command
     QString input = QString::fromUtf8(inputArg.getValue().c_str());
     QString ddl = QString::fromUtf8(ddlArg.getValue().c_str());
