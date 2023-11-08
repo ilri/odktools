@@ -194,17 +194,10 @@ void mainClass::run()
             }
 
             SQLErrorNumber = "";
+            SQLError = false;
             int processError;
-            processError = processFile2(db,json,manifest);
-            if (processError == 2)
-            {
-                //This will happen if the file is already processes or an error ocurred
-                db.close();                
-                returnCode = 1;
-                emit finished();
-                return;
-            }
-            if (processError == 1)
+            processError = processFile2(db,json,manifest);            
+            if ((SQLError) || (processError == 1))
             {
                 returnCode = 2;
                 if (outputType == "h")
