@@ -91,7 +91,7 @@ signals:
     void finishedWithError(int error);
 public slots:
     void run();
-    void setParameters(bool voverwrite, QString vjson, QString vmanifest, QString vhost, QString vport, QString vuser, QString vpassword, QString vschema, QString voutput, QString vinput, QString vjavaScript, bool voputSQLSwitch, QString mapDirectory, QString outputType, QString uuidsFile, QStringList supportFiles);
+    void setParameters(bool voverwrite, QString vjson, QString vmanifest, QString vhost, QString vport, QString vuser, QString vpassword, QString vschema, QString voutput, QString vjavaScript, bool voputSQLSwitch, QString mapDirectory, QString outputType, QString uuidsFile, QStringList supportFiles);
 private:
     void logLoopError(QString errorMessage, QString table, QString loopItem, QString execSQL);
     void processLoop(QJsonObject jsonData, QString loopTable, QString loopXMLRoot, QStringList loopItems, QList< TfieldDef> fields, QList< TfieldDef> parentkeys, QSqlDatabase db);
@@ -111,7 +111,7 @@ private:
     int procTable(QSqlDatabase db, QVariantMap jsonData, QDomNode table, QList< TfieldDef> parentkeys);
     int procTable2(QSqlDatabase db, QJsonObject jsonData, QDomNode table, QList< TfieldDef> parentkeys);
     int processFile(QSqlDatabase db, QString json, QString manifest, QStringList procList);
-    int processFile2(QSqlDatabase db, QString json, QString manifest, QSqlDatabase submissions_db);
+    int processFile2(QSqlDatabase db, QString json, QString manifest);
     void storeRecord(QStringList parentUUIDS, QString recordUUID);
     void storeRecord(QString parentUUID, QString recordUUID);
     void findElementsWithAttribute(const QDomElement& elem, const QString& attr, const QString& attvalue, QList<QDomElement> &foundElements);
@@ -151,7 +151,7 @@ private:
     QString password;
     QString schema;
     QString output;
-    QString input;
+
     QString javaScript;
     QString mapOutputDir;
     QString outputType;
