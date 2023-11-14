@@ -230,6 +230,7 @@ struct tableDef
   bool isLoop;
   bool isOSM;
   bool isGroup;
+  bool hasOther = false;
 };
 typedef tableDef TtableDef;
 
@@ -4142,7 +4143,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
                 }
                 lkpTable.pos = -1;
                 lkpTable.islookup = true;
-                lkpTable.isOneToOne = false;
+                lkpTable.isOneToOne = false;                
                 lkpTable.lkpValues.append(values);
                 //Creates the field for code in the lookup
                 TfieldDef lkpCode;
@@ -4670,6 +4671,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.pos = -1;
                     lkpTable.islookup = true;
                     lkpTable.isOneToOne = false;
+                    lkpTable.hasOther = selectHasOrOther(variableType);
                     lkpTable.lkpValues.append(values);
                     lkpTable.propertyList.append(propertyList);
                     lkpTable.propertyTypes.append(propertyTypes);
@@ -4744,6 +4746,11 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 {
                     aField.rName = getUUIDCode();
                     aField.rTable = lkpTable.name;
+                    if (lkpTable.hasOther)
+                    {
+                        aField.type = "varchar";
+                        aField.size = 128;
+                    }
                     aField.rField = getKeyField(lkpTable.name);
                 }
 
@@ -4943,6 +4950,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.pos = -1;
                     lkpTable.islookup = true;
                     lkpTable.isOneToOne = false;
+                    lkpTable.hasOther = selectHasOrOther(variableType);
                     //Creates the field for code in the lookup
                     TfieldDef lkpCode;
                     lkpCode.name = fixField(listName.toLower(), true) + "_cod";
@@ -5022,6 +5030,11 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 else
                 {
                     mselKeyField.rTable = lkpTable.name;
+                    if (lkpTable.hasOther)
+                    {
+                        mselKeyField.type = "varchar";
+                        mselKeyField.size = 128;
+                    }
                     mselKeyField.rField = getKeyField(lkpTable.name);
                     mselKeyField.rName = getUUIDCode();
                     mselTable.fields.append(mselKeyField);
