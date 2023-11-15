@@ -3096,9 +3096,18 @@ TtableDef getTable(QString name)
 bool selectHasOrOther(QString variableType)
 {
     if (variableType.toLower().trimmed().indexOf("or specify other") >= 0)
-        return true;
-    else
-        return false;
+    {
+        if (outputType == "h")
+        {
+            log("You are using \"or other\" in selects or multi-selects. FormShare does not allow because it is bad practice. FormShare cannot assume a code for \"other\" or the of the variable to store \"other\". Manually add an element for \"other\" to your options and a text variable to store the value for \"other\".");
+            exit(35);
+        }
+        else
+        {
+            exit(35);
+        }
+    }
+    return false;
 }
 
 //This return the labels of any variable in different languages
@@ -6768,6 +6777,7 @@ int main(int argc, char *argv[])
     title = title + " * 32: Resource GeoJSON does has features that are not point (XML).    * \n";
     title = title + " * 33: Extra survey or choice columns cannot have spaces.              * \n";
     title = title + " * 34: One or more tables have too many columns (>65000 bytes).        * \n";
+    title = title + " * 35: Select or multi-select uses \"or other\".                       * \n";
     title = title + " *                                                                     * \n";
     title = title + " * XML = XML oputput is available.                                     * \n";
     title = title + " ********************************************************************* \n";
