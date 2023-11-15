@@ -43,6 +43,7 @@ License along with JXFormToMySQL.  If not, see <http://www.gnu.org/licenses/lgpl
 
 //*******************************************Global variables***********************************************
 bool debug;
+bool ignore_too_many_selects = false;
 QString command;
 QString outputType;
 QString default_language;
@@ -90,7 +91,9 @@ QList< TduplicatedLookUp> duplicated_lookups;
 struct tblwitherror
 {
     QString name;
-    int num_selects;
+    int num_selects = 0;
+    int num_fields = 0;
+    int page_size = 0;
 };
 typedef tblwitherror Ttblwitherror;
 
@@ -227,6 +230,7 @@ struct tableDef
   bool isLoop;
   bool isOSM;
   bool isGroup;
+  bool hasOther = false;
 };
 typedef tableDef TtableDef;
 
@@ -3092,9 +3096,18 @@ TtableDef getTable(QString name)
 bool selectHasOrOther(QString variableType)
 {
     if (variableType.toLower().trimmed().indexOf("or specify other") >= 0)
-        return true;
-    else
-        return false;
+    {
+        if (outputType == "h")
+        {
+            log("You are using \"or other\" in selects or multi-selects. FormShare does not allow because it is bad practice. FormShare cannot assume a code for \"other\" or the of the variable to store \"other\". Manually add an element for \"other\" to your options and a text variable to store the value for \"other\".");
+            exit(35);
+        }
+        else
+        {
+            exit(35);
+        }
+    }
+    return false;
 }
 
 //This return the labels of any variable in different languages
@@ -4139,7 +4152,7 @@ void parseOSMField(TtableDef &OSMTable, QJsonObject fieldObject)
                 }
                 lkpTable.pos = -1;
                 lkpTable.islookup = true;
-                lkpTable.isOneToOne = false;
+                lkpTable.isOneToOne = false;                
                 lkpTable.lkpValues.append(values);
                 //Creates the field for code in the lookup
                 TfieldDef lkpCode;
@@ -4667,6 +4680,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.pos = -1;
                     lkpTable.islookup = true;
                     lkpTable.isOneToOne = false;
+                    lkpTable.hasOther = selectHasOrOther(variableType);
                     lkpTable.lkpValues.append(values);
                     lkpTable.propertyList.append(propertyList);
                     lkpTable.propertyTypes.append(propertyTypes);
@@ -4741,6 +4755,11 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 {
                     aField.rName = getUUIDCode();
                     aField.rTable = lkpTable.name;
+                    if (lkpTable.hasOther)
+                    {
+                        aField.type = "varchar";
+                        aField.size = 128;
+                    }
                     aField.rField = getKeyField(lkpTable.name);
                 }
 
@@ -4940,6 +4959,7 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                     lkpTable.pos = -1;
                     lkpTable.islookup = true;
                     lkpTable.isOneToOne = false;
+                    lkpTable.hasOther = selectHasOrOther(variableType);
                     //Creates the field for code in the lookup
                     TfieldDef lkpCode;
                     lkpCode.name = fixField(listName.toLower(), true) + "_cod";
@@ -5019,6 +5039,11 @@ void parseField(QJsonObject fieldObject, QString mainTable, QString mainField, Q
                 else
                 {
                     mselKeyField.rTable = lkpTable.name;
+                    if (lkpTable.hasOther)
+                    {
+                        mselKeyField.type = "varchar";
+                        mselKeyField.size = 128;
+                    }
                     mselKeyField.rField = getKeyField(lkpTable.name);
                     mselKeyField.rName = getUUIDCode();
                     mselTable.fields.append(mselKeyField);
@@ -6491,7 +6516,11 @@ bool checkTables2()
     tmax = tables.count();
     int rfcount;    
     QList <Ttblwitherror > tables_with_error;
+    QList <Ttblwitherror > tables_too_big;
     QStringList table_with_name_error;
+
+    //qDebug() << "Im here!!!!";
+
     for (pos = 0; pos <= tmax-1;pos++)
     {
         if (tables[pos].name.length() > 64)
@@ -6533,6 +6562,87 @@ bool checkTables2()
 
     for (pos = 0; pos <= tmax-1;pos++)
     {
+        int page_size = 13;
+        int fields = 0;
+        for (pos2 = 0; pos2 <= tables[pos].fields.count()-1;pos2++)
+        {
+            fields = fields + 1;
+            if (tables[pos].fields[pos2].type == "text")
+            {
+                page_size = page_size + 768;
+            }
+            if (tables[pos].fields[pos2].type == "varchar")
+            {
+                page_size = page_size + tables[pos].fields[pos2].size;
+            }
+            if (tables[pos].fields[pos2].type == "date")
+            {
+                page_size = page_size + 3;
+            }
+            if (tables[pos].fields[pos2].type == "datetime")
+            {
+                page_size = page_size + 8;
+            }
+            if (tables[pos].fields[pos2].type == "decimal" || tables[pos].fields[pos2].type == "decimal(17,3)")
+            {
+                page_size = page_size + 9;
+            }
+            if (tables[pos].fields[pos2].type == "int" || tables[pos].fields[pos2].type == "int(9)")
+            {
+                page_size = page_size + 4;
+            }
+        }
+        page_size = page_size + 50;
+        //qDebug() << tables[pos].name + ":" + QString::number(page_size);
+        if (page_size >= 149886  )
+        {
+            Ttblwitherror aTable;
+            aTable.name = tables[pos].name;
+            aTable.page_size = page_size;
+            aTable.num_fields = fields;
+            tables_too_big.append(aTable);
+        }        
+    }
+    if (tables_too_big.count() > 0 && ignore_too_many_selects == false)
+    {
+        if (outputType == "h")
+        {
+            log("The following tables are too big (The sum in bytes of its fields overpass 149886):");
+            for (pos = 0; pos < tables_too_big.count(); pos++)
+            {
+                log(tables_too_big[pos].name + " with " + QString::number(tables_too_big[pos].num_fields) + " fields and a total of " + QString::number(tables_too_big[pos].page_size) + " bytes");
+            }
+            log("");
+            log("Some notes on this restriction and how to correct it:");
+            log("We tent to organize our ODK forms in sections with questions around a topic. For example: \"livestock inputs\" or \"crops sales\".\n");
+            log("These sections have type = \"begin/end group\". We also organize questions that must be repeated in sections with type = \"begin/end repeat.\"\n");
+            log("ODK Tools store repeats as separate tables (like different Excel sheets) however groups are not. ODK tools store all items (questions, notes, calculations, etc.) outside repeats into a table called \"maintable\". Thus \"maintable\" usually end up with many fields. In ODK Tools each field consume a certain amount of bytes. For exammple, an integer takes 4 bytes, a decimal 9, and text regarless of the content takes 768 bytes. The maximum number of bytes per table is 149,886. Around 193 text variables or 16,654 decimals variables. \n");
+            log("You can bypass this restriction by creating groups of items inside repeats BUT WITH repeat_count = 1. A repeat with repeat_count = 1 will behave in the same way as a group but ODKTools will create a new table for it to store all its items. Eventually if you export the data to Excel your items will be organized in different sheets each representing a table.\n");
+            log("Please edit your ODK XLS/XLSX file, group several items inside repeats with repeat_count = 1 and run this process again.");
+            exit(34);
+        }
+        else
+        {
+            QDomElement XMLRoot;
+            XMLRoot = XMLResult.createElement("XMLTooManyFields");
+            XMLDocRoot.appendChild(XMLRoot);
+            for (pos = 0; pos < tables_too_big.count(); pos++)
+            {
+                QDomElement eTable;
+                eTable = XMLResult.createElement("table");
+                eTable.setAttribute("name",tables_too_big[pos].name);
+                eTable.setAttribute("fields",tables_too_big[pos].num_fields);
+                eTable.setAttribute("bytes",tables_too_big[pos].page_size);
+                XMLRoot.appendChild(eTable);
+            }
+            log(XMLResult.toString());
+            exit(34);
+        }
+    }
+
+
+    for (pos = 0; pos <= tmax-1;pos++)
+    {
         rfcount = 0;        
         for (pos2 = 0; pos2 <= tables[pos].fields.count()-1;pos2++)
         {
@@ -6550,7 +6660,7 @@ bool checkTables2()
             tables_with_error.append(aTable);
         }
     }
-    if (tables_with_error.count() > 0)
+    if (tables_with_error.count() > 0 && ignore_too_many_selects == false)
     {
         if (outputType == "h")
         {
@@ -6666,6 +6776,8 @@ int main(int argc, char *argv[])
     title = title + " * 31: Resource GeoJSON does has features without geometry (XML).      * \n";
     title = title + " * 32: Resource GeoJSON does has features that are not point (XML).    * \n";
     title = title + " * 33: Extra survey or choice columns cannot have spaces.              * \n";
+    title = title + " * 34: One or more tables have too many columns (>65000 bytes).        * \n";
+    title = title + " * 35: Select or multi-select uses \"or other\".                       * \n";
     title = title + " *                                                                     * \n";
     title = title + " * XML = XML oputput is available.                                     * \n";
     title = title + " ********************************************************************* \n";
@@ -6692,6 +6804,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> parseChoicesArg("s","choicesextra","Parse extra columns in choices as lookup columns. List separared with pipe (|)",false,"","string");
     TCLAP::SwitchArg justCheckSwitch("K","justCheck","Just check of main inconsistencies and report back", cmd, false);    
     TCLAP::SwitchArg displayLanguages("L","displayLanguages","Display languages", cmd, false);
+    TCLAP::SwitchArg ignoresixty("x","ignoresixty","Ignore the too many selects restriction. Only for testing", cmd, false);
     TCLAP::UnlabeledMultiArg<std::string> suppFiles("supportFile", "support files", false, "string");
 
 
@@ -6747,7 +6860,8 @@ int main(int argc, char *argv[])
         }
     }
     loadInvalidFieldNames();
-    justCheck = justCheckSwitch.getValue();    
+    justCheck = justCheckSwitch.getValue();
+    ignore_too_many_selects = ignoresixty.getValue();
     //Getting the variables from the command
     QString input = QString::fromUtf8(inputArg.getValue().c_str());
     QString ddl = QString::fromUtf8(ddlArg.getValue().c_str());

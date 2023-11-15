@@ -473,10 +473,13 @@ int mainClass::generateXLSX()
                                         fields.append(tables[pos].fields[fld].name);
                                         fields_for_select.append(tables[pos].fields[fld].name);
                                         fields_for_create.append(tables[pos].fields[fld].name);
+                                        if (this->resolve_type == 3)
+                                        {
                                         fields.append("'' as '" + tables[pos].fields[fld].name + "-desc'");
                                         fields_for_select.append(tables[pos].fields[fld].name + "-desc");
                                         fields_for_create.append(tables[pos].fields[fld].name + "-desc");
                                         descfields.append(tables[pos].fields[fld].name + "-desc");
+                                        }
 
                                     }
                                 }
@@ -513,10 +516,13 @@ int mainClass::generateXLSX()
                                     a_multiSelectTable.multiSelectKeys.append(tables[pos].fields[fld].multiSelectKeys);
                                     multiSelectTables.append(a_multiSelectTable);
                                 }
+                                if (this->resolve_type == 3)
+                                {
                                 fields.append("'' as '" + tables[pos].fields[fld].name + "-desc'");
                                 fields_for_select.append(tables[pos].fields[fld].name + "-desc");
                                 fields_for_create.append(tables[pos].fields[fld].name + "-desc");
                                 descfields.append(tables[pos].fields[fld].name + "-desc");
+                                }
                             }
                         }
                         else
@@ -553,10 +559,13 @@ int mainClass::generateXLSX()
                                 fields.append(tables[pos].fields[fld].name);
                                 fields_for_select.append(tables[pos].fields[fld].name);
                                 fields_for_create.append(tables[pos].fields[fld].name);
+                                if (this->resolve_type == 3)
+                                {
                                 fields.append("'' as '" + tables[pos].fields[fld].name + "-desc'");
                                 fields_for_select.append(tables[pos].fields[fld].name + "-desc");
                                 fields_for_create.append(tables[pos].fields[fld].name + "-desc");
                                 descfields.append(tables[pos].fields[fld].name + "-desc");
+                                }
 
                             }
                         }
@@ -576,10 +585,13 @@ int mainClass::generateXLSX()
                                 a_multiSelectTable.multiSelectKeys.append(tables[pos].fields[fld].multiSelectKeys);
                                 multiSelectTables.append(a_multiSelectTable);
                             }
+                            if (this->resolve_type == 3)
+                            {
                             fields.append("'' as '" + tables[pos].fields[fld].name + "-desc'");
                             fields_for_select.append(tables[pos].fields[fld].name + "-desc");
                             fields_for_create.append(tables[pos].fields[fld].name + "-desc");
                             descfields.append(tables[pos].fields[fld].name + "-desc");
+                            }
                         }
                     }
                 }

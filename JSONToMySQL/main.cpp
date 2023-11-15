@@ -52,8 +52,7 @@ int main(int argc, char *argv[])
     TCLAP::ValueArg<std::string> userArg("u","user","MySQL User",true,"","string");
     TCLAP::ValueArg<std::string> passArg("p","password","MySQL Password",true,"","string");
     TCLAP::ValueArg<std::string> schemaArg("s","schema","MySQL Schema",true,"","string");
-    TCLAP::ValueArg<std::string> outputArg("o","output","Output Log file",false,"./output.csv","string");
-    TCLAP::ValueArg<std::string> inputArg("i","imported","Imported file. Store the files names properly imported. Also used to skip repeated files",false,"./imported.sqlite","string");
+    TCLAP::ValueArg<std::string> outputArg("o","output","Output Log file",false,"./output.csv","string");    
     TCLAP::ValueArg<std::string> JSArg("J","javascript","Custom Before Insert JavaScript",false,"","string");
     TCLAP::SwitchArg overwriteSwitch("w","overwrite","Overwrite the log file", cmd, false);
     TCLAP::SwitchArg oputSQLSwitch("S","outputSQL","Output each insert SQL to ./inputfile.json.sql", cmd, false);
@@ -75,8 +74,7 @@ int main(int argc, char *argv[])
     cmd.add(userArg);
     cmd.add(passArg);
     cmd.add(schemaArg);
-    cmd.add(outputArg);
-    cmd.add(inputArg);
+    cmd.add(outputArg);    
     cmd.add(mapDirArg);
     cmd.add(outTypeArg);
     cmd.add(uuIdsArg);
@@ -110,8 +108,7 @@ int main(int argc, char *argv[])
     QString user = QString::fromUtf8(userArg.getValue().c_str());
     QString password = QString::fromUtf8(passArg.getValue().c_str());
     QString schema = QString::fromUtf8(schemaArg.getValue().c_str());
-    QString output = QString::fromUtf8(outputArg.getValue().c_str());
-    QString input = QString::fromUtf8(inputArg.getValue().c_str());
+    QString output = QString::fromUtf8(outputArg.getValue().c_str());    
     QString javaScript = QString::fromUtf8(JSArg.getValue().c_str());
     QString mapDirectory = QString::fromUtf8(mapDirArg.getValue().c_str());
     QString outputType = QString::fromUtf8(outTypeArg.getValue().c_str());
@@ -119,7 +116,7 @@ int main(int argc, char *argv[])
 
     mainClass *task = new mainClass(&app);
 
-    task->setParameters(overwrite,json,manifest,host,port,user,password,schema,output,input,javaScript,oputSQLSwitch.getValue(),mapDirectory,outputType, uuidsFile, supportFiles);
+    task->setParameters(overwrite,json,manifest,host,port,user,password,schema,output,javaScript,oputSQLSwitch.getValue(),mapDirectory,outputType, uuidsFile, supportFiles);
 
     QObject::connect(task, SIGNAL(finished()), &app, SLOT(quit()));
 
